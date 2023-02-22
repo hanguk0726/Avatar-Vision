@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 log = "0.4"
-simple_logger = "2.1"
+simple_logger = "4.0.0"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 thiserror = "1.0"
@@ -20,7 +20,10 @@ irondash_engine_context = { version = "0.1.1" }
 irondash_texture = { version = "0.1.0" }
 fastrand = "1.8"
 once_cell = "1.17.1"
-
+image = { version = "0.24.5", features = ["png"] }
+nokhwa-core = "0.1.0"
+nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] }
+flume = "0.10.14"
 # reqwest uses different options per platform
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]

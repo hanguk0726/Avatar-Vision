@@ -3,13 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../services/video_process.dart';
+import '../services/video_processor.dart';
 
-
-
-Widget texture( ) {
+Widget texture() {
   return StreamBuilder<int?>(
-    stream: VideoProcess.textureId.stream,
+    stream: VideoProcessor.textureId.stream,
     builder: (context, snapshot) {
       if (snapshot.hasData) {
         return SizedBox(

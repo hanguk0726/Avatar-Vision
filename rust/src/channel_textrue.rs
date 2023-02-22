@@ -33,9 +33,10 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
                 if let Some(texture_provider) = TEXTURE_PROVIDER.lock().unwrap().as_ref() {
-                    for _ in 0..1200 {
+                    loop {
+                        debug!("mark_frame_available");
                         texture_provider.mark_frame_available();
-                        RunLoop::current().wait(Duration::from_millis(100)).await;
+                        RunLoop::current().wait(Duration::from_millis(4)).await; // 60 fps
                     }
                 } else {
                     debug!("No texture provider");
@@ -60,7 +61,7 @@ impl AsyncMethodHandler for TextureHandler {
 
 pub(crate) fn init() {
     // create TextureHandler instance that will listen on main (platform) thread.
-    let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel"));
+    // let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel"));
 
     // create background thread and new TextureHandler instance that will listen
     // on background thread (using different channel).

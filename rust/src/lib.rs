@@ -17,6 +17,8 @@ mod log_;
 mod slow;
 mod textrue;
 mod channel_textrue;
+mod capture;
+mod channel_capture;
 
 // Entry-point - called from dart. the function name matters.
 #[no_mangle]
@@ -43,6 +45,7 @@ fn init_on_main_thread() {
     assert!(RunLoop::is_main_thread());
 
     channel_textrue::init();
+    channel_capture::init();
 }
 
 static START: Once = Once::new();

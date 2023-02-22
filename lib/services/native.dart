@@ -4,7 +4,7 @@ import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
-import 'package:video_diary/services/video_process.dart';
+import 'package:video_diary/services/video_processor.dart';
 
 class Native {
   Native._privateConstructor();
@@ -52,44 +52,18 @@ class Native {
     debugPrint(text);
   }
 
-  final _channel =
-      NativeMethodChannel('addition_channel', context: nativeContext);
-
-  final _channelBackgroundThread = NativeMethodChannel(
-      'addition_channel_background_thread',
+  static final _textureHandlerChannel = NativeMethodChannel(
+      'texture_handler_channel_background_thread',
       context: nativeContext);
-  static final _textureHandlerChannel =
-      NativeMethodChannel('texture_handler_channel', context: nativeContext);
-  final _slowChannel =
-      NativeMethodChannel('slow_channel', context: nativeContext);
-
-  final _httpClientChannel =
-      NativeMethodChannel('http_client_channel', context: nativeContext);
-
+  static final _captureChannel = NativeMethodChannel(
+      'captrue_channel_background_thread',
+      context: nativeContext);
   static void callTextureHandler() async {
     final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
     _showResult(res);
   }
-  void _callRustOnPlatformThread() async {
-    final res = await _channel.invokeMethod('add', {'a': 10.0, 'b': 20.0});
-    _showResult(res);
-  }
-
-  void _callRustOnBackgroundThread() async {
-    final res = await _channelBackgroundThread
-        .invokeMethod('add', {'a': 15.0, 'b': 5.0});
-    _showResult(res);
-  }
-
-  void _callSlowMethod() async {
-    final res = await _slowChannel.invokeMethod('getMeaningOfUniverse', {});
-    _showResult(res);
-  }
-
-  void _loadPage() async {
-    final res = await _httpClientChannel.invokeMethod('load', {
-      'url': 'https://flutter.dev',
-    });
+  static void callCaptureHandler() async {
+    final res = await _captureChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
 }
