@@ -46,7 +46,7 @@ class Native {
 
   static final nativeContext = _initNativeContext();
 
-  void _showResult(Object res) {
+  static void _showResult(Object res) {
     const encoder = JsonEncoder.withIndent('  ');
     final text = encoder.convert(res);
     debugPrint(text);
@@ -58,7 +58,7 @@ class Native {
   final _channelBackgroundThread = NativeMethodChannel(
       'addition_channel_background_thread',
       context: nativeContext);
-  final _textureHandlerChannel =
+  static final _textureHandlerChannel =
       NativeMethodChannel('texture_handler_channel', context: nativeContext);
   final _slowChannel =
       NativeMethodChannel('slow_channel', context: nativeContext);
@@ -66,7 +66,7 @@ class Native {
   final _httpClientChannel =
       NativeMethodChannel('http_client_channel', context: nativeContext);
 
-  void callTextureHandler() async {
+  static void callTextureHandler() async {
     final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
     _showResult(res);
   }

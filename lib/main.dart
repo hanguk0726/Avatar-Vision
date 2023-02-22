@@ -12,7 +12,7 @@ void main() async {
 }
 
 Future<void> _inflateInstances() async {
-  Get.put(Native());
-  Get.put(VideoProcess());
+  Native();
+  VideoProcess();
   VideoProcess.textureId.add(await Native.initTextureId());
 }

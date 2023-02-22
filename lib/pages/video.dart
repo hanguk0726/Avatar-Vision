@@ -35,8 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        Native native = Get.find();
-        native.callTextureHandler();
+        Native.callTextureHandler();
     });
   }
 
