@@ -1,0 +1,11 @@
+C:\Users\hanguk\dev\code\video_diary\rust\target\debug\deps\async_trait-a19571eafc9ef9ff.dll: C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lib.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\args.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\bound.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\expand.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lifetime.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\parse.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\receiver.rs
+
+C:\Users\hanguk\dev\code\video_diary\rust\target\debug\deps\async_trait-a19571eafc9ef9ff.d: C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lib.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\args.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\bound.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\expand.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lifetime.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\parse.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\receiver.rs
+
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lib.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\args.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\bound.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\expand.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\lifetime.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\parse.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\async-trait-0.1.64\src\receiver.rs:

@@ -1,0 +1,9 @@
+C:\Users\hanguk\dev\code\video_diary\rust\target\debug\deps\irondash_message_channel_derive-b3ffe1a47d5b24b9.dll: C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\lib.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\attributes.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\case.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\from.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\try_into.rs
+
+C:\Users\hanguk\dev\code\video_diary\rust\target\debug\deps\irondash_message_channel_derive-b3ffe1a47d5b24b9.d: C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\lib.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\attributes.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\case.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\from.rs C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\try_into.rs
+
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\lib.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\attributes.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\case.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\from.rs:
+C:\Users\hanguk\.cargo\registry\src\github.com-1ecc6299db9ec823\irondash_message_channel_derive-0.1.1\src\try_into.rs:
