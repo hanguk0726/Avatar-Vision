@@ -33,10 +33,12 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
                 if let Some(texture_provider) = TEXTURE_PROVIDER.lock().unwrap().as_ref() {
-                    for _ in 0..20 {
+                    for _ in 0..1200 {
                         texture_provider.mark_frame_available();
                         RunLoop::current().wait(Duration::from_millis(100)).await;
                     }
+                } else {
+                    debug!("No texture provider");
                 }
 
                 Ok(TextureHandlerResponse {

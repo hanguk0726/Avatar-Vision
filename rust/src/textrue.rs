@@ -17,6 +17,7 @@ pub fn init_on_main_thread_texture(engine_handle: i64) -> irondash_texture::Resu
     let texture = Texture::new_with_provider(engine_handle, provider)?;
     let id = texture.id();
     *TEXTURE_PROVIDER.lock().unwrap() = Some(texture.into_sendable_texture());
+    debug!("Created texture with id {}", id);
     Ok(id)
 }
 #[derive(Clone)]

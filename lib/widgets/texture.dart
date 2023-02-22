@@ -1,10 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../services/video_process.dart';
 
-Widget texture() {
-  return FutureBuilder<int>(
-    future: VideoProcess.textureId,
+
+
+Widget texture( ) {
+  return StreamBuilder<int?>(
+    stream: VideoProcess.textureId.stream,
     builder: (context, snapshot) {
       if (snapshot.hasData) {
         return SizedBox(

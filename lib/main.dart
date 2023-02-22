@@ -5,13 +5,14 @@ import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/services/video_process.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  _inflateInstances();
+  await _inflateInstances();
   runApp(const Video());
 }
 
-void _inflateInstances() {
-  Get.put(VideoProcess());
+Future<void> _inflateInstances() async {
   Get.put(Native());
+  Get.put(VideoProcess());
+  VideoProcess.textureId.add(await Native.initTextureId());
 }
