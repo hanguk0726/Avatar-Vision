@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:video_diary/services/native.dart';
 
+import '../services/video_process.dart';
 import '../widgets/texture.dart';
 
 class Video extends StatelessWidget {
@@ -27,6 +31,15 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        Native native = Get.find();
+        native.callTextureHandler();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

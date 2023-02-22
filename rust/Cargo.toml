@@ -19,6 +19,7 @@ irondash_run_loop = { version = "0.1.0" }
 irondash_engine_context = { version = "0.1.1" }
 irondash_texture = { version = "0.1.0" }
 fastrand = "1.8"
+once_cell = "1.17.1"
 
 # reqwest uses different options per platform
 

@@ -58,13 +58,18 @@ class Native {
   final _channelBackgroundThread = NativeMethodChannel(
       'addition_channel_background_thread',
       context: nativeContext);
-
+  final _textureHandlerChannel =
+      NativeMethodChannel('texture_handler_channel', context: nativeContext);
   final _slowChannel =
       NativeMethodChannel('slow_channel', context: nativeContext);
 
   final _httpClientChannel =
       NativeMethodChannel('http_client_channel', context: nativeContext);
 
+  void callTextureHandler() async {
+    final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
+    _showResult(res);
+  }
   void _callRustOnPlatformThread() async {
     final res = await _channel.invokeMethod('add', {'a': 10.0, 'b': 20.0});
     _showResult(res);

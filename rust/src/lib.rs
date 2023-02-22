@@ -16,6 +16,7 @@ mod http_client;
 mod log_;
 mod slow;
 mod textrue;
+mod channel_textrue;
 
 // Entry-point - called from dart. the function name matters.
 #[no_mangle]
@@ -41,9 +42,7 @@ fn init_on_main_thread() {
     );
     assert!(RunLoop::is_main_thread());
 
-    addition::init();
-    slow::init();
-    http_client::init();
+    channel_textrue::init();
 }
 
 static START: Once = Once::new();
