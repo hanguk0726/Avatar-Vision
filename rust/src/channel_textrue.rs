@@ -36,7 +36,7 @@ impl AsyncMethodHandler for TextureHandler {
                     loop {
                         debug!("mark_frame_available");
                         texture_provider.mark_frame_available();
-                        RunLoop::current().wait(Duration::from_millis(4)).await; // 60 fps
+                        RunLoop::current().wait(Duration::from_millis(4)).await; 
                     }
                 } else {
                     debug!("No texture provider");

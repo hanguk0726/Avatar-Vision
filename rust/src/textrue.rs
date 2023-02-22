@@ -1,13 +1,13 @@
 use std::{
     iter::repeat_with,
-    mem::take,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex}, fmt::Error, 
 };
 
 use irondash_texture::{
     BoxedPixelData, PayloadProvider, PixelDataProvider, SendableTexture, SimplePixelData, Texture,
 };
-use log::debug;
+use log::{debug, error};
+use nokhwa::utils::{FrameFormat, mjpeg_to_rgb, yuyv422_to_rgb};
 use once_cell::sync::Lazy;
 
 use crate::capture::CAPTRUE_STATE;
@@ -34,13 +34,36 @@ impl PixelBufferSource {
 
 impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     fn get_payload(&self) -> BoxedPixelData {
+        // !!! CAUTION !!!
+        // Aware CAPTRUE_STATE is being holded here, so can't be used in other places.
         let binding = CAPTRUE_STATE.lock().unwrap();
         let state = binding.as_ref().unwrap();
         let mut buffer = state.receiver.recv().unwrap();
+        let data = buffer.buffer();
         let width = 1280i32;
         let height = 720i32;
+        debug!("Converting pixel buffer");
+        let data: Vec<u8> =   match state.format.format() {
+            FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {
+                error!("Error converting MJPEG to RGB: {:?}", why);
+                Error
+            }).unwrap(),
+            FrameFormat::YUYV => yuyv422_to_rgb(data, true).map_err(|why| {
+                error!("Error converting YUYV to RGB: {:?}", why);
+                Error
+            }).unwrap(),
+            // FrameFormat::GRAY => Ok(data
+            //     .iter()
+            //     .flat_map(|x| {
+            //         let pxv = *x;
+            //         [pxv, pxv, pxv]
+            //     })
+            //     .collect()),
+            // FrameFormat::RAWRGB => Ok(data.to_vec()),
+            // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
+            _ => panic!("Unsupported format"),
+        };
         debug!("Rendering pixel buffer");
-        let data: Vec<u8> = take(&mut buffer);
         let _data = if data.len() == 0 {
             debug!("data: {:?}", data.len());
             repeat_with(|| 0)
