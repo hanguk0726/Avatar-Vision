@@ -49,7 +49,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64{
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (sender, receiver) = flume::unbounded();
+    let (sender, receiver) = flume::bounded(1);
     let (sender, receiver) = (Arc::new(sender), Arc::new(receiver));
     let provider = Arc::new(PixelBufferSource::new(receiver));
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();

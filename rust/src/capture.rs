@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 use std::fmt::Error;
 use std::sync::{Arc, Mutex};
 
-pub fn inflate_camera_conection(sender: Arc<Sender<Buffer>>) -> Result<CallbackCamera, Error> {
+pub fn inflate_camera_conection(sender: Arc<Sender<Vec<u8>>>) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
@@ -19,7 +19,7 @@ pub fn inflate_camera_conection(sender: Arc<Sender<Buffer>>) -> Result<CallbackC
         debug!("sending frame");
 
         sender
-            .send(buf)
+            .send(decode(buf).unwrap())
             .expect("Error sending frame!");
     })
     .map_err(|why| {
@@ -37,7 +37,7 @@ pub fn inflate_camera_conection(sender: Arc<Sender<Buffer>>) -> Result<CallbackC
     Ok(camera)
 }
 
-pub fn decode(buf: Buffer) -> Result<Vec<u8>, Error> {
+fn decode(buf: Buffer) -> Result<Vec<u8>, Error> {
     let data = buf.buffer();
     match buf.source_frame_format() {
         FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {

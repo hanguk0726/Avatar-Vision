@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub struct CaptureHandler {
-    pub sender: Arc<Sender<Buffer>>
+    pub sender: Arc<Sender<Vec<u8>>>
 }
 
 #[async_trait(?Send)]
