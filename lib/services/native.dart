@@ -23,9 +23,9 @@ class Native {
   late final NativeMethodChannel _textureHandlerChannel;
   late final NativeMethodChannel _captureChannel;
   late final int textureId;
-  
-  void init() {
-    _initTextureId();
+
+  Future<void> init() async {
+    await _initTextureId();
     nativeContext = _initNativeContext();
     _textureHandlerChannel = NativeMethodChannel(
         'texture_handler_channel_background_thread',

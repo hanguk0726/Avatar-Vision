@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/services/native.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Native().init();
+  await Native().init();
   runApp(const Video());
 }
