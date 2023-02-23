@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_diary/services/native.dart';
 
-import '../services/video_processor.dart';
 import '../widgets/texture.dart';
 
 class Video extends StatelessWidget {
@@ -33,13 +32,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Native.callCaptureHandler();
       Future.delayed(const Duration(seconds: 1), () {
-        Native.initTextureId()
-            .then((value) => VideoProcessor.textureId.add(value));
+        Native().callCaptureHandler();
       });
       Future.delayed(const Duration(seconds: 3), () {
-        Native.callTextureHandler();
+        Native().callTextureHandler();
       });
     });
   }

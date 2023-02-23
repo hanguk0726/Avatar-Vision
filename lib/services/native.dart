@@ -4,7 +4,6 @@ import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
-import 'package:video_diary/services/video_processor.dart';
 
 class Native {
   Native._privateConstructor();
@@ -12,15 +11,30 @@ class Native {
   factory Native() {
     return _instance;
   }
+  
   static const String rustLibraryName = 'rust';
-  static final dylib = defaultTargetPlatform == TargetPlatform.android
+  final dylib = defaultTargetPlatform == TargetPlatform.android
       ? DynamicLibrary.open("lib$rustLibraryName.so")
       : (defaultTargetPlatform == TargetPlatform.windows
           ? DynamicLibrary.open("$rustLibraryName.dll")
           : DynamicLibrary.process());
 
+  late final MessageChannelContext nativeContext;
+  late final NativeMethodChannel _textureHandlerChannel;
+  late final NativeMethodChannel _captureChannel;
+  late final int textureId;
+  void init() {
+    _initTextureId();
+    nativeContext = _initNativeContext();
+    _textureHandlerChannel = NativeMethodChannel(
+        'texture_handler_channel_background_thread',
+        context: nativeContext);
+    _captureChannel = NativeMethodChannel('captrue_channel_background_thread',
+        context: nativeContext);
+  }
+
   /// initialize context for Native library.
-  static MessageChannelContext _initNativeContext() {
+  MessageChannelContext _initNativeContext() {
     const String rustLibraryInitChannelCallName =
         'rust_init_message_channel_context';
 
@@ -34,17 +48,15 @@ class Native {
     return MessageChannelContext.forInitFunction(function);
   }
 
-  static Future<int> initTextureId() async {
+  Future<void> _initTextureId() async {
     const String rustLibraryInitTextureCallName = 'rust_init_texture';
     final function = dylib
         .lookup<NativeFunction<Int64 Function(Int64)>>(
             rustLibraryInitTextureCallName)
         .asFunction<int Function(int)>();
     final handle = await EngineContext.instance.getEngineHandle();
-    return function(handle);
+    textureId = function(handle);
   }
-
-  static final nativeContext = _initNativeContext();
 
   static void _showResult(Object res) {
     const encoder = JsonEncoder.withIndent('  ');
@@ -52,17 +64,12 @@ class Native {
     debugPrint(text);
   }
 
-  static final _textureHandlerChannel = NativeMethodChannel(
-      'texture_handler_channel_background_thread',
-      context: nativeContext);
-  static final _captureChannel = NativeMethodChannel(
-      'captrue_channel_background_thread',
-      context: nativeContext);
-  static void callTextureHandler() async {
+  void callTextureHandler() async {
     final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
     _showResult(res);
   }
-  static void callCaptureHandler() async {
+
+  void callCaptureHandler() async {
     final res = await _captureChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }

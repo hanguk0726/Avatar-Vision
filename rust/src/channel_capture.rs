@@ -1,38 +1,33 @@
-use std::{mem::ManuallyDrop, thread, time::Duration};
+use std::{mem::ManuallyDrop, thread, time::Duration, sync::Arc};
 
 use async_trait::async_trait;
+use flume::Sender;
 use irondash_message_channel::{
-    AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, TryFromValue, Value,
+    AsyncMethodHandler,  MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
 use log::debug;
+use nokhwa::Buffer;
 
 use crate::{
-    capture::{inflateCameraConection, CAPTRUE_STATE},
-    textrue::TEXTURE_PROVIDER,
+    capture::{inflate_camera_conection},
 };
 
-struct CaptureHandler {}
+pub struct CaptureHandler {
+    pub sender: Arc<Sender<Buffer>>
+}
 
 #[async_trait(?Send)]
 impl AsyncMethodHandler for CaptureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            // "inflate_camera_conection" => {
-            //     debug!("Received request {:?} on thread {:?}",
-            //         call,
-            //         thread::current().id()
-            //     );
-            //     inflateCameraConection().unwrap();
-            //     Ok("ok".into())
-            // }
             "open_camera_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
                     thread::current().id()
                 );
-                if let Ok(mut camera) = inflateCameraConection() {
+                if let Ok(mut camera) = inflate_camera_conection(self.sender.clone()) {
                     match camera.open_stream() {
                         Ok(_) => println!("Opened Stream"),
                         Err(_) => println!("Failed to Open Stream"),
@@ -52,9 +47,9 @@ impl AsyncMethodHandler for CaptureHandler {
     }
 }
 
-pub(crate) fn init() {
+pub(crate) fn init(captureHandler:CaptureHandler) {
     thread::spawn(|| {
-        let _ = ManuallyDrop::new(CaptureHandler {}.register("captrue_channel_background_thread"));
+        let _ = ManuallyDrop::new(captureHandler.register("captrue_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()

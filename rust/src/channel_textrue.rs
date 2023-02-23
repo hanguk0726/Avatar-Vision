@@ -1,15 +1,21 @@
-use std::{mem::ManuallyDrop, thread, time::Duration};
+use std::{
+    mem::ManuallyDrop,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use async_trait::async_trait;
 use irondash_message_channel::{
     AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, TryFromValue, Value,
 };
 use irondash_run_loop::RunLoop;
+use irondash_texture::{PixelDataProvider, SendableTexture};
 use log::debug;
 
-use crate::textrue::TEXTURE_PROVIDER;
-
-struct TextureHandler {}
+pub struct TextureHandler {
+    pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
+}
 
 #[derive(IntoValue)]
 struct ThreadInfo {
@@ -32,23 +38,12 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
-                if let Some(texture_provider) = TEXTURE_PROVIDER.lock().unwrap().as_ref() {
-                    loop {
-                        debug!("mark_frame_available");
-                        texture_provider.mark_frame_available();
-                        RunLoop::current().wait(Duration::from_millis(4)).await; 
-                    }
-                } else {
-                    debug!("No texture provider");
+                let texture_provider = self.texture_provider.clone();
+                loop {
+                    debug!("mark_frame_available");
+                    texture_provider.mark_frame_available();
+                    RunLoop::current().wait(Duration::from_millis(4)).await;
                 }
-
-                Ok(TextureHandlerResponse {
-                    thread_info: ThreadInfo {
-                        thread_id: format!("{:?}", std::thread::current().id()),
-                        is_main_thread: RunLoop::is_main_thread(),
-                    },
-                }
-                .into())
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
@@ -59,14 +54,15 @@ impl AsyncMethodHandler for TextureHandler {
     }
 }
 
-pub(crate) fn init() {
+pub(crate) fn init(textrueHandler: TextureHandler) {
     // create TextureHandler instance that will listen on main (platform) thread.
     // let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel"));
 
     // create background thread and new TextureHandler instance that will listen
     // on background thread (using different channel).
     thread::spawn(|| {
-        let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel_background_thread"));
+        let _ =
+            ManuallyDrop::new(textrueHandler.register("texture_handler_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()
