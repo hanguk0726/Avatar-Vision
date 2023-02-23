@@ -16,6 +16,7 @@ use nokhwa::{
 };
 use once_cell::sync::Lazy;
 
+use crate::capture::decode;
 
 #[derive(Clone)]
 pub struct PixelBufferSource {
@@ -24,7 +25,9 @@ pub struct PixelBufferSource {
 
 impl PixelBufferSource {
     pub fn new(receiver: Arc<Receiver<Buffer>>) -> Self {
-        Self { receiver: receiver }
+        Self {
+            receiver: receiver,
+        }
     }
 }
 
@@ -33,32 +36,13 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         // !!! CAUTION !!!
         // Aware CAPTRUE_STATE is being holded here, so can't be used in other places.
         debug!("Rendering pixel buffer");
-        let buffer = self.receiver.recv().unwrap();
-        let data = buffer.decode_image::<RgbAFormat>().unwrap();
-        let data = data.to_vec();
         let width = 1280i32;
         let height = 720i32;
-        // let data: Vec<u8> =   match state.format.format() {
-        //     FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {
-        //         error!("Error converting MJPEG to RGB: {:?}", why);
-        //         Error
-        //     }).unwrap(),
-        //     FrameFormat::YUYV => yuyv422_to_rgb(data, true).map_err(|why| {
-        //         error!("Error converting YUYV to RGB: {:?}", why);
-        //         Error
-        //     }).unwrap(),
-        //     // FrameFormat::GRAY => Ok(data
-        //     //     .iter()
-        //     //     .flat_map(|x| {
-        //     //         let pxv = *x;
-        //     //         [pxv, pxv, pxv]
-        //     //     })
-        //     //     .collect()),
-        //     // FrameFormat::RAWRGB => Ok(data.to_vec()),
-        //     // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
-        //     _ => panic!("Unsupported format"),
-        // };
-        let _data = if data.len() == 0 {
+        let buffer = self.receiver.recv().unwrap();
+        // let data = buffer.decode_image::<RgbAFormat>().unwrap();
+        // let data = data.to_vec();
+        let data = decode(buffer).unwrap();
+        let data = if data.len() == 0 {
             debug!("data: {:?}", data.len());
             repeat_with(|| 0)
                 .take((width * height * 4) as usize)
@@ -68,7 +52,7 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
             data
         };
 
-        SimplePixelData::new_boxed(width, height, _data)
+        SimplePixelData::new_boxed(width, height, data)
     }
 }
 
