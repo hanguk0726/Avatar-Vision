@@ -32,12 +32,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 1), () {
-        Native().callCaptureHandler();
-      });
-      Future.delayed(const Duration(seconds: 3), () {
-        Native().callTextureHandler();
-      });
+      Native()
+        ..callCaptureHandler()
+        ..callTextureHandler();
     });
   }
 

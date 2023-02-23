@@ -32,12 +32,12 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     fn get_payload(&self) -> BoxedPixelData {
         // !!! CAUTION !!!
         // Aware CAPTRUE_STATE is being holded here, so can't be used in other places.
-        let mut buffer = self.receiver.recv().unwrap();
+        debug!("Rendering pixel buffer");
+        let buffer = self.receiver.recv().unwrap();
         let data = buffer.decode_image::<RgbAFormat>().unwrap();
         let data = data.to_vec();
         let width = 1280i32;
         let height = 720i32;
-        debug!("Converting pixel buffer");
         // let data: Vec<u8> =   match state.format.format() {
         //     FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {
         //         error!("Error converting MJPEG to RGB: {:?}", why);
@@ -58,7 +58,6 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         //     // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
         //     _ => panic!("Unsupported format"),
         // };
-        debug!("Rendering pixel buffer");
         let _data = if data.len() == 0 {
             debug!("data: {:?}", data.len());
             repeat_with(|| 0)

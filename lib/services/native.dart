@@ -11,7 +11,7 @@ class Native {
   factory Native() {
     return _instance;
   }
-  
+
   static const String rustLibraryName = 'rust';
   final dylib = defaultTargetPlatform == TargetPlatform.android
       ? DynamicLibrary.open("lib$rustLibraryName.so")
@@ -23,6 +23,7 @@ class Native {
   late final NativeMethodChannel _textureHandlerChannel;
   late final NativeMethodChannel _captureChannel;
   late final int textureId;
+  
   void init() {
     _initTextureId();
     nativeContext = _initNativeContext();
@@ -33,15 +34,10 @@ class Native {
         context: nativeContext);
   }
 
-  /// initialize context for Native library.
   MessageChannelContext _initNativeContext() {
     const String rustLibraryInitChannelCallName =
         'rust_init_message_channel_context';
 
-    // This function will be called by MessageChannel with opaque FFI
-    // initialization data. From it you should call
-    // `irondash_init_message_channel_context` and do any other initialization,
-    // i.e. register rust method channel handlers.
     final function =
         dylib.lookup<NativeFunction<MessageChannelContextInitFunction>>(
             rustLibraryInitChannelCallName);
