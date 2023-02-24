@@ -6,6 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use flume::Receiver;
 use irondash_message_channel::{
     AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, TryFromValue, Value,
 };
@@ -14,6 +15,8 @@ use irondash_texture::{PixelDataProvider, SendableTexture};
 use log::debug;
 
 pub struct TextureHandler {
+    pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    pub receiver: Arc<Receiver<Vec<u8>>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
 }
 
@@ -38,12 +41,16 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
-                let texture_provider = self.texture_provider.clone();
                 loop {
+                    let buf = self.receiver.recv().unwrap();
+                    let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
+                    *pixel_buffer = buf.clone();
                     debug!("mark_frame_available");
-                    texture_provider.mark_frame_available();
+                    self.texture_provider.mark_frame_available();
                     RunLoop::current().wait(Duration::from_millis(4)).await;
                 }
+
+                Ok("ok".into())
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),

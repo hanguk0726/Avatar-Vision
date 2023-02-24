@@ -16,17 +16,14 @@ use nokhwa::{
 };
 use once_cell::sync::Lazy;
 
-
 #[derive(Clone)]
 pub struct PixelBufferSource {
-    receiver: Arc<Receiver<Vec<u8>>>,
+    buf: Arc<Mutex<Vec<u8>>>,
 }
 
 impl PixelBufferSource {
-    pub fn new(receiver: Arc<Receiver<Vec<u8>>>) -> Self {
-        Self {
-            receiver: receiver,
-        }
+    pub fn new(buf: Arc<Mutex<Vec<u8>>>) -> Self {
+        Self { buf: buf }
     }
 }
 
@@ -37,7 +34,7 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         debug!("Rendering pixel buffer");
         let width = 1280i32;
         let height = 720i32;
-        let data = self.receiver.recv().unwrap();
+        let data = self.buf.lock().unwrap().clone();
         let data = if data.len() == 0 {
             debug!("data: {:?}", data.len());
             repeat_with(|| 0)
