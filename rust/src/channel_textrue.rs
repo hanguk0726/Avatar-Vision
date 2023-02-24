@@ -1,5 +1,5 @@
 use std::{
-    mem::ManuallyDrop,
+    mem::{take, ManuallyDrop},
     sync::{Arc, Mutex},
     thread,
     time::Duration,
@@ -42,12 +42,12 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
                 loop {
-                    let buf = self.receiver.recv().unwrap();
+                    let mut buf = self.receiver.recv().unwrap();
+                    debug!("received buffer");
                     let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
-                    *pixel_buffer = buf.clone();
+                    *pixel_buffer = take(&mut buf);
                     debug!("mark_frame_available");
                     self.texture_provider.mark_frame_available();
-                    RunLoop::current().wait(Duration::from_millis(4)).await;
                 }
 
                 Ok("ok".into())

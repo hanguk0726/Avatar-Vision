@@ -1,7 +1,7 @@
 use std::{
     fmt::Error,
     iter::repeat_with,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex}, mem::take,
 };
 
 use flume::Receiver;
@@ -34,7 +34,8 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         debug!("Rendering pixel buffer");
         let width = 1280i32;
         let height = 720i32;
-        let data = self.buf.lock().unwrap().clone();
+        let mut data = self.buf.lock().unwrap();
+        let data: Vec<u8> = take(&mut data);
         let data = if data.len() == 0 {
             debug!("data: {:?}", data.len());
             repeat_with(|| 0)
