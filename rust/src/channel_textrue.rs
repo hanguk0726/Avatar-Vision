@@ -2,13 +2,12 @@ use std::{
     mem::{take, ManuallyDrop},
     sync::{Arc, Mutex},
     thread,
-    time::Duration,
 };
 
 use async_trait::async_trait;
 use flume::Receiver;
 use irondash_message_channel::{
-    AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, TryFromValue, Value,
+    AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
@@ -50,7 +49,6 @@ impl AsyncMethodHandler for TextureHandler {
                     self.texture_provider.mark_frame_available();
                 }
 
-                Ok("ok".into())
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
@@ -61,7 +59,7 @@ impl AsyncMethodHandler for TextureHandler {
     }
 }
 
-pub(crate) fn init(textrueHandler: TextureHandler) {
+pub(crate) fn init(textrue_handler: TextureHandler) {
     // create TextureHandler instance that will listen on main (platform) thread.
     // let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel"));
 
@@ -69,7 +67,7 @@ pub(crate) fn init(textrueHandler: TextureHandler) {
     // on background thread (using different channel).
     thread::spawn(|| {
         let _ =
-            ManuallyDrop::new(textrueHandler.register("texture_handler_channel_background_thread"));
+            ManuallyDrop::new(textrue_handler.register("texture_handler_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()

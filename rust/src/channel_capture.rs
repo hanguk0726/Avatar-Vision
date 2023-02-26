@@ -1,4 +1,4 @@
-use std::{mem::ManuallyDrop, thread, time::Duration, sync::Arc};
+use std::{mem::ManuallyDrop, thread, sync::Arc};
 
 use async_trait::async_trait;
 use flume::Sender;
@@ -7,7 +7,6 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 use log::debug;
-use nokhwa::Buffer;
 
 use crate::{
     capture::{inflate_camera_conection},
@@ -47,9 +46,9 @@ impl AsyncMethodHandler for CaptureHandler {
     }
 }
 
-pub(crate) fn init(captureHandler:CaptureHandler) {
+pub(crate) fn init(capture_handler:CaptureHandler) {
     thread::spawn(|| {
-        let _ = ManuallyDrop::new(captureHandler.register("captrue_channel_background_thread"));
+        let _ = ManuallyDrop::new(capture_handler.register("captrue_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()

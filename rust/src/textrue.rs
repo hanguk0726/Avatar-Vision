@@ -1,21 +1,11 @@
 use std::{
-    fmt::Error,
     iter::repeat_with,
-    sync::{Arc, Mutex}, mem::take,
+    mem::take,
+    sync::{Arc, Mutex},
 };
 
-use flume::Receiver;
-use irondash_texture::{
-    BoxedPixelData, PayloadProvider, PixelDataProvider, SendableTexture, SimplePixelData, Texture,
-};
-use log::{debug, error};
-use nokhwa::{
-    pixel_format::RgbAFormat,
-    utils::{mjpeg_to_rgb, yuyv422_to_rgb, FrameFormat},
-    Buffer, CallbackCamera,
-};
-use once_cell::sync::Lazy;
-
+use irondash_texture::{PayloadProvider, BoxedPixelData, SimplePixelData};
+use log::debug;
 #[derive(Clone)]
 pub struct PixelBufferSource {
     buf: Arc<Mutex<Vec<u8>>>,

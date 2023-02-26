@@ -1,15 +1,11 @@
-use flume::{Receiver, Sender};
+use flume::Sender;
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
-use nokhwa::utils::{
-    mjpeg_to_rgb, yuyv422_to_rgb, CameraFormat, CameraIndex, FrameFormat, RequestedFormat,
-    RequestedFormatType,
-};
-use nokhwa::{CallbackCamera, NokhwaError};
+use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
+use nokhwa::CallbackCamera;
 use nokhwa_core::buffer::Buffer;
-use once_cell::sync::Lazy;
 use std::fmt::Error;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
 pub fn inflate_camera_conection(sender: Arc<Sender<Vec<u8>>>) -> Result<CallbackCamera, Error> {
@@ -92,8 +88,3 @@ fn yuyv422_to_rgba_(data: &[u8]) -> Vec<u8> {
     }
     rgba
 }
-
-// fn yuyv422_to_rgb_(data: &[u8], rgba: bool) ->  Result<Vec<u8>, NokhwaError> {
-    
-
-// }
