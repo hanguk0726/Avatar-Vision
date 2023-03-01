@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_diary/services/native.dart';
 
+import '../widgets/media_conrtol_bar.dart';
 import '../widgets/texture.dart';
 
 class Video extends StatelessWidget {
@@ -31,11 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Native()
-        ..callCaptureHandler()
-        ..callTextureHandler();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
   }
 
   @override
@@ -44,7 +41,19 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(child: texture()),
+      body: Stack(children: [
+        texture(),
+        mediaControlBar(
+          onStart: () {
+            Native()
+              ..openCameraStream()
+              ..startToRenderTexture();
+          },
+          onStop: () {
+            Native().stopCameraStream();
+          },
+        ),
+      ]),
     );
   }
 }

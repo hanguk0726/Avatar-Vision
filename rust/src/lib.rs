@@ -1,6 +1,7 @@
 use std::{
+    cell::RefCell,
     ffi::c_void,
-    sync::{Arc, Once, Mutex},
+    sync::{Arc, Mutex, Once},
     thread::{self},
 };
 
@@ -10,15 +11,14 @@ use irondash_texture::Texture;
 use log::debug;
 use textrue::PixelBufferSource;
 
-use crate::{channel_capture::CaptureHandler, channel_textrue::TextureHandler, log_::init_logging};
+use crate::{channel_capture::CaptureHandler, channel_textrue::TextureHandler, log_::init_logging, camera_test::TestCamera};
 
-mod addition;
+mod camera_test;
 mod capture;
 mod channel_capture;
 mod channel_textrue;
-mod http_client;
+mod encoding;
 mod log_;
-mod slow;
 mod textrue;
 
 static START: Once = Once::new();
@@ -49,9 +49,9 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (sender, receiver) = flume::bounded(1);
+    let (sender, receiver) = flume::bounded(200);
     let (sender, receiver) = (Arc::new(sender), Arc::new(receiver));
-    let pixel_buffer:Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
+    let pixel_buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
     let provider = Arc::new(PixelBufferSource::new(Arc::clone(&pixel_buffer)));
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
@@ -60,6 +60,10 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         receiver: receiver,
         texture_provider: textrue.into_sendable_texture(),
     });
-    channel_capture::init(CaptureHandler { sender });
+    // channel_capture::init(CaptureHandler { sender, camera: RefCell::new(None) });
+    let camera = TestCamera::new(sender);
+    channel_capture::init(CaptureHandler {
+        camera: RefCell::new(camera),
+    });
     texture_id
 }

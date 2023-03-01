@@ -8,23 +8,21 @@ use irondash_texture::{PayloadProvider, BoxedPixelData, SimplePixelData};
 use log::debug;
 #[derive(Clone)]
 pub struct PixelBufferSource {
-    buf: Arc<Mutex<Vec<u8>>>,
+    pixel_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl PixelBufferSource {
-    pub fn new(buf: Arc<Mutex<Vec<u8>>>) -> Self {
-        Self { buf: buf }
+    pub fn new(pixel_buffer: Arc<Mutex<Vec<u8>>>) -> Self {
+        Self { pixel_buffer }
     }
 }
 
 impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     fn get_payload(&self) -> BoxedPixelData {
-        // !!! CAUTION !!!
-        // Aware CAPTRUE_STATE is being holded here, so can't be used in other places.
         debug!("Rendering pixel buffer");
         let width = 1280i32;
         let height = 720i32;
-        let mut data = self.buf.lock().unwrap();
+        let mut data = self.pixel_buffer.lock().unwrap();
         let data: Vec<u8> = take(&mut data);
         let data = if data.len() == 0 {
             debug!("data: {:?}", data.len());

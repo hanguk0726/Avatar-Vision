@@ -1155,6 +1155,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
 
 [[package]]
+name = "minimp4"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "minimp4-sys",
+]
+
+[[package]]
+name = "minimp4-sys"
+version = "0.1.1"
+dependencies = [
+ "bindgen",
+ "cc",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1390,6 +1406,26 @@ name = "once_cell"
 version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
+name = "openh264"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea6f884c2b7f72ebf4e06a28b88cefa43085da71345d5595d6ec17a0f79e13b2"
+dependencies = [
+ "openh264-sys2",
+]
+
+[[package]]
+name = "openh264-sys2"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "171fdb16e88a11b400d5b41c275f69f65f6e63e2920152621a99c3c2dc50ec4a"
+dependencies = [
+ "cc",
+ "nasm-rs",
+ "walkdir",
+]
 
 [[package]]
 name = "openssl"
@@ -1726,10 +1762,13 @@ dependencies = [
  "irondash_run_loop",
  "irondash_texture",
  "log",
+ "minimp4",
  "nokhwa",
  "nokhwa-core",
  "once_cell",
+ "openh264",
  "oslog",
+ "rayon",
  "reqwest",
  "simple_logger",
  "thiserror",

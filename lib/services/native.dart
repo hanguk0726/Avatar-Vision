@@ -60,13 +60,19 @@ class Native {
     debugPrint(text);
   }
 
-  void callTextureHandler() async {
+  void startToRenderTexture() async {
     final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
     _showResult(res);
   }
 
-  void callCaptureHandler() async {
+  void openCameraStream() async {
     final res = await _captureChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
+
+  void stopCameraStream () async {
+    final res = await _captureChannel.invokeMethod('stop_camera_stream', {});
+    _showResult(res);
+  }
+
 }
