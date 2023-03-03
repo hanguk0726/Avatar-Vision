@@ -16,12 +16,10 @@ use irondash_run_loop::RunLoop;
 use log::debug;
 use nokhwa::{Buffer, CallbackCamera};
 
-use crate::{camera_test::TestCamera, capture::inflate_camera_conection};
+use crate::{camera::Camera, capture::inflate_camera_conection};
 
 pub struct CaptureHandler {
-    // pub sender: Arc<Sender<Buffer>>,
-    // pub camera: RefCell<Option<CallbackCamera>>,
-    pub camera: RefCell<TestCamera>,
+    pub camera: RefCell<Camera>,
 }
 
 #[async_trait(?Send)]

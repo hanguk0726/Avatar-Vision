@@ -11,9 +11,9 @@ use irondash_texture::Texture;
 use log::debug;
 use textrue::PixelBufferSource;
 
-use crate::{channel_capture::CaptureHandler, channel_textrue::TextureHandler, log_::init_logging, camera_test::TestCamera};
+use crate::{channel_capture::CaptureHandler, channel_textrue::TextureHandler, log_::init_logging, camera::Camera};
 
-mod camera_test;
+mod camera;
 mod capture;
 mod channel_capture;
 mod channel_textrue;
@@ -39,7 +39,6 @@ pub extern "C" fn rust_init_message_channel_context(data: *mut c_void) -> Functi
         "Initializing message channel context from dart thread {:?}",
         thread::current().id()
     );
-    // init FFI part of message channel from data obtained from Dart side.
     irondash_init_message_channel_context(data)
 }
 
@@ -59,11 +58,10 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         pixel_buffer,
         receiver: receiver,
         texture_provider: textrue.into_sendable_texture(),
+        encoded: Arc::new(Mutex::new(vec![])),
     });
-    // channel_capture::init(CaptureHandler { sender, camera: RefCell::new(None) });
-    let camera = TestCamera::new(sender);
     channel_capture::init(CaptureHandler {
-        camera: RefCell::new(camera),
+        camera: RefCell::new(Camera::new(sender)),
     });
     texture_id
 }

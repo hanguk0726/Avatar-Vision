@@ -26,6 +26,7 @@ nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] 
 flume = "0.10.14"
 openh264 = "0.3.2"
 minimp4 = { path = "rust_minimp4" }  # Conflict between 'clang-sys' version of 'nokhwa'
+futures-signals = "0.3.31"
 rayon = "1.6.1"
 # reqwest uses different options per platform
 

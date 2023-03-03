@@ -1,49 +1,28 @@
 use core::panic;
 use flume::Sender;
+use futures_signals::signal::Mutable;
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
 use nokhwa::CallbackCamera;
 use nokhwa_core::buffer::Buffer;
+use std::cell::RefCell;
 use std::fmt::Error;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use crate::encoding::{encode_to_h264, encoder, to_mp4};
 
-pub fn inflate_camera_conection(sender: Arc<Sender<Buffer>>) -> Result<CallbackCamera, Error> {
+pub fn inflate_camera_conection(
+    sender: Arc<Sender<Buffer>>,
+    frame_rates: [f64; 30],
+) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
-    // let mut encoder = encoder(1280, 720).unwrap();
-    // let mut buf_h264: Vec<u8> = Vec::new();
-    // let mut count = 0;
-    // let mut holder: Vec<Vec<u8>> = Vec::new();
-    // let mut start2 = Instant::now();
-
     let camera = CallbackCamera::new(index, requested, move |buf| {
         debug!("sending frame");
-        // let start = Instant::now();
-        // let buf = decode(buf).unwrap();
-        // let duration = start.elapsed();
-        // debug!("Time elapsed in decode_function() is: {:?}", duration);
-        // holder.push(buf.clone());
         sender.send(buf).expect("Error sending frame!");
-        // count += 1;
-        // debug!("count: {}", count);
-
-        // if count > 180 {
-        //     for frame in &holder {
-        //         encode_to_h264(&mut encoder, &frame, &mut buf_h264);
-        //     }
-        //     to_mp4(&mut buf_h264, "test.mp4").unwrap();
-        //     panic!("60 frames sent");
-        // }
-        // let start_ = Instant::now();
-        // let duration = start_.duration_since(start2);
-        // println!("sending frame {:?}", duration);
-        // start2 = start_;
-
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);
@@ -60,9 +39,8 @@ pub fn inflate_camera_conection(sender: Arc<Sender<Buffer>>) -> Result<CallbackC
     Ok(camera)
 }
 
-pub fn decode(buf: Buffer) -> Result<Vec<u8>, Error> {
-    let data = buf.buffer();
-    match buf.source_frame_format() {
+pub fn decode(data: &[u8], frame_format: &FrameFormat) -> Result<Vec<u8>, Error> {
+    match frame_format {
         FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {
             error!("Error converting MJPEG to RGB: {:?}", why);
             Error
@@ -78,8 +56,10 @@ pub fn decode(buf: Buffer) -> Result<Vec<u8>, Error> {
         FrameFormat::RAWRGB => Ok(data.to_vec()),
         // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
         _ => {
-            let data = buf.decode_image::<RgbAFormat>().unwrap();
-            Ok(data.to_vec())
+            // let data = data.decode_image::<RgbAFormat>().unwrap();
+            // Ok(data.to_vec())
+            error!("Error converting to RGB: {:?}", frame_format);
+            Ok(vec![])
         }
     }
 }

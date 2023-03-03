@@ -16,13 +16,14 @@ use nokhwa::Buffer;
 
 use crate::{
     capture::decode,
-    encoding::{encode_to_h264, encoder, to_mp4}
+    encoding::{encode_to_h264, encoder, to_mp4},
 };
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     pub receiver: Arc<Receiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
+    pub encoded: Arc<Mutex<Vec<u8>>>,
 }
 
 #[derive(IntoValue)]
@@ -36,6 +37,24 @@ struct TextureHandlerResponse {
     thread_info: ThreadInfo,
 }
 
+impl TextureHandler {
+    fn render_texture(&self, decoded_frame: &mut Vec<u8>) {
+        let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
+        *pixel_buffer = take(decoded_frame);
+        debug!(
+            "mark_frame_available, pixel_buffer: {:?}",
+            pixel_buffer.len()
+        );
+        self.texture_provider.mark_frame_available();
+    }
+    fn encode(&self, decoded_frame: &[u8]) {
+        let mut encoder = encoder(1280, 720).unwrap();
+        let encoded = Arc::clone(&self.encoded);
+        let mut encoded = encoded.lock().unwrap();
+        encode_to_h264(&mut encoder, decoded_frame, &mut encoded);
+        debug!("encoded length: {:?}", encoded.len());
+    }
+}
 #[async_trait(?Send)]
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
@@ -46,16 +65,23 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
-
-                while let Ok(buf) = self.receiver.recv() { // will automatically dropped when sender get removed
-                    debug!("received buffer");
-                    let decoded = &mut decode(buf).unwrap();  
-                    let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
-                    *pixel_buffer = take(decoded);
-                    debug!("mark_frame_available, pixel_buffer: {:?}", pixel_buffer.len());
-                    self.texture_provider.mark_frame_available();
-                }
-
+                // The receiver will be automatically dropped when sender get removed
+                rayon::scope(|s| {
+                    s.spawn(|_| {
+                        while let Ok(buf) = self.receiver.recv() {
+                            debug!("received buffer");
+                            let mut decoded = decode(buf.buffer(), &buf.source_frame_format()).unwrap();
+                            self.render_texture(&mut decoded)
+                        }
+                    });
+                    s.spawn(|_| {
+                        while let Ok(buf) = self.receiver.recv() {
+                            debug!("received buffer");
+                            let decoded = decode(buf.buffer(), &buf.source_frame_format()).unwrap();
+                            self.encode(&decoded[..])
+                        }
+                    });
+                });
                 Ok("render_texture finished".into())
             }
             _ => Err(PlatformError {
@@ -68,11 +94,6 @@ impl AsyncMethodHandler for TextureHandler {
 }
 
 pub(crate) fn init(textrue_handler: TextureHandler) {
-    // create TextureHandler instance that will listen on main (platform) thread.
-    // let _ = ManuallyDrop::new(TextureHandler {}.register("texture_handler_channel"));
-
-    // create background thread and new TextureHandler instance that will listen
-    // on background thread (using different channel).
     thread::spawn(|| {
         let _ = ManuallyDrop::new(
             textrue_handler.register("texture_handler_channel_background_thread"),
@@ -84,3 +105,30 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
         RunLoop::current().run();
     });
 }
+// async fn observable_encoding_frames_eagerly(&mut self) {
+//     let camera = self.camera.as_ref().unwrap();
+//     let frame_format = camera.frame_format().unwrap();
+//     let mut encoder = encoder(1280, 720).unwrap();
+//     let future = self.buffers.signal_cloned().for_each(|buffers| {
+//         debug!("buffers len: {}", buffers.len());
+
+//         // consume all quque & encode
+//         while let Some(buf) = buffers.iter().take_while(|x| x.len() > 0).next() {
+//             let frame = decode(&buf, &frame_format).unwrap();
+//             encode_to_h264(&mut encoder, &frame, &mut self.encoded);
+//         }
+
+//         async {}
+//     });
+//     future.await
+// }
+// if let Err(e) = self.save() {
+//     error!("Failed to save video {:?}", e);
+// }
+// fn save(&mut self) -> Result<(), std::io::Error> {
+//     debug!("*********** saving... ***********");
+
+//     to_mp4(&mut self.encoded, "test.mp4").unwrap();
+//     debug!("*********** saved! ***********");
+//     Ok(())
+// }
