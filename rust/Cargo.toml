@@ -23,11 +23,12 @@ once_cell = "1.17.1"
 image = { version = "0.24.5", features = ["png"] }
 nokhwa-core = "0.1.0"
 nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] }
-flume = "0.10.14"
+kanal = "0.1.0-pre8"
 openh264 = "0.3.2"
 minimp4 = { path = "rust_minimp4" }  # Conflict between 'clang-sys' version of 'nokhwa'
 futures-signals = "0.3.31"
 rayon = "1.6.1"
+boxcar = "0.1.0"
 # reqwest uses different options per platform
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]

@@ -3,10 +3,11 @@ use std::{
     path::Path,
 };
 
-use log::{debug, error};
+
+use log::{debug};
 use minimp4::Mp4Muxer;
 use openh264::{
-    encoder::{Encoder, EncoderConfig, RateControlMode},
+    encoder::{Encoder, EncoderConfig},
     Error,
 };
 
@@ -36,11 +37,11 @@ pub fn encode_to_h264(encoder: &mut Encoder, rgba_frame: &[u8], buf_h264: &mut V
     bitstream.write_vec(buf_h264);
 }
 
-pub fn to_mp4<P: AsRef<Path>>(buf_h264: &mut Vec<u8>, file: P) -> Result<(), std::io::Error> {
+pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
     mp4muxer.init_video(1280, 720, false, "diary");
-    mp4muxer.write_video_with_fps(&buf_h264[..], 30);
+    mp4muxer.write_video_with_fps(buf_h264, 30);
     // mp4muxer.write_video(&buf_h264[..]);
     mp4muxer.close();
     video_buffer.seek(SeekFrom::Start(0)).unwrap();

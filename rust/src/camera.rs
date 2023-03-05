@@ -1,45 +1,41 @@
-use futures_signals::signal::Mutable;
-use futures_signals::signal::SignalExt;
-use std::{
-    cell::RefCell,
-    sync::{Arc, Mutex},
-};
+use kanal::Sender;
+use std::sync::Arc;
 
-use flume::Sender;
-use log::{debug, error};
+use log::debug;
 use nokhwa::{Buffer, CallbackCamera};
 
-use crate::{
-    capture::{decode, inflate_camera_conection},
-    encoding::{encode_to_h264, encoder, to_mp4},
-};
+use crate::capture::{inflate_camera_conection};
 
 pub struct Camera {
-    pub sender: Arc<Sender<Buffer>>,
+    pub rendering_sender: Option<Arc<Sender<Buffer>>>,
+    pub encoding_sender: Option<Arc<Sender<Buffer>>>,
     pub camera: Option<CallbackCamera>,
     pub frame_rates: [f64; 30],
 }
 
 impl Camera {
-    pub fn new(sender: Arc<Sender<Buffer>>) -> Self {
+    pub fn new(
+        rendering_sender: Option<Arc<Sender<Buffer>>>,
+        encoding_sender: Option<Arc<Sender<Buffer>>>,
+    ) -> Self {
         Self {
-            sender,
+            rendering_sender,
+            encoding_sender,
             camera: None,
             frame_rates: [0.0; 30],
         }
     }
     pub fn infate_camera(&mut self) {
-        if let Ok(camera) = inflate_camera_conection(
-            self.sender.clone(),
-            self.frame_rates,
-            // Arc::clone(&self.buffers),
-        ) {
+        let rendering_sender = self.rendering_sender.take().unwrap();
+        let encoding_sender = self.encoding_sender.take().unwrap();
+        if let Ok(camera) =
+            inflate_camera_conection(rendering_sender, encoding_sender, self.frame_rates)
+        {
             self.camera = Some(camera);
         } else {
             debug!("Failed to inflate camera");
         }
     }
-
 
     pub fn open_camera_stream(&mut self) {
         if let Some(mut camera) = self.camera.take() {
@@ -58,7 +54,9 @@ impl Camera {
         if let Some(mut camera) = self.camera.take() {
             if let Err(e) = camera.stop_stream() {
                 debug!("Failed to close camera{:?}", e);
-                drop(camera)
+                drop(camera);
+                drop(self.rendering_sender.take());
+                drop(self.encoding_sender.take());
             } else {
                 debug!("camera closed");
             }
@@ -66,5 +64,4 @@ impl Camera {
             debug!("Failed to open camera");
         }
     }
-   
 }

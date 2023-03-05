@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use irondash_texture::{PayloadProvider, BoxedPixelData, SimplePixelData};
+use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
 use log::debug;
 #[derive(Clone)]
 pub struct PixelBufferSource {
@@ -25,14 +25,13 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         let mut data = self.pixel_buffer.lock().unwrap();
         let data: Vec<u8> = take(&mut data);
         let data = if data.len() == 0 {
-            debug!("data: {:?}", data.len());
             repeat_with(|| 0)
                 .take((width * height * 4) as usize)
                 .collect()
         } else {
-            debug!("data: {:?}", data.len());
             data
         };
+        debug!("data: {:?}", data.len());
 
         SimplePixelData::new_boxed(width, height, data)
     }

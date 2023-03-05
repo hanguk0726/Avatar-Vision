@@ -20,17 +20,19 @@ class Native {
           : DynamicLibrary.process());
 
   late final MessageChannelContext nativeContext;
-  late final NativeMethodChannel _textureHandlerChannel;
+  late final NativeMethodChannel _textureChannel;
   late final NativeMethodChannel _captureChannel;
+  late final NativeMethodChannel _encodingChannel;
   late final int textureId;
 
   Future<void> init() async {
     await _initTextureId();
     nativeContext = _initNativeContext();
-    _textureHandlerChannel = NativeMethodChannel(
-        'texture_handler_channel_background_thread',
+    _textureChannel = NativeMethodChannel('texture_channel_background_thread',
         context: nativeContext);
     _captureChannel = NativeMethodChannel('captrue_channel_background_thread',
+        context: nativeContext);
+    _encodingChannel = NativeMethodChannel('encoding_channel_background_thread',
         context: nativeContext);
   }
 
@@ -60,8 +62,13 @@ class Native {
     debugPrint(text);
   }
 
-  void startToRenderTexture() async {
-    final res = await _textureHandlerChannel.invokeMethod('render_texture', {});
+  void renderTexture() async {
+    final res = await _textureChannel.invokeMethod('render_texture', {});
+    _showResult(res);
+  }
+
+  void startEncoding() async {
+    final res = await _encodingChannel.invokeMethod('start_encoding', {});
     _showResult(res);
   }
 
@@ -70,9 +77,8 @@ class Native {
     _showResult(res);
   }
 
-  void stopCameraStream () async {
+  void stopCameraStream() async {
     final res = await _captureChannel.invokeMethod('stop_camera_stream', {});
     _showResult(res);
   }
-
 }

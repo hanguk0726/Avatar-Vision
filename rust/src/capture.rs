@@ -1,20 +1,16 @@
-use core::panic;
-use flume::Sender;
-use futures_signals::signal::Mutable;
+use kanal::Sender;
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
 use nokhwa::CallbackCamera;
 use nokhwa_core::buffer::Buffer;
-use std::cell::RefCell;
-use std::fmt::Error;
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
 
-use crate::encoding::{encode_to_h264, encoder, to_mp4};
+use std::fmt::Error;
+use std::sync::Arc;
 
 pub fn inflate_camera_conection(
-    sender: Arc<Sender<Buffer>>,
+    rending_sender: Arc<Sender<Buffer>>,
+    encoding_sender: Arc<Sender<Buffer>>,
     frame_rates: [f64; 30],
 ) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
@@ -22,7 +18,10 @@ pub fn inflate_camera_conection(
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
     let camera = CallbackCamera::new(index, requested, move |buf| {
         debug!("sending frame");
-        sender.send(buf).expect("Error sending frame!");
+        encoding_sender
+            .send(buf.clone())
+            .expect("Error sending frame!");
+        rending_sender.send(buf).expect("Error sending frame!");
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);

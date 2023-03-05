@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     ffi::c_void,
-    sync::{Arc, Mutex, Once},
+    sync::{atomic::AtomicBool, Arc, Mutex, Once},
     thread::{self},
 };
 
@@ -11,11 +11,15 @@ use irondash_texture::Texture;
 use log::debug;
 use textrue::PixelBufferSource;
 
-use crate::{channel_capture::CaptureHandler, channel_textrue::TextureHandler, log_::init_logging, camera::Camera};
+use crate::{
+    camera::Camera, channel_capture::CaptureHandler, channel_encoding::EncodingHandler,
+    channel_textrue::TextureHandler, log_::init_logging,
+};
 
 mod camera;
 mod capture;
 mod channel_capture;
+mod channel_encoding;
 mod channel_textrue;
 mod encoding;
 mod log_;
@@ -48,20 +52,30 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (sender, receiver) = flume::bounded(200);
-    let (sender, receiver) = (Arc::new(sender), Arc::new(receiver));
+    let (rendering_sender, rendering_receiver) = kanal::unbounded();
+    let (encoding_sender, encoding_receiver) = kanal::unbounded();
+    let (rendering_sender, rendering_receiver) =
+        (Arc::new(rendering_sender), Arc::new(rendering_receiver));
+    let (encoding_sender, encoding_receiver) =
+        (Arc::new(encoding_sender), Arc::new(encoding_receiver));
+
     let pixel_buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
     let provider = Arc::new(PixelBufferSource::new(Arc::clone(&pixel_buffer)));
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
+
+    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone()));
     channel_textrue::init(TextureHandler {
         pixel_buffer,
-        receiver: receiver,
+        receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
-        encoded: Arc::new(Mutex::new(vec![])),
     });
     channel_capture::init(CaptureHandler {
-        camera: RefCell::new(Camera::new(sender)),
+        camera: RefCell::new(Camera::new(
+            Some(Arc::clone(&rendering_sender)),
+            Some(Arc::clone(&encoding_sender)),
+        )),
     });
+    
     texture_id
 }

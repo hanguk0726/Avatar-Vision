@@ -1,22 +1,13 @@
-use std::{
-    cell::RefCell,
-    mem::ManuallyDrop,
-    ops::{Deref, DerefMut},
-    rc::{Rc, Weak},
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{cell::RefCell, mem::ManuallyDrop, thread};
 
 use async_trait::async_trait;
-use flume::Sender;
 use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
 use log::debug;
-use nokhwa::{Buffer, CallbackCamera};
 
-use crate::{camera::Camera, capture::inflate_camera_conection};
+use crate::camera::Camera;
 
 pub struct CaptureHandler {
     pub camera: RefCell<Camera>,
