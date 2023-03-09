@@ -15,7 +15,7 @@ use log::debug;
 use nokhwa::Buffer;
 
 use crate::{
-    capture::decode,
+    capture::decode_to_rgb,
 };
 
 pub struct TextureHandler {
@@ -46,6 +46,7 @@ impl TextureHandler {
         self.texture_provider.mark_frame_available();
     }
 }
+
 #[async_trait(?Send)]
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
@@ -60,10 +61,11 @@ impl AsyncMethodHandler for TextureHandler {
                 // The receiver will be automatically dropped when sender get removed
                 while let Ok(buf) = self.receiver.recv() {
                     debug!("received buffer");
-                    let mut decoded = decode(buf.buffer(), &buf.source_frame_format()).unwrap();
+                    let mut decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
                     self.render_texture(&mut decoded);
                     count += 1;
                 }
+                
                 debug!("rendered {} frames", count);
                 Ok("render_texture finished".into())
             }

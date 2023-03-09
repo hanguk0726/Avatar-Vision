@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     ffi::c_void,
-    sync::{atomic::AtomicBool, Arc, Mutex, Once},
+    sync::{atomic::AtomicU32, Arc, Mutex, Once},
     thread::{self},
 };
 
@@ -64,18 +64,21 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
-    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone()));
+    let fps = Arc::new(AtomicU32::new(0));
+
+    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone(), Arc::clone(&fps)));
     channel_textrue::init(TextureHandler {
         pixel_buffer,
         receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
     });
+
     channel_capture::init(CaptureHandler {
         camera: RefCell::new(Camera::new(
             Some(Arc::clone(&rendering_sender)),
             Some(Arc::clone(&encoding_sender)),
         )),
     });
-    
+
     texture_id
 }

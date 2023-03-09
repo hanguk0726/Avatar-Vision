@@ -10,3 +10,4 @@
         #define HAVE_UNSIGNED_SHORT 1
         #define MEM_SRCDST_SUPPORTED 1
         #define THREAD_LOCAL __declspec(thread)
+#define WITH_SIMD 1

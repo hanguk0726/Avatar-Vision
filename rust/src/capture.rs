@@ -8,14 +8,15 @@ use nokhwa_core::buffer::Buffer;
 use std::fmt::Error;
 use std::sync::Arc;
 
+
 pub fn inflate_camera_conection(
     rending_sender: Arc<Sender<Buffer>>,
     encoding_sender: Arc<Sender<Buffer>>,
-    frame_rates: [f64; 30],
 ) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
+
     let camera = CallbackCamera::new(index, requested, move |buf| {
         debug!("sending frame");
         encoding_sender
@@ -38,13 +39,17 @@ pub fn inflate_camera_conection(
     Ok(camera)
 }
 
-pub fn decode(data: &[u8], frame_format: &FrameFormat) -> Result<Vec<u8>, Error> {
+pub fn decode_to_rgb(
+    data: &[u8],
+    frame_format: &FrameFormat,
+    rgba: bool,
+) -> Result<Vec<u8>, Error> {
     match frame_format {
-        FrameFormat::MJPEG => mjpeg_to_rgb(data, true).map_err(|why| {
+        FrameFormat::MJPEG => mjpeg_to_rgb(data, rgba).map_err(|why| {
             error!("Error converting MJPEG to RGB: {:?}", why);
             Error
         }),
-        FrameFormat::YUYV => Ok(yuyv422_to_rgba_(data)),
+        FrameFormat::YUYV => Ok(yuyv422_to_rgb_(data, rgba)),
         FrameFormat::GRAY => Ok(data
             .iter()
             .flat_map(|x| {
@@ -52,7 +57,7 @@ pub fn decode(data: &[u8], frame_format: &FrameFormat) -> Result<Vec<u8>, Error>
                 [pxv, pxv, pxv]
             })
             .collect()),
-        FrameFormat::RAWRGB => Ok(data.to_vec()),
+        // FrameFormat::RAWRGB => Ok(data.to_vec()),
         // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
         _ => {
             // let data = data.decode_image::<RgbAFormat>().unwrap();
@@ -63,8 +68,8 @@ pub fn decode(data: &[u8], frame_format: &FrameFormat) -> Result<Vec<u8>, Error>
     }
 }
 
-fn yuyv422_to_rgba_(data: &[u8]) -> Vec<u8> {
-    let mut rgba = Vec::with_capacity(data.len() * 2);
+fn yuyv422_to_rgb_(data: &[u8], rgba: bool) -> Vec<u8> {
+    let mut rgb = Vec::with_capacity(data.len() * 2);
     for chunk in data.chunks_exact(4) {
         let y0 = chunk[0] as f32;
         let u = chunk[1] as f32;
@@ -79,9 +84,13 @@ fn yuyv422_to_rgba_(data: &[u8]) -> Vec<u8> {
         let g1 = y1 - 0.698001 * (v - 128.) - 0.337633 * (u - 128.);
         let b1 = y1 + 1.732446 * (u - 128.);
 
-        rgba.extend_from_slice(&[
-            r0 as u8, g0 as u8, b0 as u8, 255, r1 as u8, g1 as u8, b1 as u8, 255,
-        ]);
+        if rgba {
+            rgb.extend_from_slice(&[
+                r0 as u8, g0 as u8, b0 as u8, 255, r1 as u8, g1 as u8, b1 as u8, 255,
+            ]);
+        } else {
+            rgb.extend_from_slice(&[r0 as u8, g0 as u8, b0 as u8, r1 as u8, g1 as u8, b1 as u8]);
+        }
     }
-    rgba
+    rgb
 }
