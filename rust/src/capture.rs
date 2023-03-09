@@ -20,9 +20,9 @@ pub fn inflate_camera_conection(
     let camera = CallbackCamera::new(index, requested, move |buf| {
         debug!("sending frame");
         encoding_sender
-            .send(buf.clone())
+            .try_send(buf.clone())
             .expect("Error sending frame!");
-        rending_sender.send(buf).expect("Error sending frame!");
+        rending_sender.try_send(buf).expect("Error sending frame!");
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);
