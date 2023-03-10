@@ -14,9 +14,7 @@ use kanal::Receiver;
 use log::debug;
 use nokhwa::Buffer;
 
-use crate::{
-    capture::decode_to_rgb,
-};
+use crate::capture::decode_to_rgb;
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
@@ -57,16 +55,23 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
+
+                let started = std::time::Instant::now();
                 let mut count = 0;
                 // The receiver will be automatically dropped when sender get removed
                 while let Ok(buf) = self.receiver.recv() {
                     debug!("received buffer");
-                    let mut decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+                    let mut decoded =
+                        decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
                     self.render_texture(&mut decoded);
                     count += 1;
                 }
-                
-                debug!("rendered {} frames", count);
+
+                debug!(
+                    "rendered {} frames,time elapsed {}",
+                    count,
+                    started.elapsed().as_secs()
+                );
                 Ok("render_texture finished".into())
             }
             _ => Err(PlatformError {

@@ -52,7 +52,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (rendering_sender, rendering_receiver) = kanal::bounded(1);
+    let (rendering_sender, rendering_receiver) = kanal::bounded(10);
     let (encoding_sender, encoding_receiver) = kanal::bounded(10);
     let (rendering_sender, rendering_receiver) =
         (Arc::new(rendering_sender), Arc::new(rendering_receiver));

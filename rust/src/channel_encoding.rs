@@ -69,14 +69,14 @@ impl AsyncMethodHandler for EncodingHandler {
                     thread::current().id()
                 );
                 self.set_processing(true);
-
+                let started = std::time::Instant::now();
                 let mut count = 0;
                 while let Ok(buf) = self.encodig_receiver.recv() {
                     debug!("received buffer");
                     self.encode(buf);
                     count += 1;
                 }
-                debug!("encoded {} frames", count);
+                debug!("encoded {} frames, time elapsed {}", count, started.elapsed().as_secs());
               
                 if let Err(e) = self.save() {
                     error!("Failed to save video {:?}", e);
