@@ -1338,6 +1338,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "minimp4"
 version = "0.1.0"
+source = "git+https://github.com/hanguk0726/minimp4.rs.git#e9c0b60dd32a1d9968a0e8212af7e97355377ad3"
 dependencies = [
  "libc",
  "minimp4-sys",
@@ -1346,6 +1347,7 @@ dependencies = [
 [[package]]
 name = "minimp4-sys"
 version = "0.1.1"
+source = "git+https://github.com/hanguk0726/minimp4.rs.git#e9c0b60dd32a1d9968a0e8212af7e97355377ad3"
 dependencies = [
  "bindgen 0.56.0",
  "cc",
