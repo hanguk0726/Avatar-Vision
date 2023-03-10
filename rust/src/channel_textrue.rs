@@ -75,6 +75,12 @@ impl AsyncMethodHandler for TextureHandler {
                     count,
                     started.elapsed().as_secs()
                 );
+                let encoding_channel =self.encoding_sender.as_ref();
+                // wait until  encoding_channel.len() is 0 which means all frames are encoded
+                while encoding_channel.len() > 0 {
+                    thread::sleep(std::time::Duration::from_millis(100));
+                }
+               
                 self.encoding_sender.as_ref().close();
 
                 Ok("render_texture finished".into())
