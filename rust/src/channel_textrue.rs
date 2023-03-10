@@ -10,7 +10,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
-use kanal::Receiver;
+use kanal::{Receiver, Sender};
 use log::debug;
 use nokhwa::Buffer;
 
@@ -20,6 +20,7 @@ pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     pub receiver: Arc<Receiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
+    pub encoding_sender: Arc<Sender<Vec<u8>>>,
 }
 
 #[derive(IntoValue)]
@@ -36,6 +37,7 @@ struct TextureHandlerResponse {
 impl TextureHandler {
     fn render_texture(&self, decoded_frame: &mut Vec<u8>) {
         let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
+
         *pixel_buffer = take(decoded_frame);
         debug!(
             "mark_frame_available, pixel_buffer: {:?}",
@@ -63,6 +65,7 @@ impl AsyncMethodHandler for TextureHandler {
                     debug!("received buffer");
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+                    self.encoding_sender.as_ref().send(decoded.clone()).unwrap();
                     self.render_texture(&mut decoded);
                     count += 1;
                 }
@@ -72,6 +75,8 @@ impl AsyncMethodHandler for TextureHandler {
                     count,
                     started.elapsed().as_secs()
                 );
+                self.encoding_sender.as_ref().close();
+
                 Ok("render_texture finished".into())
             }
             _ => Err(PlatformError {

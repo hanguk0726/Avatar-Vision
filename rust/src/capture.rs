@@ -11,7 +11,6 @@ use std::sync::Arc;
 
 pub fn inflate_camera_conection(
     rending_sender: Arc<Sender<Buffer>>,
-    encoding_sender: Arc<Sender<Buffer>>,
 ) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
@@ -19,9 +18,6 @@ pub fn inflate_camera_conection(
 
     let camera = CallbackCamera::new(index, requested, move |buf| {
         debug!("sending frame");
-        encoding_sender
-            .try_send(buf.clone())
-            .expect("Error sending frame!");
         rending_sender.try_send(buf).expect("Error sending frame!");
     })
     .map_err(|why| {

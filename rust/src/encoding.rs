@@ -22,8 +22,8 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-pub fn encode_to_h264(encoder: &mut Encoder, buffer: Buffer, buf_h264: &mut Vec<u8>) {
-    let yuv = encode_to_yuv(buffer.buffer(), &buffer.source_frame_format()).unwrap();
+pub fn encode_to_h264(encoder: &mut Encoder, rgba: &[u8], buf_h264: &mut Vec<u8>) {
+    let yuv = encode_to_yuv(rgba).unwrap();
     // Encode YUV into H.264.
     let bitstream = encoder.encode(&yuv).unwrap();
     bitstream.write_vec(buf_h264);
@@ -42,17 +42,14 @@ pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), 
     std::fs::write(file, &video_bytes)
 }
 
-fn encode_to_yuv(data: &[u8], frame_format: &FrameFormat) -> Result<YUVBuf, NokhwaError> {
+fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
     let width = 1280;
     let height = 720;
 
     let mut started = std::time::Instant::now();
-    let rgb = decode_to_rgb(data, frame_format, false).unwrap();
-    debug!("decoded to rgb: {:?}", started.elapsed());
-    started = std::time::Instant::now();
-    // let buf = YUVBuffer::with_rgb(width, height, &rgb);
+    // let buf = YUVBuffer::with_rgb(width, height, &data);
     let buf = YUVBuf {
-        yuv: convert_to_yuv(&rgb, width, height),
+        yuv: convert_to_yuv(&data, width, height),
         width,
         height,
     };
@@ -60,7 +57,9 @@ fn encode_to_yuv(data: &[u8], frame_format: &FrameFormat) -> Result<YUVBuf, Nokh
     return Ok(buf);
 }
 
-fn convert_to_yuv(rgb: &[u8], width: usize, height: usize) -> Vec<u8> {
+
+
+fn convert_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
     let size = (3 * width * height) / 2;
     let mut yuv = vec![0; size];
 
@@ -71,11 +70,11 @@ fn convert_to_yuv(rgb: &[u8], width: usize, height: usize) -> Vec<u8> {
     // y is full size, u, v is quarter size
     let pixel = |x: usize, y: usize| -> (f32, f32, f32) {
         // two dim to single dim
-        let base_pos = (x + y * width) * 3;
+        let base_pos = (x + y * width) * 4;
         (
-            rgb[base_pos] as f32,
-            rgb[base_pos + 1] as f32,
-            rgb[base_pos + 2] as f32,
+            rgba[base_pos] as f32,
+            rgba[base_pos + 1] as f32,
+            rgba[base_pos + 2] as f32,
         )
     };
 
@@ -119,6 +118,7 @@ fn convert_to_yuv(rgb: &[u8], width: usize, height: usize) -> Vec<u8> {
     }
     yuv
 }
+
 
 pub struct YUVBuf {
     yuv: Vec<u8>,

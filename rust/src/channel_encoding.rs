@@ -18,14 +18,14 @@ use crate::{
 };
 
 pub struct EncodingHandler {
-    pub encodig_receiver: Arc<Receiver<Buffer>>,
+    pub encodig_receiver: Arc<Receiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub processing: Arc<AtomicBool>,
     pub fps: Arc<AtomicU32>
 }
 
 impl EncodingHandler {
-    pub fn new(encodig_receiver: Arc<Receiver<Buffer>>, fps: Arc<AtomicU32>) -> Self {
+    pub fn new(encodig_receiver: Arc<Receiver<Vec<u8>>>, fps: Arc<AtomicU32>) -> Self {
         Self {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
@@ -33,11 +33,11 @@ impl EncodingHandler {
             fps
         }
     }
-    fn encode(&self, buffer: Buffer) {
+    fn encode(&self, rgba: &[u8]) {
         let mut encoder = encoder(1280, 720).unwrap();
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
-        encode_to_h264(&mut encoder, buffer, &mut encoded);
+        encode_to_h264(&mut encoder, rgba, &mut encoded);
         debug!("encoded length: {:?}", encoded.len());
     }
 
@@ -71,9 +71,9 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                while let Ok(buf) = self.encodig_receiver.recv() {
+                while let Ok(rgba) = self.encodig_receiver.recv() {
                     debug!("received buffer");
-                    self.encode(buf);
+                    self.encode(&rgba[..]);
                     count += 1;
                 }
                 debug!("encoded {} frames, time elapsed {}", count, started.elapsed().as_secs());

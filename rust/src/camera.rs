@@ -8,27 +8,23 @@ use crate::{capture::inflate_camera_conection, };
 
 pub struct Camera {
     pub rendering_sender: Option<Arc<Sender<Buffer>>>,
-    pub encoding_sender: Option<Arc<Sender<Buffer>>>,
     pub camera: Option<CallbackCamera>,
 }
 
 impl Camera {
     pub fn new(
         rendering_sender: Option<Arc<Sender<Buffer>>>,
-        encoding_sender: Option<Arc<Sender<Buffer>>>,
+
     ) -> Self {
         Self {
             rendering_sender,
-            encoding_sender,
             camera: None,
         }
     }
     pub fn infate_camera(&mut self) {
         let rendering_sender = self.rendering_sender.take().unwrap();
-        let encoding_sender = self.encoding_sender.take().unwrap();
         if let Ok(camera) = inflate_camera_conection(
             rendering_sender,
-            encoding_sender,
         ) {
             self.camera = Some(camera);
         } else {
@@ -55,7 +51,6 @@ impl Camera {
                 debug!("Failed to close camera{:?}", e);
                 drop(camera);
                 drop(self.rendering_sender.take());
-                drop(self.encoding_sender.take());
             } else {
                 debug!("camera closed");
             }

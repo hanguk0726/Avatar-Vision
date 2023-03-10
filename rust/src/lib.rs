@@ -53,7 +53,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     );
     assert!(RunLoop::is_main_thread());
     let (rendering_sender, rendering_receiver) = kanal::bounded(1);
-    let (encoding_sender, encoding_receiver) = kanal::bounded(1);
+    let (encoding_sender, encoding_receiver) = kanal::unbounded();
     let (rendering_sender, rendering_receiver) =
         (Arc::new(rendering_sender), Arc::new(rendering_receiver));
     let (encoding_sender, encoding_receiver) =
@@ -71,12 +71,12 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         pixel_buffer,
         receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
+        encoding_sender: Arc::clone(&encoding_sender),
     });
 
     channel_capture::init(CaptureHandler {
         camera: RefCell::new(Camera::new(
             Some(Arc::clone(&rendering_sender)),
-            Some(Arc::clone(&encoding_sender)),
         )),
     });
 
