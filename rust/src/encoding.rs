@@ -42,7 +42,7 @@ pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), 
     std::fs::write(file, &video_bytes)
 }
 
-fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
+ fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
     let width = 1280;
     let height = 720;
 
@@ -59,7 +59,7 @@ fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
 
 
 
-fn rgba_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
+pub fn rgba_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
     let size = (3 * width * height) / 2;
     let mut yuv = vec![0; size];
 

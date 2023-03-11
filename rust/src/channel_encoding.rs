@@ -16,11 +16,12 @@ use kanal::Receiver;
 use log::{debug, error};
 use nokhwa::Buffer;
 
-use crate::encoding::{encode_to_h264, encoder, to_mp4};
+use crate::encoding::{encode_to_h264, encoder, rgba_to_yuv, to_mp4};
 
 pub struct EncodingHandler {
     pub encodig_receiver: Arc<Receiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
+    pub yuv: boxcar::Vec<Vec<u8>>,
     pub processing: Arc<AtomicBool>,
     pub fps: Arc<AtomicU32>,
 }
@@ -31,6 +32,7 @@ impl EncodingHandler {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
             processing: Arc::new(AtomicBool::new(false)),
+            yuv: boxcar::Vec::new(),
             fps,
         }
     }
@@ -40,6 +42,16 @@ impl EncodingHandler {
         let mut encoded = encoded.lock().unwrap();
         encode_to_h264(&mut encoder, rgba, &mut encoded);
         debug!("encoded length: {:?}", encoded.len());
+    }
+
+
+    fn encode_(&self, rgba: &[u8]) {
+        let width = 1280;
+        let height = 720;
+        let started = std::time::Instant::now();
+        let yuv = rgba_to_yuv(rgba, width, height);
+        self.yuv.push(yuv);
+        debug!("encoded to yuv: {:?}", started.elapsed());
     }
 
     fn save(&self) -> Result<(), std::io::Error> {
@@ -72,12 +84,15 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                let pool = rayon::ThreadPoolBuilder::new().num_threads(6).build().unwrap();
+                let pool = rayon::ThreadPoolBuilder::new()
+                    .num_threads(6)
+                    .build()
+                    .unwrap();
 
                 while let Ok(rgba) = self.encodig_receiver.recv() {
                     debug!("received buffer");
                     pool.install(|| {
-                        self.encode(&rgba);
+                        self.encode_(&rgba);
                     });
                     count += 1;
                 }
