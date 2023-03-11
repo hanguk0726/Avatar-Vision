@@ -4,10 +4,14 @@ use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
 use nokhwa::CallbackCamera;
 use nokhwa_core::buffer::Buffer;
+use tokio::time::error::Elapsed;
 
+use std::cell::RefCell;
 use std::fmt::Error;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
+static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
 pub fn inflate_camera_conection(
     rending_sender: Arc<Sender<Buffer>>,
@@ -17,7 +21,16 @@ pub fn inflate_camera_conection(
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
 
     let camera = CallbackCamera::new(index, requested, move |buf| {
-        debug!("sending frame");
+        if let Ok(elapsed) = TIME_INSTANCE.lock() {
+            match elapsed.borrow().as_ref() {
+                Some(elapsed) => {
+                    let duration = elapsed.elapsed().as_millis();
+                    debug!("sending frame {}", duration);
+                }
+                None => { }
+            }
+            elapsed.borrow_mut().replace(Instant::now());
+        }
         rending_sender.try_send(buf).expect("Error sending frame!");
     })
     .map_err(|why| {

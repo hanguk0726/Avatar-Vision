@@ -49,7 +49,7 @@ fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
     let mut started = std::time::Instant::now();
     // let buf = YUVBuffer::with_rgb(width, height, &data);
     let buf = YUVBuf {
-        yuv: convert_to_yuv(&data, width, height),
+        yuv: rgba_to_yuv(&data, width, height),
         width,
         height,
     };
@@ -59,7 +59,7 @@ fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
 
 
 
-fn convert_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
+fn rgba_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
     let size = (3 * width * height) / 2;
     let mut yuv = vec![0; size];
 
