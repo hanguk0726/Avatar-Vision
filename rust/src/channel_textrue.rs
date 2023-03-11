@@ -77,12 +77,12 @@ impl AsyncMethodHandler for TextureHandler {
                 // The receiver will be automatically dropped when sender get removed
                 while let Ok(buf) = self.receiver.recv() {
                     debug!("received buffer on texture channel");
-
-                    pool.scoped(|scope| {
-                        scope.execute(move || {
-                            decode(buf);
-                        });
-                    });
+                    decode(buf);
+                    // pool.scoped(|scope| {
+                    //     scope.execute(move || {
+                    //         decode(buf);
+                    //     });
+                    // });
                     count += 1;
                 }
 

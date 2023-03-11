@@ -31,7 +31,8 @@ pub fn inflate_camera_conection(
             }
             elapsed.borrow_mut().replace(Instant::now());
         }
-        rending_sender.send(buf).expect("Error sending frame!");
+        // rending_sender.send(buf).expect("Error sending frame!");
+        rending_sender.try_send(buf).expect("Error sending frame!");
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);
