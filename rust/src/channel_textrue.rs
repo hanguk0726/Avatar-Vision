@@ -63,16 +63,20 @@ impl AsyncMethodHandler for TextureHandler {
                 let mut count = 0;
 
                 let decode = |buf: Buffer| {
+                    let time = std::time::Instant::now();
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+                    debug!(
+                        "decoded frame, time elapsed: {}",
+                        time.elapsed().as_millis()
+                    );
                     self.encoding_sender.as_ref().send(decoded.clone()).unwrap();
                     self.render_texture(&mut decoded);
                 };
-                let mut pool = Pool::new(3);
-
+                let mut pool = Pool::new(6);
                 // The receiver will be automatically dropped when sender get removed
                 while let Ok(buf) = self.receiver.recv() {
-                    debug!("received buffer");
+                    debug!("received buffer on texture channel");
 
                     pool.scoped(|scope| {
                         scope.execute(move || {

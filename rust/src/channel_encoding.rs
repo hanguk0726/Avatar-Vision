@@ -74,7 +74,7 @@ impl AsyncMethodHandler for EncodingHandler {
                 let started = std::time::Instant::now();
                 let mut count = 0;
 
-                let mut pool = Pool::new(3);
+                let mut pool = Pool::new(6);
 
                 while let Ok(rgba) = self.encodig_receiver.recv() {
                     debug!("received buffer");
