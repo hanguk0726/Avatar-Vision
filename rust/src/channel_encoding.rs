@@ -37,10 +37,11 @@ impl EncodingHandler {
         }
     }
     fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
-        let mut encoder = encoder(1280, 720).unwrap();
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
-        encode_to_h264(&mut encoder, yuv_vec, &mut encoded);
+        let processed = encode_to_h264(yuv_vec,  );
+        *encoded = processed;
+
         debug!("encoded length: {:?}", encoded.len());
     }
 

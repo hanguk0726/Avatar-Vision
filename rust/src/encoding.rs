@@ -1,6 +1,6 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
-    path::Path,
+    path::Path, sync::{Arc, Mutex},
 };
 
 use crate::capture::decode_to_rgb;
@@ -13,7 +13,7 @@ use openh264::{
     Error,
 };
 use rayon::{
-    prelude::{IndexedParallelIterator, ParallelIterator},
+    prelude::{IndexedParallelIterator, ParallelIterator, IntoParallelRefIterator},
     slice::ParallelSlice,
 };
 
@@ -22,24 +22,48 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-pub fn encode_to_h264(encoder: &mut Encoder, yuv_vec: Vec<Vec<u8>>, buf_h264: &mut Vec<u8>) {
-    // Encode YUV into H.264.
-    // let bitstream = encoder.encode(&yuv).unwrap();
-    // bitstream.write_vec(buf_h264);
+// pub fn encode_to_h264(encoder: &mut Encoder, yuv_vec: Vec<Vec<u8>>, buf_h264: &mut Vec<u8>) {
+//     // Encode YUV into H.264.
+//     // let bitstream = encoder.encode(&yuv).unwrap();
+//     // bitstream.write_vec(buf_h264);
 
 
-     // Encode YUV into H.264.
-     let started = std::time::Instant::now();
-     for yuv in yuv_vec {
-         let yuv = YUVBuf {
-             yuv,
-             width: 1280,
-             height: 720,
-         };
-         let mut bitstream = encoder.encode(&yuv).unwrap();
-         bitstream.write_vec(buf_h264);
-     }
+//      // Encode YUV into H.264.
+//      let started = std::time::Instant::now();
+//      for yuv in yuv_vec {
+//          let yuv = YUVBuf {
+//              yuv,
+//              width: 1280,
+//              height: 720,
+//          };
+//          let mut bitstream = encoder.encode(&yuv).unwrap();
+//          bitstream.write_vec(buf_h264);
+//      }
+//     debug!("encoded to h264: {:?}", started.elapsed());
+// }
+
+pub fn encode_to_h264( yuv_vec: Vec<Vec<u8>>,  ) -> Vec<u8> {
+    let started = std::time::Instant::now();
+    let buf_h264 = Arc::new(Mutex::new(Vec::new()));
+    let  encoder =encoder(1280, 720).unwrap();
+    let encoder = Arc::new(Mutex::new(encoder));
+    // Encode YUV into H.264 in parallel.
+    for yuv in yuv_vec {
+        let yuv = YUVBuf {
+            yuv: yuv.clone(),
+            width: 1280,
+            height: 720,
+        };
+        let mut encoder = encoder.lock().unwrap();
+        let  bitstream = encoder.encode(&yuv).unwrap();
+        let mut buf_h264 = buf_h264.lock().unwrap();
+
+        bitstream.write_vec( &mut buf_h264);
+    };
+
     debug!("encoded to h264: {:?}", started.elapsed());
+    let buf_h264 = buf_h264.lock().unwrap();
+    buf_h264.clone()
 }
 
 pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), std::io::Error> {
