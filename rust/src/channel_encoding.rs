@@ -105,7 +105,7 @@ impl AsyncMethodHandler for EncodingHandler {
                 if let Err(e) = self.save() {
                     error!("Failed to save video {:?}", e);
                 }
-
+                pool.shutdown_timeout(std::time::Duration::from_secs(1));
                 Ok("encoding finished".into())
             }
             _ => Err(PlatformError {

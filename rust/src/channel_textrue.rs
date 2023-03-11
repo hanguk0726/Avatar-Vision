@@ -69,7 +69,7 @@ impl AsyncMethodHandler for TextureHandler {
                 >| {
                     let time = std::time::Instant::now();
                     let mut decoded =
-                    decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+                        decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
                     debug!(
                         "decoded frame, time elapsed: {}",
                         time.elapsed().as_millis()
@@ -91,7 +91,7 @@ impl AsyncMethodHandler for TextureHandler {
                     texture_provider.mark_frame_available();
                 };
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(8)
+                    .worker_threads(2)
                     .build()
                     .unwrap();
 
@@ -121,7 +121,7 @@ impl AsyncMethodHandler for TextureHandler {
                 while encoding_channel.len() > 0 {
                     thread::sleep(std::time::Duration::from_millis(100));
                 }
-
+                pool.shutdown_timeout(std::time::Duration::from_secs(1));
                 self.encoding_sender.as_ref().close();
 
                 Ok("render_texture finished".into())
