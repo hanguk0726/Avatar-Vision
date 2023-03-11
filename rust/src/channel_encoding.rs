@@ -1,6 +1,9 @@
 use std::{
     mem::ManuallyDrop,
-    sync::{atomic::{AtomicBool, AtomicU32}, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, AtomicU32},
+        Arc, Mutex,
+    },
     thread,
 };
 
@@ -12,16 +15,15 @@ use irondash_run_loop::RunLoop;
 use kanal::Receiver;
 use log::{debug, error};
 use nokhwa::Buffer;
+use scoped_threadpool::Pool;
 
-use crate::{
-    encoding::{encode_to_h264, encoder, to_mp4},
-};
+use crate::encoding::{encode_to_h264, encoder, to_mp4};
 
 pub struct EncodingHandler {
     pub encodig_receiver: Arc<Receiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub processing: Arc<AtomicBool>,
-    pub fps: Arc<AtomicU32>
+    pub fps: Arc<AtomicU32>,
 }
 
 impl EncodingHandler {
@@ -30,7 +32,7 @@ impl EncodingHandler {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
             processing: Arc::new(AtomicBool::new(false)),
-            fps
+            fps,
         }
     }
     fn encode(&self, rgba: &[u8]) {
@@ -71,13 +73,24 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
+
+                let mut pool = Pool::new(3);
+
                 while let Ok(rgba) = self.encodig_receiver.recv() {
                     debug!("received buffer");
-                    self.encode(&rgba[..]);
+                    pool.scoped(|scope| {
+                        scope.execute(move || {
+                            self.encode(&rgba[..]);
+                        });
+                    });
                     count += 1;
                 }
-                debug!("encoded {} frames, time elapsed {}", count, started.elapsed().as_secs());
-              
+                debug!(
+                    "encoded {} frames, time elapsed {}",
+                    count,
+                    started.elapsed().as_secs()
+                );
+
                 if let Err(e) = self.save() {
                     error!("Failed to save video {:?}", e);
                 }

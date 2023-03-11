@@ -13,6 +13,7 @@ use irondash_texture::{PixelDataProvider, SendableTexture};
 use kanal::{Receiver, Sender};
 use log::debug;
 use nokhwa::Buffer;
+use scoped_threadpool::Pool;
 
 use crate::capture::decode_to_rgb;
 
@@ -60,13 +61,24 @@ impl AsyncMethodHandler for TextureHandler {
 
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                // The receiver will be automatically dropped when sender get removed
-                while let Ok(buf) = self.receiver.recv() {
-                    debug!("received buffer");
+
+                let decode = |buf: Buffer| {
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
                     self.encoding_sender.as_ref().send(decoded.clone()).unwrap();
                     self.render_texture(&mut decoded);
+                };
+                let mut pool = Pool::new(3);
+
+                // The receiver will be automatically dropped when sender get removed
+                while let Ok(buf) = self.receiver.recv() {
+                    debug!("received buffer");
+
+                    pool.scoped(|scope| {
+                        scope.execute(move || {
+                            decode(buf);
+                        });
+                    });
                     count += 1;
                 }
 
@@ -75,12 +87,12 @@ impl AsyncMethodHandler for TextureHandler {
                     count,
                     started.elapsed().as_secs()
                 );
-                let encoding_channel =self.encoding_sender.as_ref();
+                let encoding_channel = self.encoding_sender.as_ref();
                 // wait until  encoding_channel.len() is 0 which means all frames are encoded
                 while encoding_channel.len() > 0 {
                     thread::sleep(std::time::Duration::from_millis(100));
                 }
-               
+
                 self.encoding_sender.as_ref().close();
 
                 Ok("render_texture finished".into())
