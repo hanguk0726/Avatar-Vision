@@ -13,7 +13,6 @@ use irondash_texture::{PixelDataProvider, SendableTexture};
 use kanal::{Receiver, Sender};
 use log::debug;
 use nokhwa::Buffer;
-use scoped_threadpool::Pool;
 
 use crate::capture::decode_to_rgb;
 

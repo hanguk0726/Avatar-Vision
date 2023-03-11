@@ -15,7 +15,6 @@ use irondash_run_loop::RunLoop;
 use kanal::Receiver;
 use log::{debug, error};
 use nokhwa::Buffer;
-use scoped_threadpool::Pool;
 
 use crate::encoding::{encode_to_h264, encoder, to_mp4};
 

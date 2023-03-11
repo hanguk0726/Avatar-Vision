@@ -2067,7 +2067,6 @@ dependencies = [
  "oslog",
  "rayon",
  "reqwest",
- "scoped_threadpool",
  "simple_logger",
  "thiserror",
  "tokio",
