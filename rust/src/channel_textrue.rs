@@ -10,7 +10,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
-use kanal::{Receiver, Sender};
+use kanal::{Receiver, Sender, AsyncReceiver, AsyncSender};
 use log::debug;
 use nokhwa::Buffer;
 
@@ -18,9 +18,9 @@ use crate::capture::decode_to_rgb;
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
-    pub receiver: Arc<Receiver<Buffer>>,
+    pub receiver: Arc<AsyncReceiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
-    pub encoding_sender: Arc<Sender<Vec<u8>>>,
+    pub encoding_sender: Arc<AsyncSender<Vec<u8>>>,
 }
 
 #[derive(IntoValue)]
@@ -69,12 +69,12 @@ impl AsyncMethodHandler for TextureHandler {
                         "decoded frame, time elapsed: {}",
                         time.elapsed().as_millis()
                     );
-                    self.encoding_sender.as_ref().send(decoded.clone()).unwrap();
+                    self.encoding_sender.as_ref().try_send(decoded.clone());
                     self.render_texture(&mut decoded);
                 };
                 let pool = rayon::ThreadPoolBuilder::new().num_threads(3).build().unwrap();
                 // The receiver will be automatically dropped when sender get removed
-                while let Ok(buf) = self.receiver.recv() {
+                while let Ok(buf) = self.receiver.recv().await {
                     debug!("received buffer on texture channel");
                     pool.install(|| decode(buf));
                     count += 1;

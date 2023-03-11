@@ -1,4 +1,4 @@
-use kanal::Sender;
+use kanal::{Sender, AsyncSender};
 use std::sync::Arc;
 
 use log::debug;
@@ -7,13 +7,13 @@ use nokhwa::{Buffer, CallbackCamera};
 use crate::{capture::inflate_camera_conection, };
 
 pub struct Camera {
-    pub rendering_sender: Option<Arc<Sender<Buffer>>>,
+    pub rendering_sender: Option<Arc<AsyncSender<Buffer>>>,
     pub camera: Option<CallbackCamera>,
 }
 
 impl Camera {
     pub fn new(
-        rendering_sender: Option<Arc<Sender<Buffer>>>,
+        rendering_sender: Option<Arc<AsyncSender<Buffer>>>,
 
     ) -> Self {
         Self {

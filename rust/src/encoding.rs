@@ -22,11 +22,24 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-pub fn encode_to_h264(encoder: &mut Encoder, rgba: &[u8], buf_h264: &mut Vec<u8>) {
-    let yuv = encode_to_yuv(rgba).unwrap();
+pub fn encode_to_h264(encoder: &mut Encoder, yuv_vec: Vec<Vec<u8>>, buf_h264: &mut Vec<u8>) {
     // Encode YUV into H.264.
-    let bitstream = encoder.encode(&yuv).unwrap();
-    bitstream.write_vec(buf_h264);
+    // let bitstream = encoder.encode(&yuv).unwrap();
+    // bitstream.write_vec(buf_h264);
+
+
+     // Encode YUV into H.264.
+     let started = std::time::Instant::now();
+     for yuv in yuv_vec {
+         let yuv = YUVBuf {
+             yuv,
+             width: 1280,
+             height: 720,
+         };
+         let mut bitstream = encoder.encode(&yuv).unwrap();
+         bitstream.write_vec(buf_h264);
+     }
+    debug!("encoded to h264: {:?}", started.elapsed());
 }
 
 pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), std::io::Error> {

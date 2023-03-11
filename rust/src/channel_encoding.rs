@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{
-        atomic::{AtomicBool, AtomicU32},
+        atomic::{AtomicBool, AtomicU32, AtomicPtr},
         Arc, Mutex,
     },
     thread,
@@ -12,14 +12,14 @@ use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use kanal::Receiver;
+use kanal::{AsyncReceiver, Receiver};
 use log::{debug, error};
 use nokhwa::Buffer;
 
 use crate::encoding::{encode_to_h264, encoder, rgba_to_yuv, to_mp4};
 
 pub struct EncodingHandler {
-    pub encodig_receiver: Arc<Receiver<Vec<u8>>>,
+    pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub yuv: boxcar::Vec<Vec<u8>>,
     pub processing: Arc<AtomicBool>,
@@ -27,7 +27,7 @@ pub struct EncodingHandler {
 }
 
 impl EncodingHandler {
-    pub fn new(encodig_receiver: Arc<Receiver<Vec<u8>>>, fps: Arc<AtomicU32>) -> Self {
+    pub fn new(encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>, fps: Arc<AtomicU32>) -> Self {
         Self {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
@@ -36,22 +36,12 @@ impl EncodingHandler {
             fps,
         }
     }
-    fn encode(&self, rgba: &[u8]) {
+    fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
         let mut encoder = encoder(1280, 720).unwrap();
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
-        encode_to_h264(&mut encoder, rgba, &mut encoded);
+        encode_to_h264(&mut encoder, yuv_vec, &mut encoded);
         debug!("encoded length: {:?}", encoded.len());
-    }
-
-
-    fn encode_(&self, rgba: &[u8]) {
-        let width = 1280;
-        let height = 720;
-        let started = std::time::Instant::now();
-        let yuv = rgba_to_yuv(rgba, width, height);
-        self.yuv.push(yuv);
-        debug!("encoded to yuv: {:?}", started.elapsed());
     }
 
     fn save(&self) -> Result<(), std::io::Error> {
@@ -70,7 +60,6 @@ impl EncodingHandler {
             .store(processing, std::sync::atomic::Ordering::Relaxed);
     }
 }
-
 #[async_trait(?Send)]
 impl AsyncMethodHandler for EncodingHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
@@ -84,18 +73,41 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                let pool = rayon::ThreadPoolBuilder::new()
-                    .num_threads(6)
+                // let pool = rayon::ThreadPoolBuilder::new()
+                //     .num_threads(6)
+                //     .build()
+                //     .unwrap();
+                let yuv_data = Arc::new(Mutex::new(Vec::new()));
+
+              
+                let pool = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(4)
                     .build()
                     .unwrap();
 
-                while let Ok(rgba) = self.encodig_receiver.recv() {
+                // fn encode_(&self, rgba: Vec<u8>) {
+                //     let width = 1280;
+                //     let height = 720;
+
+                //     let yuv = rgba_to_yuv(&rgba[..], width, height);
+                //     self.yuv.push(yuv);
+                // }
+                while let Ok(rgba) = self.encodig_receiver.recv().await {
                     debug!("received buffer");
-                    pool.install(|| {
-                        self.encode_(&rgba);
-                    });
+                    let started = std::time::Instant::now();
                     count += 1;
+                    let yuv_data_clone = yuv_data.clone();
+                    pool.spawn(async move {
+                        let width = 1280;
+                        let height = 720;
+                        let yuv = rgba_to_yuv(&rgba[..], width, height);
+                        let mut yuv_data = yuv_data_clone.lock().unwrap();
+                        yuv_data.push(yuv);
+                    });
+                    debug!("encoded to yuv: {:?}", started.elapsed().as_millis());
                 }
+
+                self.encode(yuv_data.lock().unwrap().clone());
                 debug!(
                     "encoded {} frames, time elapsed {}",
                     count,

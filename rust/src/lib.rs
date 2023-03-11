@@ -8,7 +8,9 @@ use std::{
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::Texture;
+use kanal::{AsyncSender, AsyncReceiver};
 use log::debug;
+use nokhwa::Buffer;
 use textrue::PixelBufferSource;
 
 use crate::{
@@ -52,9 +54,11 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (rendering_sender, rendering_receiver) = kanal::bounded(1);
+    // let (rendering_sender, rendering_receiver) = kanal::bounded(1);
+    let (rendering_sender, rendering_receiver):(AsyncSender<Buffer>, AsyncReceiver<Buffer>) = kanal::bounded_async(1);
     // let (rendering_sender, rendering_receiver) = kanal::unbounded();
-    let (encoding_sender, encoding_receiver) = kanal::unbounded();
+    // let (encoding_sender, encoding_receiver) = kanal::unbounded();
+    let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
     let (rendering_sender, rendering_receiver) =
         (Arc::new(rendering_sender), Arc::new(rendering_receiver));
     let (encoding_sender, encoding_receiver) =

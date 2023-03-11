@@ -1,4 +1,4 @@
-use kanal::Sender;
+use kanal::{Sender, AsyncSender, AsyncReceiver};
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
@@ -14,7 +14,7 @@ use std::time::Instant;
 static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
 pub fn inflate_camera_conection(
-    rending_sender: Arc<Sender<Buffer>>,
+    rendering_sender: Arc<AsyncSender<Buffer>>,
 ) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
@@ -32,7 +32,9 @@ pub fn inflate_camera_conection(
             elapsed.borrow_mut().replace(Instant::now());
         }
         // rending_sender.send(buf).expect("Error sending frame!");
-        rending_sender.try_send(buf).expect("Error sending frame!");
+       
+        rendering_sender.try_send_realtime(buf).expect("Error sending frame!");
+        // rending_sender.try_send_realtime(buf).expect("Error sending frame!");
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);
