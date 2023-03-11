@@ -73,15 +73,12 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
-
-                let mut pool = Pool::new(6);
+                let pool = rayon::ThreadPoolBuilder::new().num_threads(6).build().unwrap();
 
                 while let Ok(rgba) = self.encodig_receiver.recv() {
                     debug!("received buffer");
-                    pool.scoped(|scope| {
-                        scope.execute(move || {
-                            self.encode(&rgba[..]);
-                        });
+                    pool.install(|| {
+                        self.encode(&rgba);
                     });
                     count += 1;
                 }

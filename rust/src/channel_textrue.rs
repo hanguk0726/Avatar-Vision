@@ -73,16 +73,11 @@ impl AsyncMethodHandler for TextureHandler {
                     self.encoding_sender.as_ref().send(decoded.clone()).unwrap();
                     self.render_texture(&mut decoded);
                 };
-                let mut pool = Pool::new(6);
+                let pool = rayon::ThreadPoolBuilder::new().num_threads(3).build().unwrap();
                 // The receiver will be automatically dropped when sender get removed
                 while let Ok(buf) = self.receiver.recv() {
                     debug!("received buffer on texture channel");
-                    decode(buf);
-                    // pool.scoped(|scope| {
-                    //     scope.execute(move || {
-                    //         decode(buf);
-                    //     });
-                    // });
+                    pool.install(|| decode(buf));
                     count += 1;
                 }
 
