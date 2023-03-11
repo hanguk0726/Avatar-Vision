@@ -1,20 +1,15 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
-    path::Path, sync::{Arc, Mutex},
+    path::Path,
+    sync::{Arc, Mutex},
 };
 
-use crate::capture::decode_to_rgb;
 use log::debug;
 use minimp4::Mp4Muxer;
-use nokhwa::{utils::FrameFormat, Buffer, NokhwaError};
 use openh264::{
     encoder::{Encoder, EncoderConfig},
-    formats::{YUVBuffer, YUVSource},
+    formats::YUVSource,
     Error,
-};
-use rayon::{
-    prelude::{IndexedParallelIterator, ParallelIterator, IntoParallelRefIterator},
-    slice::ParallelSlice,
 };
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
@@ -22,32 +17,11 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-// pub fn encode_to_h264(encoder: &mut Encoder, yuv_vec: Vec<Vec<u8>>, buf_h264: &mut Vec<u8>) {
-//     // Encode YUV into H.264.
-//     // let bitstream = encoder.encode(&yuv).unwrap();
-//     // bitstream.write_vec(buf_h264);
-
-
-//      // Encode YUV into H.264.
-//      let started = std::time::Instant::now();
-//      for yuv in yuv_vec {
-//          let yuv = YUVBuf {
-//              yuv,
-//              width: 1280,
-//              height: 720,
-//          };
-//          let mut bitstream = encoder.encode(&yuv).unwrap();
-//          bitstream.write_vec(buf_h264);
-//      }
-//     debug!("encoded to h264: {:?}", started.elapsed());
-// }
-
-pub fn encode_to_h264( yuv_vec: Vec<Vec<u8>>,  ) -> Vec<u8> {
+pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
     let started = std::time::Instant::now();
     let buf_h264 = Arc::new(Mutex::new(Vec::new()));
-    let  encoder =encoder(1280, 720).unwrap();
+    let encoder = encoder(1280, 720).unwrap();
     let encoder = Arc::new(Mutex::new(encoder));
-    // Encode YUV into H.264 in parallel.
     for yuv in yuv_vec {
         let yuv = YUVBuf {
             yuv: yuv.clone(),
@@ -55,11 +29,18 @@ pub fn encode_to_h264( yuv_vec: Vec<Vec<u8>>,  ) -> Vec<u8> {
             height: 720,
         };
         let mut encoder = encoder.lock().unwrap();
-        let  bitstream = encoder.encode(&yuv).unwrap();
+        let bitstream = encoder.encode(&yuv).unwrap();
         let mut buf_h264 = buf_h264.lock().unwrap();
 
-        bitstream.write_vec( &mut buf_h264);
-    };
+        for l in 0..bitstream.num_layers() {
+            let layer = bitstream.layer(l).unwrap();
+            for n in 0..layer.nal_count() {
+                let nal = layer.nal_unit(n).unwrap();
+                buf_h264.extend_from_slice(nal)
+            }
+        }
+    }
+    // bitstream.write_vec(&mut buf_h264);
 
     debug!("encoded to h264: {:?}", started.elapsed());
     let buf_h264 = buf_h264.lock().unwrap();
@@ -79,24 +60,7 @@ pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), 
     std::fs::write(file, &video_bytes)
 }
 
- fn encode_to_yuv(data: &[u8]) -> Result<YUVBuf, NokhwaError> {
-    let width = 1280;
-    let height = 720;
-
-    let mut started = std::time::Instant::now();
-    // let buf = YUVBuffer::with_rgb(width, height, &data);
-    let buf = YUVBuf {
-        yuv: rgba_to_yuv(&data, width, height),
-        width,
-        height,
-    };
-    debug!("encoded to yuv: {:?}", started.elapsed());
-    return Ok(buf);
-}
-
-
-
-pub fn rgba_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
+pub fn rgba_to_yuv(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
     let size = (3 * width * height) / 2;
     let mut yuv = vec![0; size];
 
@@ -155,7 +119,6 @@ pub fn rgba_to_yuv(rgba : &[u8], width: usize, height: usize) -> Vec<u8> {
     }
     yuv
 }
-
 
 pub struct YUVBuf {
     yuv: Vec<u8>,

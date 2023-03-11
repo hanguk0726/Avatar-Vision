@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{
-        atomic::{AtomicBool, AtomicU32, AtomicPtr},
+        atomic::{AtomicBool, AtomicPtr, AtomicU32},
         Arc, Mutex,
     },
     thread,
@@ -12,11 +12,10 @@ use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use kanal::{AsyncReceiver, Receiver};
+use kanal::{AsyncReceiver};
 use log::{debug, error};
-use nokhwa::Buffer;
 
-use crate::encoding::{encode_to_h264, encoder, rgba_to_yuv, to_mp4};
+use crate::encoding::{encode_to_h264, rgba_to_yuv, to_mp4};
 
 pub struct EncodingHandler {
     pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
@@ -39,7 +38,7 @@ impl EncodingHandler {
     fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
-        let processed = encode_to_h264(yuv_vec,  );
+        let processed = encode_to_h264(yuv_vec);
         *encoded = processed;
 
         debug!("encoded length: {:?}", encoded.len());
@@ -74,25 +73,13 @@ impl AsyncMethodHandler for EncodingHandler {
                 self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                // let pool = rayon::ThreadPoolBuilder::new()
-                //     .num_threads(6)
-                //     .build()
-                //     .unwrap();
                 let yuv_data = Arc::new(Mutex::new(Vec::new()));
 
-              
                 let pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(4)
                     .build()
                     .unwrap();
 
-                // fn encode_(&self, rgba: Vec<u8>) {
-                //     let width = 1280;
-                //     let height = 720;
-
-                //     let yuv = rgba_to_yuv(&rgba[..], width, height);
-                //     self.yuv.push(yuv);
-                // }
                 while let Ok(rgba) = self.encodig_receiver.recv().await {
                     debug!("received buffer");
                     let started = std::time::Instant::now();

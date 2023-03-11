@@ -61,7 +61,10 @@ impl AsyncMethodHandler for TextureHandler {
                 let started = std::time::Instant::now();
                 let mut count = 0;
 
-                let decode = |buf: Buffer| {
+                let decode = |buf: Buffer, encoding_sender: Arc<AsyncSender<Vec<u8>>>,
+                                pixel_buffer: Arc<Mutex<Vec<u8>>>,
+                                texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>
+                | {
                     let time = std::time::Instant::now();
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
@@ -69,14 +72,34 @@ impl AsyncMethodHandler for TextureHandler {
                         "decoded frame, time elapsed: {}",
                         time.elapsed().as_millis()
                     );
-                    self.encoding_sender.as_ref().try_send(decoded.clone());
-                    self.render_texture(&mut decoded);
+                    encoding_sender.as_ref().try_send(decoded.clone()).unwrap_or_else(|e| {
+                        debug!("encoding_sender.send failed: {:?}", e);
+                        false
+                    });
+                    let mut pixel_buffer = pixel_buffer.lock().unwrap();
+                    
+                    *pixel_buffer = take(&mut decoded);
+                    debug!(
+                        "mark_frame_available, pixel_buffer: {:?}",
+                        pixel_buffer.len()
+                    );
+                    texture_provider.mark_frame_available();
+                    
                 };
-                let pool = rayon::ThreadPoolBuilder::new().num_threads(3).build().unwrap();
-                // The receiver will be automatically dropped when sender get removed
-                while let Ok(buf) = self.receiver.recv().await {
-                    debug!("received buffer on texture channel");
-                    pool.install(|| decode(buf));
+                let pool = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(4)
+                .build()
+                .unwrap();
+            
+            while let Ok(buf) = self.receiver.recv().await {
+                debug!("received buffer on texture channel");
+                let encoding_sender = Arc::clone( &self.encoding_sender);
+                let pixel_buffer = Arc::clone(&self.pixel_buffer);
+                let texture_provider = Arc::clone(&self.texture_provider);
+                    pool.spawn(async move {
+                        
+                        decode(buf, encoding_sender , pixel_buffer, texture_provider);
+                    });
                     count += 1;
                 }
 
