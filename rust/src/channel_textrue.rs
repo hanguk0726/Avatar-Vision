@@ -75,10 +75,13 @@ impl AsyncMethodHandler for TextureHandler {
                     .worker_threads(4)
                     .build()
                     .unwrap();
+
+                let decoded_buffer = Arc::new(Mutex::new(Vec::new()));
+
                 let decode =
                     |buf: Buffer,
                      encoding_sender: Arc<AsyncSender<Vec<u8>>>,
-                     decoding_sender: Arc<Sender<Vec<u8>>>| {
+                     decoded_buffer: Arc<Mutex<Vec<u8>>>| {
                         let time = std::time::Instant::now();
                         let mut decoded =
                             decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
@@ -86,8 +89,15 @@ impl AsyncMethodHandler for TextureHandler {
                             "decoded frame, time elapsed: {}",
                             time.elapsed().as_millis()
                         );
-                        encoding_sender.try_send(decoded.clone()).unwrap();
-                        decoding_sender.try_send_realtime(decoded).unwrap();
+                        encoding_sender.try_send(decoded.clone()).unwrap_or_else(|_|{
+                            debug!("encoding channel is full, drop frame");
+                            false
+                        });
+                        *decoded_buffer.lock().unwrap() = decoded;
+                        // decoding_sender.try_send_realtime(decoded).unwrap_or_else(|_|{
+                        //     debug!("encoding channel is full, drop frame");
+                        //     false
+                        // });
                     };
 
                 let render = |mut decoded: Vec<u8>,
@@ -105,24 +115,28 @@ impl AsyncMethodHandler for TextureHandler {
                     texture_provider.mark_frame_available();
                 };
                 
-                let runtime = Runtime::new().unwrap();
+                // let runtime = Runtime::new().unwrap();
                 
                 let pixel_buffer = Arc::clone(&self.pixel_buffer);
                 let texture_provider = Arc::clone(&self.texture_provider);
-                runtime.spawn(async move {
-                    while let Ok(buf) = decoding_receiver.recv() {
-                        debug!("received buffer on decoding channel");
-                        render(buf, pixel_buffer.clone(), texture_provider.clone());
-                    }
-                });
+                // runtime.spawn(async move {
+                //     while let Ok(buf) = decoding_receiver.recv() {
+                //         debug!("received buffer on decoding channel");
+                //         render(buf, pixel_buffer.clone(), texture_provider.clone());
+                //     }
+                // });
                 while let Ok(buf) = self.receiver.recv().await {
                     let time = std::time::Instant::now();
                     debug!("received buffer on texture channel");
                     let encoding_sender = Arc::clone(&self.encoding_sender);
-                    let decoding_sender = Arc::clone(&decoding_sender);
+                    let de = Arc::clone(&decoded_buffer);
                     pool.spawn(async move {
-                        decode(buf, encoding_sender, decoding_sender);
+                        decode(buf, encoding_sender, de);
                     });
+                    // last of decoded buffer
+                    let mut decoded = decoded_buffer.lock().unwrap().clone();
+
+                    render(decoded, pixel_buffer.clone(), texture_provider.clone());
                     count += 1;
                     debug!(
                         "render_texture, time elapsed: {}",
@@ -140,7 +154,7 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::sleep(std::time::Duration::from_millis(100));
                 }
                 self.encoding_sender.as_ref().close();
-                runtime.shutdown_timeout(Duration::from_secs(1));
+                // runtime.shutdown_timeout(Duration::from_secs(1));
                 Ok("render_texture finished".into())
             }
             _ => Err(PlatformError {
