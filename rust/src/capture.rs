@@ -1,4 +1,5 @@
-use kanal::{Sender, AsyncSender, AsyncReceiver};
+use jpeg_decoder::Decoder;
+use kanal::{AsyncReceiver, AsyncSender, Sender};
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{mjpeg_to_rgb, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
@@ -27,11 +28,13 @@ pub fn inflate_camera_conection(
                     let duration = elapsed.elapsed().as_millis();
                     debug!("sending frame {}", duration);
                 }
-                None => { }
+                None => {}
             }
             elapsed.borrow_mut().replace(Instant::now());
         }
-        rendering_sender.try_send_realtime(buf).expect("Error sending frame!");
+        rendering_sender
+            .try_send_realtime(buf)
+            .expect("Error sending frame!");
     })
     .map_err(|why| {
         eprintln!("Error opening camera: {:?}", why);
@@ -54,6 +57,10 @@ pub fn decode_to_rgb(
     rgba: bool,
 ) -> Result<Vec<u8>, Error> {
     match frame_format {
+        // FrameFormat::MJPEG => mjpeg_to_rgb_(data, rgba).map_err(|why| {
+        //     error!("Error converting MJPEG to RGB: {:?}", why);
+        //     Error
+        // }),
         FrameFormat::MJPEG => mjpeg_to_rgb(data, rgba).map_err(|why| {
             error!("Error converting MJPEG to RGB: {:?}", why);
             Error
@@ -103,3 +110,21 @@ fn yuyv422_to_rgb_(data: &[u8], rgba: bool) -> Vec<u8> {
     }
     rgb
 }
+
+// fn mjpeg_to_rgb_(data: &[u8], rgba: bool) -> Result<Vec<u8>, Error> {
+//     // Create a JPEG decoder
+//     let mut decoder = Decoder::new(data);
+//     let metadata = decoder.info().unwrap();
+//     let buffer = if rgba {
+//         let mut buffer = vec![0; metadata.width as usize * metadata.height as usize * 4];
+//         decoder.decode()
+//     } else {
+//         let mut buffer = vec![0; metadata.width as usize * metadata.height as usize * 3];
+//         decoder.decode()
+//     };
+
+//     buffer.map_err(|why| {
+//         error!("Error decoding MJPEG: {:?}", why);
+//         Error
+//     })
+// }

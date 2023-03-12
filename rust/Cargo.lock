@@ -2064,6 +2064,7 @@ dependencies = [
  "irondash_message_channel",
  "irondash_run_loop",
  "irondash_texture",
+ "jpeg-decoder",
  "kanal",
  "log",
  "minimp4",
