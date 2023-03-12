@@ -46,16 +46,11 @@ impl Camera {
     }
 
     pub fn stop_camera_stream(&mut self) {
-        if let Some(mut camera) = self.camera.take() {
-            if let Err(e) = camera.stop_stream() {
-                debug!("Failed to close camera{:?}", e);
-                drop(camera);
-                drop(self.rendering_sender.take());
-            } else {
-                debug!("camera closed");
-            }
+        if let Some(camera) = self.camera.take() {
+            drop(camera);
+            drop(self.rendering_sender.take());
         } else {
-            debug!("Failed to open camera");
+            debug!("Failed to stop camera stream");
         }
     }
 }

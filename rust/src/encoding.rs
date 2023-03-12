@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use kanal::bounded;
 use log::debug;
 use minimp4::Mp4Muxer;
 use openh264::{
@@ -39,7 +38,6 @@ pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
             }
         }
     }
-    // bitstream.write_vec(&mut buf_h264);
 
     debug!("encoded to h264: {:?}", started.elapsed());
     buf_h264
