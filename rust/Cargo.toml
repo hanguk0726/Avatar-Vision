@@ -26,11 +26,7 @@ nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] 
 kanal = "0.1.0-pre8"
 openh264 = "0.4.0"
 minimp4 = { git = "https://github.com/hanguk0726/minimp4.rs.git" }  # Conflict between 'clang-sys' version of 'nokhwa'
-futures-signals = "0.3.31"
-rayon = "1.6.1"
 cpal = "0.15.0"
-boxcar = "0.1.0"
-jpeg-decoder = "0.3.0"
 # reqwest uses different options per platform
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]

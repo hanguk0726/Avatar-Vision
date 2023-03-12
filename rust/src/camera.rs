@@ -1,4 +1,4 @@
-use kanal::{Sender, AsyncSender};
+use kanal::{AsyncSender};
 use std::sync::Arc;
 
 use log::debug;

@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{
-        atomic::{AtomicBool, AtomicPtr, AtomicU32},
+        atomic::{AtomicBool},
         Arc, Mutex,
     },
     thread,
@@ -20,7 +20,6 @@ use crate::encoding::{encode_to_h264, rgba_to_yuv, to_mp4};
 pub struct EncodingHandler {
     pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
-    pub yuv: boxcar::Vec<Vec<u8>>,
     pub processing: Arc<AtomicBool>,
     pub frame_rate: Arc<Mutex<u32>>,
 }
@@ -31,7 +30,6 @@ impl EncodingHandler {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
             processing: Arc::new(AtomicBool::new(false)),
-            yuv: boxcar::Vec::new(),
             frame_rate,
         }
     }
