@@ -66,14 +66,15 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
-    let fps = Arc::new(AtomicU32::new(0));
+    let frame_rate = Arc::new(Mutex::new(0u32));
 
-    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone(), Arc::clone(&fps)));
+    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone(), Arc::clone(&frame_rate)));
     channel_textrue::init(TextureHandler {
         pixel_buffer,
         receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
         encoding_sender: Arc::clone(&encoding_sender),
+        frame_rate: Arc::clone(&frame_rate),
     });
 
     channel_capture::init(CaptureHandler {

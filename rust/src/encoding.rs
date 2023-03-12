@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use kanal::bounded;
 use log::debug;
 use minimp4::Mp4Muxer;
 use openh264::{
@@ -19,18 +20,16 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 
 pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
     let started = std::time::Instant::now();
-    let buf_h264 = Arc::new(Mutex::new(Vec::new()));
-    let encoder = encoder(1280, 720).unwrap();
-    let encoder = Arc::new(Mutex::new(encoder));
+    let mut buf_h264 = Vec::new();
+    let mut encoder = encoder(1280, 720).unwrap();
+    debug!("encoding to h264...");
     for yuv in yuv_vec {
         let yuv = YUVBuf {
             yuv: yuv.clone(),
             width: 1280,
             height: 720,
         };
-        let mut encoder = encoder.lock().unwrap();
         let bitstream = encoder.encode(&yuv).unwrap();
-        let mut buf_h264 = buf_h264.lock().unwrap();
 
         for l in 0..bitstream.num_layers() {
             let layer = bitstream.layer(l).unwrap();
@@ -43,15 +42,15 @@ pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
     // bitstream.write_vec(&mut buf_h264);
 
     debug!("encoded to h264: {:?}", started.elapsed());
-    let buf_h264 = buf_h264.lock().unwrap();
-    buf_h264.clone()
+    buf_h264
 }
 
-pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, fps: u32) -> Result<(), std::io::Error> {
+pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, frame_rate: u32) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
+    debug!("writing to mp4... frame rate: {}", frame_rate);
     mp4muxer.init_video(1280, 720, false, "diary");
-    mp4muxer.write_video_with_fps(buf_h264, fps);
+    mp4muxer.write_video_with_fps(buf_h264, frame_rate);
     mp4muxer.close();
     video_buffer.seek(SeekFrom::Start(0)).unwrap();
     let mut video_bytes = Vec::new();

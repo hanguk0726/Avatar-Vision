@@ -12,7 +12,7 @@ use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use kanal::{AsyncReceiver};
+use kanal::AsyncReceiver;
 use log::{debug, error};
 
 use crate::encoding::{encode_to_h264, rgba_to_yuv, to_mp4};
@@ -22,19 +22,20 @@ pub struct EncodingHandler {
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub yuv: boxcar::Vec<Vec<u8>>,
     pub processing: Arc<AtomicBool>,
-    pub fps: Arc<AtomicU32>,
+    pub frame_rate: Arc<Mutex<u32>>,
 }
 
 impl EncodingHandler {
-    pub fn new(encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>, fps: Arc<AtomicU32>) -> Self {
+    pub fn new(encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>, frame_rate: Arc<Mutex<u32>>) -> Self {
         Self {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
             processing: Arc::new(AtomicBool::new(false)),
             yuv: boxcar::Vec::new(),
-            fps,
+            frame_rate,
         }
     }
+
     fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
@@ -48,8 +49,8 @@ impl EncodingHandler {
         debug!("*********** saving... ***********");
         let encoded = Arc::clone(&self.encoded);
         let encoded = encoded.lock().unwrap();
-        // let fps = self.fps.load(std::sync::atomic::Ordering::Relaxed);
-        to_mp4(&encoded[..], "test.mp4", 30).unwrap();
+        let frame_rate = *self.frame_rate.lock().unwrap();
+        to_mp4(&encoded[..], "test.mp4", frame_rate).unwrap();
         debug!("*********** saved! ***********");
         self.set_processing(false);
         Ok(())

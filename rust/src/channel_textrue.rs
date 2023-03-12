@@ -26,6 +26,7 @@ pub struct TextureHandler {
     pub receiver: Arc<AsyncReceiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub encoding_sender: Arc<AsyncSender<Vec<u8>>>,
+    pub frame_rate: Arc<Mutex<u32>>,
 }
 
 #[derive(IntoValue)]
@@ -62,81 +63,31 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
-                let (decoding_sender, decoding_receiver): (
-                    Sender<Vec<u8>>,
-                    Receiver<Vec<u8>>,
-                ) = kanal::bounded(1);
-
-                let decoding_sender = Arc::new(decoding_sender);
 
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(4)
-                    .build()
-                    .unwrap();
 
-                let decoded_buffer = Arc::new(Mutex::new(Vec::new()));
-
-                let decode =
-                    |buf: Buffer,
-                     encoding_sender: Arc<AsyncSender<Vec<u8>>>,
-                     decoded_buffer: Arc<Mutex<Vec<u8>>>| {
-                        let time = std::time::Instant::now();
-                        let mut decoded =
-                            decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
-                        debug!(
-                            "decoded frame, time elapsed: {}",
-                            time.elapsed().as_millis()
-                        );
-                        encoding_sender.try_send(decoded.clone()).unwrap_or_else(|_|{
+                let decode = |buf: Buffer| {
+                    let time = std::time::Instant::now();
+                    let mut decoded =
+                        decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+                    debug!(
+                        "decoded frame, time elapsed: {}",
+                        time.elapsed().as_millis()
+                    );
+                    self.encoding_sender
+                        .try_send(decoded.clone())
+                        .unwrap_or_else(|_| {
                             debug!("encoding channel is full, drop frame");
                             false
                         });
-                        *decoded_buffer.lock().unwrap() = decoded;
-                        // decoding_sender.try_send_realtime(decoded).unwrap_or_else(|_|{
-                        //     debug!("encoding channel is full, drop frame");
-                        //     false
-                        // });
-                    };
-
-                let render = |mut decoded: Vec<u8>,
-                              pixel_buffer: Arc<Mutex<Vec<u8>>>,
-                              texture_provider: Arc<
-                    SendableTexture<Box<dyn PixelDataProvider>>,
-                >| {
-                    let mut pixel_buffer = pixel_buffer.lock().unwrap();
-
-                    *pixel_buffer = take(&mut decoded);
-                    debug!(
-                        "mark_frame_available, pixel_buffer: {:?}",
-                        pixel_buffer.len()
-                    );
-                    texture_provider.mark_frame_available();
+                    self.render_texture(&mut decoded);
                 };
-                
-                // let runtime = Runtime::new().unwrap();
-                
-                let pixel_buffer = Arc::clone(&self.pixel_buffer);
-                let texture_provider = Arc::clone(&self.texture_provider);
-                // runtime.spawn(async move {
-                //     while let Ok(buf) = decoding_receiver.recv() {
-                //         debug!("received buffer on decoding channel");
-                //         render(buf, pixel_buffer.clone(), texture_provider.clone());
-                //     }
-                // });
+
                 while let Ok(buf) = self.receiver.recv().await {
                     let time = std::time::Instant::now();
                     debug!("received buffer on texture channel");
-                    let encoding_sender = Arc::clone(&self.encoding_sender);
-                    let de = Arc::clone(&decoded_buffer);
-                    pool.spawn(async move {
-                        decode(buf, encoding_sender, de);
-                    });
-                    // last of decoded buffer
-                    let mut decoded = decoded_buffer.lock().unwrap().clone();
-
-                    render(decoded, pixel_buffer.clone(), texture_provider.clone());
+                    decode(buf);
                     count += 1;
                     debug!(
                         "render_texture, time elapsed: {}",
@@ -148,6 +99,12 @@ impl AsyncMethodHandler for TextureHandler {
                     count,
                     started.elapsed().as_secs()
                 );
+
+                // get frame rate with 'count' and 'started.elapsed().as_secs()'
+                let frame_rate = count as f64 / started.elapsed().as_secs_f64();
+                *self.frame_rate.lock().unwrap() = frame_rate as u32;
+
+                debug!("frame rate: {}", frame_rate);
                 let encoding_channel = self.encoding_sender.as_ref();
                 // wait until  encoding_channel.len() is 0 which means all frames are encoded
                 while encoding_channel.len() > 0 {
