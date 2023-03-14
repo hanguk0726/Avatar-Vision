@@ -11,15 +11,11 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
-use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
+use kanal::{AsyncReceiver, AsyncSender};
 use log::debug;
 use nokhwa::Buffer;
-use tokio::{
-    runtime::{Handle, Runtime},
-    task::spawn_blocking,
-};
 
-use crate::capture::decode_to_rgb;
+use crate::domain::image_processing::decode_to_rgb;
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,

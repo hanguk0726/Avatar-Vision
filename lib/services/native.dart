@@ -23,6 +23,7 @@ class Native {
   late final NativeMethodChannel _textureChannel;
   late final NativeMethodChannel _captureChannel;
   late final NativeMethodChannel _encodingChannel;
+  late final NativeMethodChannel _audioChannel;
   late final int textureId;
 
   Future<void> init() async {
@@ -33,6 +34,8 @@ class Native {
     _captureChannel = NativeMethodChannel('captrue_channel_background_thread',
         context: nativeContext);
     _encodingChannel = NativeMethodChannel('encoding_channel_background_thread',
+        context: nativeContext);
+    _audioChannel = NativeMethodChannel('audio_channel_background_thread',
         context: nativeContext);
   }
 
@@ -79,6 +82,16 @@ class Native {
 
   void stopCameraStream() async {
     final res = await _captureChannel.invokeMethod('stop_camera_stream', {});
+    _showResult(res);
+  }
+
+  void startAudioRecord() async {
+    final res = await _audioChannel.invokeMethod('start_audio_recording', {});
+    _showResult(res);
+  }
+
+  void stopAudioRecord() async {
+    final res = await _audioChannel.invokeMethod('stop_audio_recording', {});
     _showResult(res);
   }
 }

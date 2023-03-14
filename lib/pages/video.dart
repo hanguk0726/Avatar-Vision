@@ -45,16 +45,16 @@ class _MyHomePageState extends State<MyHomePage> {
         texture(),
         mediaControlBar(
           onStart: () {
-            // Native()
-            //   ..openCameraStream()
-            //   ..renderTexture();
             Native()
               ..openCameraStream()
               ..renderTexture()
+              ..startAudioRecord()
               ..startEncoding();
           },
           onStop: () {
-            Native().stopCameraStream();
+            Native()
+              ..stopCameraStream()
+              ..stopAudioRecord();
           },
         ),
       ]),

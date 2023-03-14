@@ -1,9 +1,6 @@
 use std::{
     mem::ManuallyDrop,
-    sync::{
-        atomic::{AtomicBool},
-        Arc, Mutex,
-    },
+    sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
 
@@ -35,9 +32,10 @@ impl EncodingHandler {
     }
 
     fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
+        let processed = encode_to_h264(yuv_vec);
+        
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
-        let processed = encode_to_h264(yuv_vec);
         *encoded = processed;
 
         debug!("encoded length: {:?}", encoded.len());

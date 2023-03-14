@@ -15,7 +15,7 @@ use textrue::PixelBufferSource;
 
 use crate::{
     camera::Camera, channel_capture::CaptureHandler, channel_encoding::EncodingHandler,
-    channel_textrue::TextureHandler, log_::init_logging,
+    channel_textrue::TextureHandler, log_::init_logging, channel_audio::AudioHandler,
 };
 
 mod camera;
@@ -26,6 +26,9 @@ mod channel_textrue;
 mod encoding;
 mod log_;
 mod textrue;
+mod domain;
+mod audio;
+mod channel_audio;
 
 static START: Once = Once::new();
 
@@ -82,6 +85,8 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
             Some(Arc::clone(&rendering_sender)),
         )),
     });
-
+    channel_audio::init( AudioHandler{
+        recorder: RefCell::new(None),
+    });
     texture_id
 }

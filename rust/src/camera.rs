@@ -4,7 +4,7 @@ use std::sync::Arc;
 use log::debug;
 use nokhwa::{Buffer, CallbackCamera};
 
-use crate::{capture::inflate_camera_conection, };
+use crate::{capture::inflate_camera_conection};
 
 pub struct Camera {
     pub rendering_sender: Option<Arc<AsyncSender<Buffer>>>,
@@ -14,7 +14,6 @@ pub struct Camera {
 impl Camera {
     pub fn new(
         rendering_sender: Option<Arc<AsyncSender<Buffer>>>,
-
     ) -> Self {
         Self {
             rendering_sender,
