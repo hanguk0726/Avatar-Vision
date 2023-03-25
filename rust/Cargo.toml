@@ -29,4 +29,3 @@ anyhow = "1.0.40"
 cpal = "0.15.0"
 hound = "3.5.0"
 minimp4 = { git = "https://github.com/hanguk0726/minimp4.rs.git" }  # Conflict between 'clang-sys' version of 'nokhwa'
-bytemuck = "1.7.2"

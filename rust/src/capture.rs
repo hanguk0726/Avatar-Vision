@@ -1,4 +1,4 @@
-use kanal::AsyncSender;
+use kanal::{AsyncSender, Sender};
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType};
@@ -15,7 +15,7 @@ static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(
 
 //# refactor needed
 pub fn inflate_camera_conection(
-    rendering_sender: Arc<AsyncSender<Buffer>>,
+    rendering_sender: Arc<Sender<Buffer>>,
 ) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =

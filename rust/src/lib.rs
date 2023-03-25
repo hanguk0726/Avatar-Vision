@@ -8,7 +8,7 @@ use std::{
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::Texture;
-use kanal::{AsyncReceiver, AsyncSender};
+use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
 use log::debug;
 use nokhwa::Buffer;
 use textrue::PixelBufferSource;
@@ -57,8 +57,8 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (rendering_sender, rendering_receiver): (AsyncSender<Buffer>, AsyncReceiver<Buffer>) =
-        kanal::bounded_async(1);
+    let (rendering_sender, rendering_receiver): (Sender<Buffer>, Receiver<Buffer>) =
+        kanal::bounded(1);
     let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
     let (rendering_sender, rendering_receiver) =
         (Arc::new(rendering_sender), Arc::new(rendering_receiver));
@@ -83,7 +83,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         Arc::clone(&audio),
     ));
     channel_textrue::init(TextureHandler {
-        pixel_buffer,
+        pixel_buffer: pixel_buffer,
         receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
         encoding_sender: Arc::clone(&encoding_sender),
@@ -91,11 +91,12 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     });
 
     channel_capture::init(CaptureHandler {
-        camera: RefCell::new(Camera::new(Some(Arc::clone(&rendering_sender)))),
+        camera: RefCell::new(Camera::new(
+            Some(Arc::clone(&rendering_sender)))),
     });
     channel_audio::init(AudioHandler {
         recorder: RefCell::new(None),
-        audio
+        audio,
     });
     texture_id
 }

@@ -11,7 +11,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
-use kanal::{AsyncReceiver, AsyncSender};
+use kanal::{AsyncReceiver, AsyncSender, Receiver};
 use log::debug;
 use nokhwa::Buffer;
 
@@ -19,7 +19,7 @@ use crate::domain::image_processing::decode_to_rgb;
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
-    pub receiver: Arc<AsyncReceiver<Buffer>>,
+    pub receiver: Arc<Receiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub encoding_sender: Arc<AsyncSender<Vec<u8>>>,
     pub frame_rate: Arc<Mutex<u32>>,
@@ -80,7 +80,7 @@ impl AsyncMethodHandler for TextureHandler {
                     self.render_texture(&mut decoded);
                 };
 
-                while let Ok(buf) = self.receiver.recv().await {
+                while let Ok(buf) = self.receiver.recv() {
                     let time = std::time::Instant::now();
                     debug!("received buffer on texture channel");
                     decode(buf);
