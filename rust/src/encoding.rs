@@ -12,6 +12,8 @@ use openh264::{
     Error,
 };
 
+use crate::channel_audio::Pcm;
+
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height);
     Encoder::with_config(config)
@@ -43,18 +45,38 @@ pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
     buf_h264
 }
 
-pub fn to_mp4<P: AsRef<Path>>(buf_h264: &[u8], file: P, frame_rate: u32) -> Result<(), std::io::Error> {
+pub fn to_mp4<P: AsRef<Path>>(
+    buf_h264: &[u8],
+    file: P,
+    frame_rate: u32,
+    audio: &Pcm,
+) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
     debug!("writing to mp4... frame rate: {}", frame_rate);
     mp4muxer.init_video(1280, 720, false, "diary");
-    mp4muxer.write_video_with_fps(buf_h264, frame_rate);
+    mp4muxer.init_audio(
+        audio.bit_rate.try_into().unwrap(),
+        audio.sample_rate,
+        audio.channels.into(),
+    );
+
+    mp4muxer.write_video_with_audio(buf_h264, frame_rate, audio.data.as_slice());
+    // read file 'recorded.pcm'
+    //  let test =  std::fs::read("recorded.pcm").unwrap();
+    // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &test);
+
     mp4muxer.close();
     video_buffer.seek(SeekFrom::Start(0)).unwrap();
     let mut video_bytes = Vec::new();
     video_buffer.read_to_end(&mut video_bytes).unwrap();
     debug!("{} bytes", video_bytes.len());
+    let file = file.as_ref().with_extension("mp4");
     std::fs::write(file, &video_bytes)
+
+    //just save the h264 file add "264"
+    // let file = file.as_ref().with_extension("264");
+    // std::fs::write(file, &buf_h264)
 }
 
 pub fn rgba_to_yuv(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {

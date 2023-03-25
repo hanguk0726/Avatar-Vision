@@ -7,7 +7,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use cpal::Stream;
 use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
@@ -18,8 +17,15 @@ use crate::audio::{record_audio, AudioRecorder};
 
 pub struct AudioHandler {
     pub recorder: RefCell<Option<AudioRecorder>>,
+    pub audio: Arc<Mutex<Pcm>>,
 }
-
+#[derive(Debug)]
+pub struct Pcm {
+    pub data: Vec<u8>,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub bit_rate: usize,
+}
 #[async_trait(?Send)]
 impl AsyncMethodHandler for AudioHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
@@ -44,6 +50,17 @@ impl AsyncMethodHandler for AudioHandler {
                 );
                 let recorder = self.recorder.borrow_mut().take().unwrap();
                 recorder.stop();
+                let mut audio = self.audio.lock().unwrap();
+                let data =  recorder.data;
+                let data = data.lock().unwrap();
+
+                *audio = Pcm {
+                    data: data.to_vec(),
+                    sample_rate: recorder.audio.sample_rate,
+                    channels: recorder.audio.channels,
+                    bit_rate: recorder.audio.bit_rate,
+                };
+
                 self.recorder.replace(None);
                 Ok("ok".into())
             }

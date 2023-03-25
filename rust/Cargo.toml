@@ -26,26 +26,7 @@ nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] 
 kanal = "0.1.0-pre8"
 openh264 = "0.4.0"
 anyhow = "1.0.40"
-minimp4 = { git = "https://github.com/hanguk0726/minimp4.rs.git" }  # Conflict between 'clang-sys' version of 'nokhwa'
 cpal = "0.15.0"
 hound = "3.5.0"
-# reqwest uses different options per platform
-
-[target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
-    "native-tls",
-] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
-    "native-tls-vendored",
-] }
-
-[target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.11"
-reqwest = { version = "0.11", default-features = false, features = [
-    "rustls-tls",
-] }
-
-[target.'cfg(target_os = "ios")'.dependencies]
-oslog = "0.2.0"
+minimp4 = { git = "https://github.com/hanguk0726/minimp4.rs.git" }  # Conflict between 'clang-sys' version of 'nokhwa'
+bytemuck = "1.7.2"

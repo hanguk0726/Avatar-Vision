@@ -8,27 +8,27 @@ use std::{
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::Texture;
-use kanal::{AsyncSender, AsyncReceiver};
+use kanal::{AsyncReceiver, AsyncSender};
 use log::debug;
 use nokhwa::Buffer;
 use textrue::PixelBufferSource;
 
 use crate::{
-    camera::Camera, channel_capture::CaptureHandler, channel_encoding::EncodingHandler,
-    channel_textrue::TextureHandler, log_::init_logging, channel_audio::AudioHandler,
+    camera::Camera, channel_audio::AudioHandler, channel_capture::CaptureHandler,
+    channel_encoding::EncodingHandler, channel_textrue::TextureHandler, log_::init_logging,
 };
 
+mod audio;
 mod camera;
 mod capture;
+mod channel_audio;
 mod channel_capture;
 mod channel_encoding;
 mod channel_textrue;
+mod domain;
 mod encoding;
 mod log_;
 mod textrue;
-mod domain;
-mod audio;
-mod channel_audio;
 
 static START: Once = Once::new();
 
@@ -57,7 +57,8 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (rendering_sender, rendering_receiver):(AsyncSender<Buffer>, AsyncReceiver<Buffer>) = kanal::bounded_async(1);
+    let (rendering_sender, rendering_receiver): (AsyncSender<Buffer>, AsyncReceiver<Buffer>) =
+        kanal::bounded_async(1);
     let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
     let (rendering_sender, rendering_receiver) =
         (Arc::new(rendering_sender), Arc::new(rendering_receiver));
@@ -70,8 +71,17 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let texture_id = textrue.id();
 
     let frame_rate = Arc::new(Mutex::new(0u32));
-
-    channel_encoding::init(EncodingHandler::new(encoding_receiver.clone(), Arc::clone(&frame_rate)));
+    let audio = Arc::new(Mutex::new(channel_audio::Pcm {
+        data: vec![],
+        sample_rate: 0,
+        channels: 0,
+        bit_rate: 0,
+    }));
+    channel_encoding::init(EncodingHandler::new(
+        encoding_receiver.clone(),
+        Arc::clone(&frame_rate),
+        Arc::clone(&audio),
+    ));
     channel_textrue::init(TextureHandler {
         pixel_buffer,
         receiver: rendering_receiver.clone(),
@@ -81,12 +91,11 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     });
 
     channel_capture::init(CaptureHandler {
-        camera: RefCell::new(Camera::new(
-            Some(Arc::clone(&rendering_sender)),
-        )),
+        camera: RefCell::new(Camera::new(Some(Arc::clone(&rendering_sender)))),
     });
-    channel_audio::init( AudioHandler{
+    channel_audio::init(AudioHandler {
         recorder: RefCell::new(None),
+        audio
     });
     texture_id
 }

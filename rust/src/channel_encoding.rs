@@ -12,28 +12,37 @@ use irondash_run_loop::RunLoop;
 use kanal::AsyncReceiver;
 use log::{debug, error};
 
-use crate::encoding::{encode_to_h264, rgba_to_yuv, to_mp4};
+use crate::{
+    channel_audio::Pcm,
+    encoding::{encode_to_h264, rgba_to_yuv, to_mp4},
+};
 
 pub struct EncodingHandler {
     pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub processing: Arc<AtomicBool>,
     pub frame_rate: Arc<Mutex<u32>>,
+    pub audio: Arc<Mutex<Pcm>>,
 }
 
 impl EncodingHandler {
-    pub fn new(encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>, frame_rate: Arc<Mutex<u32>>) -> Self {
+    pub fn new(
+        encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
+        frame_rate: Arc<Mutex<u32>>,
+        audio: Arc<Mutex<Pcm>>,
+    ) -> Self {
         Self {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
             processing: Arc::new(AtomicBool::new(false)),
             frame_rate,
+            audio,
         }
     }
 
     fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
         let processed = encode_to_h264(yuv_vec);
-        
+
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
         *encoded = processed;
@@ -46,7 +55,12 @@ impl EncodingHandler {
         let encoded = Arc::clone(&self.encoded);
         let encoded = encoded.lock().unwrap();
         let frame_rate = *self.frame_rate.lock().unwrap();
-        to_mp4(&encoded[..], "test.mp4", frame_rate).unwrap();
+        let audio = Arc::clone(&self.audio);
+        let audio = audio.lock().unwrap();
+        debug!("audio : {}, {}, {}, {},", &audio.data.len(), &audio.sample_rate, &audio.channels, &audio.bit_rate);
+
+       
+        to_mp4(&encoded[..], "test", frame_rate, &audio).unwrap();
         debug!("*********** saved! ***********");
         self.set_processing(false);
         Ok(())

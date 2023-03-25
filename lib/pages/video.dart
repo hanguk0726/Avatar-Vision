@@ -52,9 +52,11 @@ class _MyHomePageState extends State<MyHomePage> {
               ..startEncoding();
           },
           onStop: () {
-            Native()
-              ..stopCameraStream()
-              ..stopAudioRecord();
+            Native().stopAudioRecord();
+            //delay 1s //FIXME
+            Future.delayed(const Duration(seconds: 1), () {
+              Native().stopCameraStream();
+            });
           },
         ),
       ]),
