@@ -13,7 +13,6 @@ use crate::channel_audio::Pcm;
 pub struct AudioRecorder {
     pub stream: SendableStream,
     pub audio: Pcm,
-    pub data: Arc<Mutex<Vec<u8>>>,
 }
 pub struct SendableStream(Stream);
 
@@ -44,7 +43,6 @@ pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
     ))]
     let host = cpal::default_host();
 
-    // Set up the input device and stream with the default input config.
     let device = host.default_input_device().unwrap();
 
     debug!("Input device: {}", device.name()?);
@@ -77,9 +75,6 @@ pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
                 for &sample in data.iter() {
-                    //let f32_data = [0.1, 0.2, 0.3, 0.4]; // example f32 data
-                    // let i16_data: Vec<i16> = f32_data.iter().map(|&f| (f * i16::MAX as f32) as i16).collect(); // convert f32 data to i16 data
-
                     let i16_sample = (sample * i16::MAX as f32) as i16;
                     let sample = i16_sample.to_le_bytes();
                     buffer.push(sample[0]);
@@ -96,11 +91,10 @@ pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
     Ok(AudioRecorder {
         stream: SendableStream(stream),
         audio: Pcm {
-            data: vec![],
+            data: Arc::clone(&buffer),
             sample_rate: config.sample_rate().0,
             channels: config.channels(),
             bit_rate: 128000,
         },
-        data: Arc::clone(&buffer),
     })
 }

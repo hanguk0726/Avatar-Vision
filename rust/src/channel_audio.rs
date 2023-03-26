@@ -21,7 +21,7 @@ pub struct AudioHandler {
 }
 #[derive(Debug)]
 pub struct Pcm {
-    pub data: Vec<u8>,
+    pub data: Arc<Mutex<Vec<u8>>>,
     pub sample_rate: u32,
     pub channels: u16,
     pub bit_rate: usize,
@@ -51,15 +51,7 @@ impl AsyncMethodHandler for AudioHandler {
                 let recorder = self.recorder.borrow_mut().take().unwrap();
                 recorder.stop();
                 let mut audio = self.audio.lock().unwrap();
-                let data =  recorder.data;
-                let data = data.lock().unwrap();
-
-                *audio = Pcm {
-                    data: data.to_vec(),
-                    sample_rate: recorder.audio.sample_rate,
-                    channels: recorder.audio.channels,
-                    bit_rate: recorder.audio.bit_rate,
-                };
+                *audio = recorder.audio;
 
                 self.recorder.replace(None);
                 Ok("ok".into())

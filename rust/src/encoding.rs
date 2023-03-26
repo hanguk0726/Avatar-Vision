@@ -60,8 +60,9 @@ pub fn to_mp4<P: AsRef<Path>>(
         audio.sample_rate,
         audio.channels.into(),
     );
+    let audio_data = audio.data.lock().unwrap();
 
-    mp4muxer.write_video_with_audio(buf_h264, frame_rate, audio.data.as_slice());
+    mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
     // read file 'recorded.pcm'
     //  let test =  std::fs::read("recorded.pcm").unwrap();
     // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &test);

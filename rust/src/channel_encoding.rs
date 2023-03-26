@@ -57,9 +57,15 @@ impl EncodingHandler {
         let frame_rate = *self.frame_rate.lock().unwrap();
         let audio = Arc::clone(&self.audio);
         let audio = audio.lock().unwrap();
-        debug!("audio : {}, {}, {}, {},", &audio.data.len(), &audio.sample_rate, &audio.channels, &audio.bit_rate);
+        let audio_data = audio.data.lock().unwrap();
+        debug!(
+            "audio : {}, {}, {}, {},",
+            &audio_data.len(),
+            &audio.sample_rate,
+            &audio.channels,
+            &audio.bit_rate
+        );
 
-       
         to_mp4(&encoded[..], "test", frame_rate, &audio).unwrap();
         debug!("*********** saved! ***********");
         self.set_processing(false);

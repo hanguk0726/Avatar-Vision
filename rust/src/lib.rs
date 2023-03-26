@@ -72,7 +72,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
 
     let frame_rate = Arc::new(Mutex::new(0u32));
     let audio = Arc::new(Mutex::new(channel_audio::Pcm {
-        data: vec![],
+        data: Arc::new(Mutex::new(vec![])),
         sample_rate: 0,
         channels: 0,
         bit_rate: 0,
