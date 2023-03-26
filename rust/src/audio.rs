@@ -30,7 +30,7 @@ impl AudioRecorder {
         debug!("Audio recording complete!");
     }
 }
-
+//TODO if failed to create stream, UI should know that sounds are not available
 pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
     #[cfg(any(
         not(any(

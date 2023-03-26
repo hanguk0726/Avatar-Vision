@@ -19,7 +19,7 @@ pub struct AudioHandler {
     pub recorder: RefCell<Option<AudioRecorder>>,
     pub audio: Arc<Mutex<Pcm>>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pcm {
     pub data: Arc<Mutex<Vec<u8>>>,
     pub sample_rate: u32,
@@ -37,9 +37,13 @@ impl AsyncMethodHandler for AudioHandler {
                     thread::current().id()
                 );
                 let recorder = record_audio().unwrap();
-                recorder.play().unwrap();
-                self.recorder.replace(Some(recorder));
+                
+                let mut audio = self.audio.lock().unwrap();
+                *audio = recorder.audio.clone();
 
+                recorder.play().unwrap();
+
+                self.recorder.replace(Some(recorder));
                 Ok("ok".into())
             }
             "stop_audio_recording" => {
@@ -50,8 +54,7 @@ impl AsyncMethodHandler for AudioHandler {
                 );
                 let recorder = self.recorder.borrow_mut().take().unwrap();
                 recorder.stop();
-                let mut audio = self.audio.lock().unwrap();
-                *audio = recorder.audio;
+            
 
                 self.recorder.replace(None);
                 Ok("ok".into())

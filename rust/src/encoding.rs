@@ -49,25 +49,34 @@ pub fn to_mp4<P: AsRef<Path>>(
     buf_h264: &[u8],
     file: P,
     frame_rate: u32,
-    audio: &Pcm,
+    audio: Pcm,
 ) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
-    debug!("writing to mp4... frame rate: {}", frame_rate);
     mp4muxer.init_video(1280, 720, false, "diary");
     mp4muxer.init_audio(
         audio.bit_rate.try_into().unwrap(),
         audio.sample_rate,
         audio.channels.into(),
     );
-    let audio_data = audio.data.lock().unwrap();
-
+    let audio_data = audio.data.to_owned();
+    let audio_data = audio_data.lock().unwrap();
+    debug!(
+        "audio : {}, {}, {}, {},",
+        &audio_data.len(),
+        &audio.sample_rate,
+        &audio.channels,
+        &audio.bit_rate
+    );
+    debug!("frame_rate: {}", frame_rate);
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
+    // mp4muxer.write_video_with_fps(buf_h264, frame_rate);
     // read file 'recorded.pcm'
-    //  let test =  std::fs::read("recorded.pcm").unwrap();
+    // let test =  std::fs::read("recorded.pcm").unwrap();
     // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &test);
 
     mp4muxer.close();
+
     video_buffer.seek(SeekFrom::Start(0)).unwrap();
     let mut video_bytes = Vec::new();
     video_buffer.read_to_end(&mut video_bytes).unwrap();
