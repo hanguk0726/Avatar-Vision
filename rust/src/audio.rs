@@ -54,13 +54,6 @@ pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
 
     debug!("Default input config: {:?}", config);
 
-    // let config = SupportedStreamConfig::new(
-    //     config.channels(),
-    //     config.sample_rate(),
-    //     config.buffer_size().clone(),
-    //     cpal::SampleFormat::F32,
-    // );
-
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 
     let buffer_clone = Arc::clone(&buffer);
