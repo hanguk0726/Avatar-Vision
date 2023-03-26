@@ -1180,7 +1180,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 [[package]]
 name = "minimp4"
 version = "0.1.0"
-source = "git+https://github.com/hanguk0726/minimp4.rs.git#fe0ad6bc1c5ddab60c020d5f62e610b674b1eb60"
+source = "git+https://github.com/hanguk0726/minimp4.rs.git#3f454d7454a86a40f812e241fbaf3796e295f835"
 dependencies = [
  "fdk-aac-sys",
  "libc",
@@ -1190,7 +1190,7 @@ dependencies = [
 [[package]]
 name = "minimp4-sys"
 version = "0.1.1"
-source = "git+https://github.com/hanguk0726/minimp4.rs.git#fe0ad6bc1c5ddab60c020d5f62e610b674b1eb60"
+source = "git+https://github.com/hanguk0726/minimp4.rs.git#3f454d7454a86a40f812e241fbaf3796e295f835"
 dependencies = [
  "bindgen 0.64.0",
  "cc",
