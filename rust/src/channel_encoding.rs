@@ -17,15 +17,15 @@ use crate::{
     encoding::{encode_to_h264, rgba_to_yuv, to_mp4},
 };
 
-pub struct EncodingHandler {
+pub struct RecordingHandler {
     pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
-    pub processing: Arc<AtomicBool>,
+    pub processing: Arc<AtomicBool>, // whether encoding is in progress
     pub frame_rate: Arc<Mutex<u32>>,
     pub audio: Arc<Mutex<Pcm>>,
 }
 
-impl EncodingHandler {
+impl RecordingHandler {
     pub fn new(
         encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
         frame_rate: Arc<Mutex<u32>>,
@@ -71,10 +71,10 @@ impl EncodingHandler {
     }
 }
 #[async_trait(?Send)]
-impl AsyncMethodHandler for EncodingHandler {
+impl AsyncMethodHandler for RecordingHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            "start_encoding" => {
+            "start_recoding" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
@@ -127,9 +127,9 @@ impl AsyncMethodHandler for EncodingHandler {
     }
 }
 
-pub fn init(encoding_handler: EncodingHandler) {
+pub fn init(recording_handler: RecordingHandler) {
     thread::spawn(|| {
-        let _ = ManuallyDrop::new(encoding_handler.register("encoding_channel_background_thread"));
+        let _ = ManuallyDrop::new(recording_handler.register("recording_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()

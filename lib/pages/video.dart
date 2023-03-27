@@ -47,14 +47,14 @@ class _MyHomePageState extends State<MyHomePage> {
           onStart: () {
             Native()
               ..openCameraStream()
-              ..renderTexture()
-              ..startAudioRecord()
-              ..startEncoding();
+              ..openTextureStream()
+              ..openAudioStream()
+              ..startRecording();
           },
           onStop: () {
             Native().stopCameraStream();
-            Future.delayed(const Duration(seconds: 1), () {
-              Native().stopAudioRecord();
+            Future.delayed(const Duration(seconds: 10), () { // until video stopped
+              Native().stopAudioStream();
             });
           },
         ),

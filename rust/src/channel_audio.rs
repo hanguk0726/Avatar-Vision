@@ -1,11 +1,13 @@
 use std::{
     cell::{RefCell, UnsafeCell},
     mem::ManuallyDrop,
+    ops::Not,
     rc::{Rc, Weak},
     sync::{Arc, Mutex},
     thread,
 };
 
+use anyhow::Ok;
 use async_trait::async_trait;
 use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
@@ -13,10 +15,10 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::audio::{record_audio, AudioRecorder};
+use crate::audio::{open_audio_stream, AudioStream};
 
 pub struct AudioHandler {
-    pub recorder: RefCell<Option<AudioRecorder>>,
+    pub stream: RefCell<Option<AudioStream>>,
     pub audio: Arc<Mutex<Pcm>>,
 }
 #[derive(Debug, Clone)]
@@ -30,34 +32,34 @@ pub struct Pcm {
 impl AsyncMethodHandler for AudioHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            "start_audio_recording" => {
+            "open_audio_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
                     thread::current().id()
                 );
-                let recorder = record_audio().unwrap();
-                
+                let recorder = open_audio_stream().unwrap();
+
                 let mut audio = self.audio.lock().unwrap();
                 *audio = recorder.audio.clone();
 
                 recorder.play().unwrap();
 
-                self.recorder.replace(Some(recorder));
-                Ok("ok".into())
+                self.stream.replace(Some(recorder));
+                PlatformResult::Ok("ok".into())
             }
-            "stop_audio_recording" => {
+            "stop_audio_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
                     thread::current().id()
                 );
-                let recorder = self.recorder.borrow_mut().take().unwrap();
-                recorder.stop();
-            
+                let recorder = self.stream.borrow_mut().take().unwrap();
 
-                self.recorder.replace(None);
-                Ok("ok".into())
+                recorder.stop();
+
+                self.stream.replace(None);
+                return PlatformResult::Ok("ok".into());
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),

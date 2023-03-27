@@ -31,9 +31,9 @@ class Native {
     nativeContext = _initNativeContext();
     _textureChannel = NativeMethodChannel('texture_channel_background_thread',
         context: nativeContext);
-    _captureChannel = NativeMethodChannel('captrue_channel_background_thread',
+    _captureChannel = NativeMethodChannel('camera_channel_background_thread',
         context: nativeContext);
-    _encodingChannel = NativeMethodChannel('encoding_channel_background_thread',
+    _encodingChannel = NativeMethodChannel('recording_channel_background_thread',
         context: nativeContext);
     _audioChannel = NativeMethodChannel('audio_channel_background_thread',
         context: nativeContext);
@@ -65,13 +65,13 @@ class Native {
     debugPrint(text);
   }
 
-  void renderTexture() async {
-    final res = await _textureChannel.invokeMethod('render_texture', {});
+  void openTextureStream() async {
+    final res = await _textureChannel.invokeMethod('open_texture_stream', {});
     _showResult(res);
   }
 
-  void startEncoding() async {
-    final res = await _encodingChannel.invokeMethod('start_encoding', {});
+  void startRecording() async {
+    final res = await _encodingChannel.invokeMethod('start_recording', {});
     _showResult(res);
   }
 
@@ -85,13 +85,13 @@ class Native {
     _showResult(res);
   }
 
-  void startAudioRecord() async {
-    final res = await _audioChannel.invokeMethod('start_audio_recording', {});
+  void openAudioStream() async {
+    final res = await _audioChannel.invokeMethod('open_audio_stream', {});
     _showResult(res);
   }
 
-  void stopAudioRecord() async {
-    final res = await _audioChannel.invokeMethod('stop_audio_recording', {});
+  void stopAudioStream() async {
+    final res = await _audioChannel.invokeMethod('stop_audio_stream', {});
     _showResult(res);
   }
 }

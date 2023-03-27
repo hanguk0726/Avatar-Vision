@@ -71,6 +71,7 @@ impl AsyncMethodHandler for TextureHandler {
                         "decoded frame, time elapsed: {}",
                         time.elapsed().as_millis()
                     );
+                    // only when encoding started
                     self.encoding_sender
                         .try_send(decoded.clone())
                         .unwrap_or_else(|_| {

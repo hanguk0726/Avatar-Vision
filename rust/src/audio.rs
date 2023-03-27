@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::Pcm;
 
-pub struct AudioRecorder {
+pub struct AudioStream {
     pub stream: SendableStream,
     pub audio: Pcm,
 }
@@ -19,7 +19,7 @@ pub struct SendableStream(Stream);
 unsafe impl Sync for SendableStream {}
 unsafe impl Send for SendableStream {}
 
-impl AudioRecorder {
+impl AudioStream {
     pub fn play(&self) -> Result<(), anyhow::Error> {
         self.stream.0.play()?;
         Ok(())
@@ -31,7 +31,7 @@ impl AudioRecorder {
     }
 }
 //TODO if failed to create stream, UI should know that sounds are not available
-pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
+pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
     #[cfg(any(
         not(any(
             target_os = "linux",
@@ -88,7 +88,7 @@ pub fn record_audio() -> Result<AudioRecorder, anyhow::Error> {
             return Err(anyhow::anyhow!("Unsupported sample format"));
         }
     };
-    Ok(AudioRecorder {
+    Ok(AudioStream {
         stream: SendableStream(stream),
         audio: Pcm {
             data: Arc::clone(&buffer),

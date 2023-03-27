@@ -14,15 +14,14 @@ use nokhwa::Buffer;
 use textrue::PixelBufferSource;
 
 use crate::{
-    camera::Camera, channel_audio::AudioHandler, channel_capture::CaptureHandler,
-    channel_encoding::EncodingHandler, channel_textrue::TextureHandler, log_::init_logging,
+    camera::Camera, channel_audio::AudioHandler, channel_camera::CameraHandler,
+    channel_encoding::RecordingHandler, channel_textrue::TextureHandler, log_::init_logging,
 };
 
 mod audio;
 mod camera;
-mod capture;
 mod channel_audio;
-mod channel_capture;
+mod channel_camera;
 mod channel_encoding;
 mod channel_textrue;
 mod domain;
@@ -77,7 +76,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         channels: 0,
         bit_rate: 0,
     }));
-    channel_encoding::init(EncodingHandler::new(
+    channel_encoding::init(RecordingHandler::new(
         encoding_receiver.clone(),
         Arc::clone(&frame_rate),
         Arc::clone(&audio),
@@ -90,12 +89,12 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         frame_rate: Arc::clone(&frame_rate),
     });
 
-    channel_capture::init(CaptureHandler {
+    channel_camera::init(CameraHandler {
         camera: RefCell::new(Camera::new(
             Some(Arc::clone(&rendering_sender)))),
     });
     channel_audio::init(AudioHandler {
-        recorder: RefCell::new(None),
+        stream: RefCell::new(None),
         audio,
     });
     texture_id

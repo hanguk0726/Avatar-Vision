@@ -62,7 +62,7 @@ pub fn to_mp4<P: AsRef<Path>>(
     let audio_data = audio.data.to_owned();
     let audio_data = audio_data.lock().unwrap();
     debug!(
-        "audio : {}, {}, {}, {},",
+        "audio\ndata: {}, sample_rata: {}, channles: {}, bit_rate: {},",
         &audio_data.len(),
         &audio.sample_rate,
         &audio.channels,
@@ -70,10 +70,6 @@ pub fn to_mp4<P: AsRef<Path>>(
     );
     debug!("frame_rate: {}", frame_rate);
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
-    // mp4muxer.write_video_with_fps(buf_h264, frame_rate);
-    // read file 'recorded.pcm'
-    // let test =  std::fs::read("recorded.pcm").unwrap();
-    // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &test);
 
     mp4muxer.close();
 
@@ -83,10 +79,6 @@ pub fn to_mp4<P: AsRef<Path>>(
     debug!("{} bytes", video_bytes.len());
     let file = file.as_ref().with_extension("mp4");
     std::fs::write(file, &video_bytes)
-
-    //just save the h264 file add "264"
-    // let file = file.as_ref().with_extension("264");
-    // std::fs::write(file, &buf_h264)
 }
 
 pub fn rgba_to_yuv(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
