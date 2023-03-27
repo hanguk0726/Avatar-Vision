@@ -1,5 +1,6 @@
 use std::{
     mem::ManuallyDrop,
+    ops::Not,
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
@@ -48,13 +49,13 @@ impl RecordingHandler {
         debug!("encoded length: {:?}", encoded.len());
     }
 
-    fn save(&self) -> Result<(), std::io::Error> {
+    fn save(&self, frames:usize) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
         let encoded = Arc::clone(&self.encoded);
         let encoded = encoded.lock().unwrap();
 
         let recording_info = self.recording_info.lock().unwrap();
-        let frame_rate = recording_info.frame_rate(encoded.len());
+        let frame_rate = recording_info.frame_rate(frames);
 
         let audio = Arc::clone(&self.audio);
         let audio = audio.lock().unwrap();
@@ -68,7 +69,7 @@ impl RecordingHandler {
 impl AsyncMethodHandler for RecordingHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            "start_recoding" => {
+            "start_recording" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
@@ -83,22 +84,24 @@ impl AsyncMethodHandler for RecordingHandler {
                     .build()
                     .unwrap();
 
-                let mut recording_info = self.recording_info.lock().unwrap();
-                recording_info.start();
+                {
+                    let mut recording_info = self.recording_info.lock().unwrap();
+                    recording_info.start();
+                }
 
                 while let Ok(rgba) = self.encodig_receiver.recv().await {
                     debug!("received buffer");
-                    let started = std::time::Instant::now();
                     count += 1;
                     let yuv_data_clone = yuv_data.clone();
                     pool.spawn(async move {
                         let width = 1280;
                         let height = 720;
+                        let started = std::time::Instant::now();
                         let yuv = rgba_to_yuv(&rgba[..], width, height);
                         let mut yuv_data = yuv_data_clone.lock().unwrap();
+                        debug!("encoded to yuv: {:?}", started.elapsed().as_millis());
                         yuv_data.push(yuv);
                     });
-                    debug!("encoded to yuv: {:?}", started.elapsed().as_millis());
                 }
 
                 self.encode(yuv_data.lock().unwrap().clone());
@@ -108,7 +111,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     started.elapsed().as_secs()
                 );
 
-                if let Err(e) = self.save() {
+                if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
                 pool.shutdown_timeout(std::time::Duration::from_secs(1));
@@ -120,11 +123,15 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
-
-                let mut recording_info = self.recording_info.lock().unwrap();
-                recording_info.recording.store(false, std::sync::atomic::Ordering::Relaxed);
-                recording_info.stop();
-
+                {
+                    let mut recording_info = self.recording_info.lock().unwrap();
+                    recording_info
+                        .recording
+                        .store(false, std::sync::atomic::Ordering::Relaxed);
+                    recording_info.stop();
+                }
+                let closed = self.encodig_receiver.close();
+                debug!("closed: {:?}", closed);
                 Ok("ok".into())
             }
             _ => Err(PlatformError {

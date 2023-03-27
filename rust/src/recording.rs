@@ -40,6 +40,8 @@ impl RecordingInfo {
     }
 
     pub fn frame_rate(&self, frames: usize) -> u32 {
+        debug!("frames: {:?}", frames);
+        debug!("time_elapsed: {:?}", self.time_elapsed);
         let frame_rate = frames as f64 / self.time_elapsed;
         frame_rate as u32
     }

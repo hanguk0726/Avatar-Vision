@@ -21,8 +21,8 @@ class Native {
 
   late final MessageChannelContext nativeContext;
   late final NativeMethodChannel _textureChannel;
-  late final NativeMethodChannel _captureChannel;
-  late final NativeMethodChannel _encodingChannel;
+  late final NativeMethodChannel _cameraChannel;
+  late final NativeMethodChannel _recordingChannel;
   late final NativeMethodChannel _audioChannel;
   late final int textureId;
 
@@ -31,12 +31,17 @@ class Native {
     nativeContext = _initNativeContext();
     _textureChannel = NativeMethodChannel('texture_channel_background_thread',
         context: nativeContext);
-    _captureChannel = NativeMethodChannel('camera_channel_background_thread',
+    _cameraChannel = NativeMethodChannel('camera_channel_background_thread',
         context: nativeContext);
-    _encodingChannel = NativeMethodChannel('recording_channel_background_thread',
+    _recordingChannel = NativeMethodChannel(
+        'recording_channel_background_thread',
         context: nativeContext);
     _audioChannel = NativeMethodChannel('audio_channel_background_thread',
         context: nativeContext);
+
+    openCameraStream();
+    openTextureStream();
+    openAudioStream();
   }
 
   MessageChannelContext _initNativeContext() {
@@ -71,17 +76,22 @@ class Native {
   }
 
   void startRecording() async {
-    final res = await _encodingChannel.invokeMethod('start_recording', {});
+    final res = await _recordingChannel.invokeMethod('start_recording', {});
+    _showResult(res);
+  }
+
+  void stopRecording() async {
+    final res = await _recordingChannel.invokeMethod('stop_recording', {});
     _showResult(res);
   }
 
   void openCameraStream() async {
-    final res = await _captureChannel.invokeMethod('open_camera_stream', {});
+    final res = await _cameraChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
 
   void stopCameraStream() async {
-    final res = await _captureChannel.invokeMethod('stop_camera_stream', {});
+    final res = await _cameraChannel.invokeMethod('stop_camera_stream', {});
     _showResult(res);
   }
 

@@ -30,10 +30,10 @@ impl TextureHandler {
         let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
 
         *pixel_buffer = take(decoded_frame);
-        debug!(
-            "mark_frame_available, pixel_buffer: {:?}",
-            pixel_buffer.len()
-        );
+        // debug!(
+        //     "mark_frame_available, pixel_buffer: {:?}",
+        //     pixel_buffer.len()
+        // );
         self.texture_provider.mark_frame_available();
     }
 
@@ -49,7 +49,7 @@ impl TextureHandler {
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            "render_texture" => {
+            "open_texture_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
@@ -60,10 +60,10 @@ impl AsyncMethodHandler for TextureHandler {
                     let time = std::time::Instant::now();
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
-                    debug!(
-                        "decoded frame, time elapsed: {}",
-                        time.elapsed().as_millis()
-                    );
+                    // debug!(
+                    //     "decoded frame, time elapsed: {}",
+                    //     time.elapsed().as_millis()
+                    // );
 
                     if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
                         self.handle_recording(decoded.clone());
@@ -73,13 +73,13 @@ impl AsyncMethodHandler for TextureHandler {
                 };
 
                 while let Ok(buf) = self.receiver.recv() {
-                    let time = std::time::Instant::now();
-                    debug!("received buffer on texture channel");
+                    // let time = std::time::Instant::now();
+                    // debug!("received buffer on texture channel");
                     decode(buf);
-                    debug!(
-                        "render_texture, time elapsed: {}",
-                        time.elapsed().as_millis()
-                    );
+                    // debug!(
+                    //     "render_texture, time elapsed: {}",
+                    //     time.elapsed().as_millis()
+                    // );
                 }
 
                 Ok("render_texture finished".into())

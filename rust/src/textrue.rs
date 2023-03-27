@@ -19,7 +19,7 @@ impl PixelBufferSource {
 
 impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     fn get_payload(&self) -> BoxedPixelData {
-        debug!("Rendering pixel buffer");
+        // debug!("Rendering pixel buffer");
         let width = 1280i32;
         let height = 720i32;
         let mut data = self.pixel_buffer.lock().unwrap();
@@ -31,7 +31,7 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
         } else {
             data
         };
-        debug!("data: {:?}", data.len());
+        // debug!("data: {:?}", data.len());
 
         SimplePixelData::new_boxed(width, height, data)
     }
