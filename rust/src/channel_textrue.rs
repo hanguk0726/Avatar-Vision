@@ -1,6 +1,6 @@
 use std::{
     mem::{take, ManuallyDrop},
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
     time::Duration,
 };
@@ -22,18 +22,7 @@ pub struct TextureHandler {
     pub receiver: Arc<Receiver<Buffer>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub encoding_sender: Arc<AsyncSender<Vec<u8>>>,
-    pub frame_rate: Arc<Mutex<u32>>,
-}
-
-#[derive(IntoValue)]
-struct ThreadInfo {
-    thread_id: String,
-    is_main_thread: bool,
-}
-
-#[derive(IntoValue)]
-struct TextureHandlerResponse {
-    thread_info: ThreadInfo,
+    pub recording: Arc<AtomicBool>,
 }
 
 impl TextureHandler {
@@ -46,6 +35,13 @@ impl TextureHandler {
             pixel_buffer.len()
         );
         self.texture_provider.mark_frame_available();
+    }
+
+    fn handle_recording(&self, frame: Vec<u8>) {
+        self.encoding_sender.try_send(frame).unwrap_or_else(|_| {
+            debug!("encoding channel is full, drop frame");
+            false
+        });
     }
 }
 
@@ -60,9 +56,6 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
 
-                let started = std::time::Instant::now();
-                let mut count = 0;
-
                 let decode = |buf: Buffer| {
                     let time = std::time::Instant::now();
                     let mut decoded =
@@ -71,13 +64,11 @@ impl AsyncMethodHandler for TextureHandler {
                         "decoded frame, time elapsed: {}",
                         time.elapsed().as_millis()
                     );
-                    // only when encoding started
-                    self.encoding_sender
-                        .try_send(decoded.clone())
-                        .unwrap_or_else(|_| {
-                            debug!("encoding channel is full, drop frame");
-                            false
-                        });
+
+                    if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
+                        self.handle_recording(decoded.clone());
+                    }
+
                     self.render_texture(&mut decoded);
                 };
 
@@ -85,29 +76,12 @@ impl AsyncMethodHandler for TextureHandler {
                     let time = std::time::Instant::now();
                     debug!("received buffer on texture channel");
                     decode(buf);
-                    count += 1;
                     debug!(
                         "render_texture, time elapsed: {}",
                         time.elapsed().as_millis()
                     );
                 }
-                debug!(
-                    "rendered {} frames,time elapsed {}",
-                    count,
-                    started.elapsed().as_secs()
-                );
 
-                let frame_rate = count as f64 / started.elapsed().as_secs_f64();
-                *self.frame_rate.lock().unwrap() = frame_rate as u32;
-
-                debug!("frame rate: {}", frame_rate);
-                let encoding_channel = self.encoding_sender.as_ref();
-                // wait until  encoding_channel.len() is 0 which means all frames are encoded
-                while encoding_channel.len() > 0 {
-                    thread::sleep(std::time::Duration::from_millis(100));
-                }
-                self.encoding_sender.as_ref().close();
-                // runtime.shutdown_timeout(Duration::from_secs(1));
                 Ok("render_texture finished".into())
             }
             _ => Err(PlatformError {

@@ -52,10 +52,9 @@ class _MyHomePageState extends State<MyHomePage> {
               ..startRecording();
           },
           onStop: () {
-            Native().stopCameraStream();
-            Future.delayed(const Duration(seconds: 10), () { // until video stopped
-              Native().stopAudioStream();
-            });
+            Native()
+              ..stopCameraStream()
+              ..stopAudioStream();
           },
         ),
       ]),

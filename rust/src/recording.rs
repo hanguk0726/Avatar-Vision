@@ -1,7 +1,7 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
     path::Path,
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
 use log::debug;
@@ -13,6 +13,38 @@ use openh264::{
 };
 
 use crate::channel_audio::Pcm;
+
+pub struct RecordingInfo {
+    pub started: std::time::Instant,
+    pub recording: Arc<AtomicBool>,
+    pub time_elapsed: f64,
+}
+
+impl RecordingInfo {
+    pub fn new(recording: Arc<AtomicBool>) -> Self {
+        Self {
+            started: std::time::Instant::now(),
+            recording,
+            time_elapsed: 0.0,
+        }
+    }
+
+    pub fn start(&mut self) {
+        self.started = std::time::Instant::now();
+        self.recording.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn stop(&mut self) {
+        self.time_elapsed = self.started.elapsed().as_secs_f64();
+        self.recording.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn frame_rate(&self, frames: usize) -> u32 {
+        let frame_rate = frames as f64 / self.time_elapsed;
+        frame_rate as u32
+    }
+    
+}
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height);

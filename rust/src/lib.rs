@@ -1,7 +1,10 @@
 use std::{
     cell::RefCell,
     ffi::c_void,
-    sync::{atomic::AtomicU32, Arc, Mutex, Once},
+    sync::{
+        atomic::{AtomicBool, AtomicU32},
+        Arc, Mutex, Once,
+    },
     thread::{self},
 };
 
@@ -15,18 +18,19 @@ use textrue::PixelBufferSource;
 
 use crate::{
     camera::Camera, channel_audio::AudioHandler, channel_camera::CameraHandler,
-    channel_encoding::RecordingHandler, channel_textrue::TextureHandler, log_::init_logging,
+    channel_recording::RecordingHandler, channel_textrue::TextureHandler, log_::init_logging,
+    recording::RecordingInfo,
 };
 
 mod audio;
 mod camera;
 mod channel_audio;
 mod channel_camera;
-mod channel_encoding;
+mod channel_recording;
 mod channel_textrue;
 mod domain;
-mod encoding;
 mod log_;
+mod recording;
 mod textrue;
 
 static START: Once = Once::new();
@@ -69,29 +73,30 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
-    let frame_rate = Arc::new(Mutex::new(0u32));
+    let recording = Arc::new(AtomicBool::new(false));
+    let recording_info = Arc::new(Mutex::new(RecordingInfo::new(Arc::clone(&recording))));
     let audio = Arc::new(Mutex::new(channel_audio::Pcm {
         data: Arc::new(Mutex::new(vec![])),
         sample_rate: 0,
         channels: 0,
         bit_rate: 0,
     }));
-    channel_encoding::init(RecordingHandler::new(
+
+    channel_recording::init(RecordingHandler::new(
         encoding_receiver.clone(),
-        Arc::clone(&frame_rate),
         Arc::clone(&audio),
+        Arc::clone(&recording_info),
     ));
     channel_textrue::init(TextureHandler {
         pixel_buffer: pixel_buffer,
         receiver: rendering_receiver.clone(),
         texture_provider: textrue.into_sendable_texture(),
         encoding_sender: Arc::clone(&encoding_sender),
-        frame_rate: Arc::clone(&frame_rate),
+        recording: Arc::clone(&recording),
     });
 
     channel_camera::init(CameraHandler {
-        camera: RefCell::new(Camera::new(
-            Some(Arc::clone(&rendering_sender)))),
+        camera: RefCell::new(Camera::new(Some(Arc::clone(&rendering_sender)))),
     });
     channel_audio::init(AudioHandler {
         stream: RefCell::new(None),

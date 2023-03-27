@@ -14,29 +14,27 @@ use log::{debug, error};
 
 use crate::{
     channel_audio::Pcm,
-    encoding::{encode_to_h264, rgba_to_yuv, to_mp4},
+    recording::{encode_to_h264, rgba_to_yuv, to_mp4, RecordingInfo},
 };
 
 pub struct RecordingHandler {
     pub encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
-    pub processing: Arc<AtomicBool>, // whether encoding is in progress
-    pub frame_rate: Arc<Mutex<u32>>,
     pub audio: Arc<Mutex<Pcm>>,
+    pub recording_info: Arc<Mutex<RecordingInfo>>,
 }
 
 impl RecordingHandler {
     pub fn new(
         encodig_receiver: Arc<AsyncReceiver<Vec<u8>>>,
-        frame_rate: Arc<Mutex<u32>>,
         audio: Arc<Mutex<Pcm>>,
+        recording_info: Arc<Mutex<RecordingInfo>>,
     ) -> Self {
         Self {
             encodig_receiver,
             encoded: Arc::new(Mutex::new(Vec::new())),
-            processing: Arc::new(AtomicBool::new(false)),
-            frame_rate,
             audio,
+            recording_info,
         }
     }
 
@@ -54,20 +52,16 @@ impl RecordingHandler {
         debug!("*********** saving... ***********");
         let encoded = Arc::clone(&self.encoded);
         let encoded = encoded.lock().unwrap();
-        let frame_rate = *self.frame_rate.lock().unwrap();
+
+        let recording_info = self.recording_info.lock().unwrap();
+        let frame_rate = recording_info.frame_rate(encoded.len());
 
         let audio = Arc::clone(&self.audio);
         let audio = audio.lock().unwrap();
         let audio = audio.to_owned();
         to_mp4(&encoded[..], "test", frame_rate, audio).unwrap();
         debug!("*********** saved! ***********");
-        self.set_processing(false);
         Ok(())
-    }
-
-    fn set_processing(&self, processing: bool) {
-        self.processing
-            .store(processing, std::sync::atomic::Ordering::Relaxed);
     }
 }
 #[async_trait(?Send)]
@@ -80,7 +74,6 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
-                self.set_processing(true);
                 let started = std::time::Instant::now();
                 let mut count = 0;
                 let yuv_data = Arc::new(Mutex::new(Vec::new()));
@@ -89,6 +82,9 @@ impl AsyncMethodHandler for RecordingHandler {
                     .worker_threads(4)
                     .build()
                     .unwrap();
+
+                let mut recording_info = self.recording_info.lock().unwrap();
+                recording_info.start();
 
                 while let Ok(rgba) = self.encodig_receiver.recv().await {
                     debug!("received buffer");
@@ -118,6 +114,19 @@ impl AsyncMethodHandler for RecordingHandler {
                 pool.shutdown_timeout(std::time::Duration::from_secs(1));
                 Ok("encoding finished".into())
             }
+            "stop_recording" => {
+                debug!(
+                    "Received request {:?} on thread {:?}",
+                    call,
+                    thread::current().id()
+                );
+
+                let mut recording_info = self.recording_info.lock().unwrap();
+                recording_info.recording.store(false, std::sync::atomic::Ordering::Relaxed);
+                recording_info.stop();
+
+                Ok("ok".into())
+            }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
                 message: Some(format!("Unknown Method: {}", call.method)),
@@ -129,7 +138,8 @@ impl AsyncMethodHandler for RecordingHandler {
 
 pub fn init(recording_handler: RecordingHandler) {
     thread::spawn(|| {
-        let _ = ManuallyDrop::new(recording_handler.register("recording_channel_background_thread"));
+        let _ =
+            ManuallyDrop::new(recording_handler.register("recording_channel_background_thread"));
         debug!(
             "Running RunLoop on background thread {:?}",
             thread::current().id()
