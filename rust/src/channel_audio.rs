@@ -7,7 +7,6 @@ use std::{
     thread,
 };
 
-use anyhow::Ok;
 use async_trait::async_trait;
 use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,

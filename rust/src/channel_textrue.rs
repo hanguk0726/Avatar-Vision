@@ -1,4 +1,6 @@
 use std::{
+    borrow::BorrowMut,
+    cell::RefCell,
     mem::{take, ManuallyDrop},
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
@@ -12,16 +14,15 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
 use kanal::{AsyncReceiver, AsyncSender, Receiver};
-use log::debug;
+use log::{debug, info};
 use nokhwa::Buffer;
 
-use crate::domain::image_processing::decode_to_rgb;
+use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb};
 
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
-    pub receiver: Arc<Receiver<Buffer>>,
+    pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
-    pub encoding_sender: Arc<AsyncSender<Vec<u8>>>,
     pub recording: Arc<AtomicBool>,
 }
 
@@ -30,19 +31,13 @@ impl TextureHandler {
         let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
 
         *pixel_buffer = take(decoded_frame);
-        // debug!(
-        //     "mark_frame_available, pixel_buffer: {:?}",
-        //     pixel_buffer.len()
-        // );
+        if pixel_buffer.len() == 0 {
+            log::error!("pixel_buffer is empty")
+        }
         self.texture_provider.mark_frame_available();
     }
 
-    fn handle_recording(&self, frame: Vec<u8>) {
-        self.encoding_sender.try_send(frame).unwrap_or_else(|_| {
-            debug!("encoding channel is full, drop frame");
-            false
-        });
-    }
+    fn handle_encoding(&self, frame: Vec<u8>) {}
 }
 
 #[async_trait(?Send)]
@@ -56,33 +51,31 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
 
+                let encoding_sender = self.channel_handler.lock().unwrap().encoding.0.clone();
+
                 let decode = |buf: Buffer| {
-                    let time = std::time::Instant::now();
                     let mut decoded =
                         decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
-                    // debug!(
-                    //     "decoded frame, time elapsed: {}",
-                    //     time.elapsed().as_millis()
-                    // );
-
                     if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        self.handle_recording(decoded.clone());
+                        encoding_sender
+                            .try_send(decoded.clone())
+                            .unwrap_or_else(|e| {
+                                debug!("encoding channel sending failed: {:?}", e);
+                                false
+                            });
                     }
 
                     self.render_texture(&mut decoded);
                 };
 
-                while let Ok(buf) = self.receiver.recv() {
-                    // let time = std::time::Instant::now();
-                    // debug!("received buffer on texture channel");
+                let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
+                
+                while let Ok(buf) = receiver.recv() {
                     decode(buf);
-                    // debug!(
-                    //     "render_texture, time elapsed: {}",
-                    //     time.elapsed().as_millis()
-                    // );
                 }
 
-                Ok("render_texture finished".into())
+                info!("render_texture finished");
+                Ok("ok".into())
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),

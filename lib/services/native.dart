@@ -104,4 +104,12 @@ class Native {
     final res = await _audioChannel.invokeMethod('stop_audio_stream', {});
     _showResult(res);
   }
+
+  void reset() async {
+    stopCameraStream();
+    stopAudioStream();
+    openCameraStream();
+    openTextureStream();
+    openAudioStream();
+  }
 }

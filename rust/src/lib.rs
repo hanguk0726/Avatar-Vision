@@ -17,13 +17,14 @@ use nokhwa::Buffer;
 use textrue::PixelBufferSource;
 
 use crate::{
-    camera::Camera, channel_audio::AudioHandler, channel_camera::CameraHandler,
-    channel_recording::RecordingHandler, channel_textrue::TextureHandler, log_::init_logging,
-    recording::RecordingInfo,
+    camera::Camera, channel::ChannelHandler, channel_audio::AudioHandler,
+    channel_camera::CameraHandler, channel_recording::RecordingHandler,
+    channel_textrue::TextureHandler, log_::init_logging, recording::RecordingInfo,
 };
 
 mod audio;
 mod camera;
+mod channel;
 mod channel_audio;
 mod channel_camera;
 mod channel_recording;
@@ -60,13 +61,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         thread::current().id()
     );
     assert!(RunLoop::is_main_thread());
-    let (rendering_sender, rendering_receiver): (Sender<Buffer>, Receiver<Buffer>) =
-        kanal::bounded(1);
-    let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
-    let (rendering_sender, rendering_receiver) =
-        (Arc::new(rendering_sender), Arc::new(rendering_receiver));
-    let (encoding_sender, encoding_receiver) =
-        (Arc::new(encoding_sender), Arc::new(encoding_receiver));
+    let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let pixel_buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
     let provider = Arc::new(PixelBufferSource::new(Arc::clone(&pixel_buffer)));
@@ -82,25 +77,27 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
         bit_rate: 0,
     }));
 
-    channel_recording::init(RecordingHandler::new(
-        encoding_receiver.clone(),
-        Arc::clone(&audio),
-        Arc::clone(&recording_info),
-    ));
     channel_textrue::init(TextureHandler {
         pixel_buffer: pixel_buffer,
-        receiver: rendering_receiver.clone(),
+        channel_handler: channel_handler.clone(),
         texture_provider: textrue.into_sendable_texture(),
-        encoding_sender: Arc::clone(&encoding_sender),
         recording: Arc::clone(&recording),
     });
 
     channel_camera::init(CameraHandler {
-        camera: RefCell::new(Camera::new(Some(Arc::clone(&rendering_sender)))),
+        camera: RefCell::new(Camera::new(channel_handler.clone())),
     });
+
+    channel_recording::init(RecordingHandler::new(
+        Arc::clone(&audio),
+        Arc::clone(&recording_info),
+        channel_handler,
+    ));
+
     channel_audio::init(AudioHandler {
         stream: RefCell::new(None),
         audio,
     });
+
     texture_id
 }

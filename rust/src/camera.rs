@@ -10,20 +10,29 @@ use std::cell::RefCell;
 use std::fmt::Error;
 use std::time::Instant;
 
+use crate::channel::ChannelHandler;
+
 pub struct Camera {
-    pub rendering_sender: Option<Arc<Sender<Buffer>>>,
+    pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub camera: Option<CallbackCamera>,
 }
 
 impl Camera {
-    pub fn new(rendering_sender: Option<Arc<Sender<Buffer>>>) -> Self {
+    pub fn new(channel_handler: Arc<Mutex<ChannelHandler>>) -> Self {
         Self {
-            rendering_sender,
+            channel_handler,
             camera: None,
         }
     }
     pub fn infate_camera(&mut self) {
-        let rendering_sender = self.rendering_sender.take().unwrap();
+        let mut channel_handler = self.channel_handler.lock().unwrap();
+        let mut rendering_sender = channel_handler.rendering.0.clone();
+
+        if rendering_sender.is_closed() {
+            channel_handler.reset();
+            rendering_sender = channel_handler.rendering.0.clone();
+        }
+        
         if let Ok(camera) = inflate_camera_conection(rendering_sender) {
             self.camera = Some(camera);
         } else {
@@ -47,9 +56,7 @@ impl Camera {
     pub fn stop_camera_stream(&mut self) {
         if let Some(camera) = self.camera.take() {
             drop(camera);
-            if let Some(sender) = self.rendering_sender.take() {
-                drop(sender);
-            };
+            self.channel_handler.lock().unwrap().rendering.0.close();
         } else {
             debug!("Failed to stop camera stream");
         }
@@ -60,9 +67,7 @@ impl Camera {
 static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
 //# refactor needed
-pub fn inflate_camera_conection(
-    rendering_sender: Arc<Sender<Buffer>>,
-) -> Result<CallbackCamera, Error> {
+pub fn inflate_camera_conection(rendering_sender: Sender<Buffer>) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);

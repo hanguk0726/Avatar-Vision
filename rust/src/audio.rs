@@ -27,9 +27,10 @@ impl AudioStream {
 
     pub fn stop(&self) {
         drop(&self.stream);
-        debug!("Audio recording complete!");
+        debug!("audio stream dropped");
     }
 }
+
 //TODO if failed to create stream, UI should know that sounds are not available
 pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
     #[cfg(any(

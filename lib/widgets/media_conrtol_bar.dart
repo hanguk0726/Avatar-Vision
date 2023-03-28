@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 Widget mediaControlBar(
-    {required Function() onStart, required Function() onStop}) {
+    {required Function() onStart,
+    required Function() onStop,
+    required Function() reset}) {
   return Positioned(
     bottom: 30,
     left: 0,
@@ -17,6 +19,11 @@ Widget mediaControlBar(
         ElevatedButton(
           onPressed: onStop,
           child: const Text('Stop'),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: reset,
+          child: const Text('Reset'),
         ),
       ],
     ),
