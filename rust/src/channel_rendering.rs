@@ -1,23 +1,20 @@
 use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    mem::{take, ManuallyDrop},
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    mem::{ManuallyDrop},
+    sync::{atomic::AtomicBool, Arc},
     thread,
-    time::Duration,
 };
 
 use async_trait::async_trait;
 use irondash_message_channel::{
-    AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, Value,
+    AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
-use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
-use log::{debug, info};
-use nokhwa::Buffer;
 
-use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb};
+use log::{debug, info};
+
+
+
 pub struct RenderingHandler {
     pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub rendering: Arc<AtomicBool>

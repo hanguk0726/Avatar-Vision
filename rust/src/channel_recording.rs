@@ -1,7 +1,6 @@
 use std::{
     mem::ManuallyDrop,
-    ops::Not,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{Arc, Mutex},
     thread,
 };
 
@@ -10,8 +9,8 @@ use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use irondash_texture::{SendableTexture, PixelDataProvider};
-use kanal::AsyncReceiver;
+
+
 use log::{debug, error, info};
 
 use crate::{

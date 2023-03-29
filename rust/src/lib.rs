@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     ffi::c_void,
     sync::{
-        atomic::{AtomicBool, AtomicU32},
+        atomic::{AtomicBool},
         Arc, Mutex, Once,
     },
     thread::{self},
@@ -11,9 +11,9 @@ use std::{
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::Texture;
-use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
+
 use log::debug;
-use nokhwa::Buffer;
+
 use textrue::PixelBufferSource;
 
 use crate::{

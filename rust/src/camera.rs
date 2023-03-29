@@ -1,4 +1,4 @@
-use kanal::{AsyncSender, Sender};
+use kanal::{Sender};
 use std::sync::{Arc, Mutex};
 
 use log::{debug, error};
@@ -98,7 +98,7 @@ pub fn inflate_camera_conection(rendering_sender: Sender<Buffer>) -> Result<Call
 fn debug_time_elasped() {
     if let Ok(elapsed) = TIME_INSTANCE.lock() {
         match elapsed.borrow().as_ref() {
-            Some(elapsed) => {
+            Some(_elapsed) => {
                 // let duration = elapsed.elapsed().as_millis();
                 // debug!("sending frame {}", duration);
             }

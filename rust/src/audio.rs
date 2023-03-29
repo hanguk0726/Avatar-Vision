@@ -3,9 +3,9 @@
 //! The input data is recorded to "$CARGO_MANIFEST_DIR/recorded.wav".
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Stream, SupportedStreamConfig};
+use cpal::Stream;
 use log::debug;
-use std::io::Write;
+
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::Pcm;

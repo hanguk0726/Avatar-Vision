@@ -1,7 +1,7 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
     path::Path,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc},
 };
 
 use log::debug;

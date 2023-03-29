@@ -1,12 +1,11 @@
 use std::{
-    cell::RefCell,
     iter::repeat_with,
     mem::take,
     sync::{Arc, Mutex},
 };
 
 use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
-use kanal::Receiver;
+
 use log::{debug, error, info};
 #[derive(Clone)]
 pub struct PixelBufferSource {

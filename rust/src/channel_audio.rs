@@ -1,8 +1,6 @@
 use std::{
-    cell::{RefCell, UnsafeCell},
+    cell::RefCell,
     mem::ManuallyDrop,
-    ops::Not,
-    rc::{Rc, Weak},
     sync::{Arc, Mutex},
     thread,
 };
