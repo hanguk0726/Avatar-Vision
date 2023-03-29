@@ -9,14 +9,14 @@ use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
 use log::{debug, error, info};
 #[derive(Clone)]
 pub struct PixelBufferSource {
-    pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     last_pixel_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl PixelBufferSource {
-    pub fn new(pixel_buffer: Arc<Mutex<Vec<u8>>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            pixel_buffer,
+            pixel_buffer: Arc::new(Mutex::new(Vec::new())),
             last_pixel_buffer: Arc::new(Mutex::new(Vec::new())),
         }
     }

@@ -28,8 +28,8 @@ class Native {
   late final int textureId;
 
   Future<void> init() async {
-    await _initTextureId();
-    nativeContext = _initNativeContext();
+    await _init();
+    nativeContext = _nativeContext();
     _textureChannel = NativeMethodChannel('texture_channel_background_thread',
         context: nativeContext);
     _cameraChannel = NativeMethodChannel('camera_channel_background_thread',
@@ -48,21 +48,21 @@ class Native {
     startRendering();
   }
 
-  MessageChannelContext _initNativeContext() {
-    const String rustLibraryInitChannelCallName =
+  MessageChannelContext _nativeContext() {
+    const String rustLibraryInitMessageChannelCallName =
         'rust_init_message_channel_context';
 
     final function =
         dylib.lookup<NativeFunction<MessageChannelContextInitFunction>>(
-            rustLibraryInitChannelCallName);
+            rustLibraryInitMessageChannelCallName);
     return MessageChannelContext.forInitFunction(function);
   }
 
-  Future<void> _initTextureId() async {
-    const String rustLibraryInitTextureCallName = 'rust_init_texture';
+  Future<void> _init() async {
+    const String rustLibraryInitOnMainThreadCallName = 'rust_init_on_main_thread';
     final function = dylib
         .lookup<NativeFunction<Int64 Function(Int64)>>(
-            rustLibraryInitTextureCallName)
+            rustLibraryInitOnMainThreadCallName)
         .asFunction<int Function(int)>();
     final handle = await EngineContext.instance.getEngineHandle();
     textureId = function(handle);

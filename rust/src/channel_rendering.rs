@@ -16,7 +16,7 @@ use log::{debug, info};
 
 
 pub struct RenderingHandler {
-    pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
+    pub texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub rendering: Arc<AtomicBool>
 }
 
@@ -33,7 +33,7 @@ impl AsyncMethodHandler for RenderingHandler {
 
                 self.rendering.store(true, std::sync::atomic::Ordering::Relaxed);
 
-                let texture_provider = Arc::clone(&self.texture_provider);
+                let texture_provider = Arc::clone(&self.texture);
 
                 loop{
                     thread::sleep(std::time::Duration::from_millis(16)); // 60fps = 16.666ms
