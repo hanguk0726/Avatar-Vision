@@ -64,7 +64,8 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let pixel_buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![]));
-    let provider = Arc::new(PixelBufferSource::new(Arc::clone(&pixel_buffer)));
+
+    let provider = Arc::new(PixelBufferSource::new(pixel_buffer.clone()));
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
@@ -78,9 +79,9 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     }));
 
     channel_textrue::init(TextureHandler {
-        pixel_buffer: pixel_buffer,
+        pixel_buffer: pixel_buffer.clone(),
         channel_handler: channel_handler.clone(),
-        texture_provider: textrue.into_sendable_texture(),
+        // texture_provider: textrue.into_sendable_texture(),
         recording: Arc::clone(&recording),
     });
 
@@ -89,6 +90,7 @@ fn init_channels_on_main_thread(flutter_enhine_id: i64) -> i64 {
     });
 
     channel_recording::init(RecordingHandler::new(
+        textrue.into_sendable_texture(),
         Arc::clone(&audio),
         Arc::clone(&recording_info),
         channel_handler,

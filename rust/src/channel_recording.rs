@@ -10,6 +10,7 @@ use irondash_message_channel::{
     AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
+use irondash_texture::{SendableTexture, PixelDataProvider};
 use kanal::AsyncReceiver;
 use log::{debug, error, info};
 
@@ -20,6 +21,7 @@ use crate::{
 };
 
 pub struct RecordingHandler {
+    pub texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     pub encoded: Arc<Mutex<Vec<u8>>>,
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
@@ -28,11 +30,13 @@ pub struct RecordingHandler {
 
 impl RecordingHandler {
     pub fn new(
+        texture_provider: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
         audio: Arc<Mutex<Pcm>>,
         recording_info: Arc<Mutex<RecordingInfo>>,
         channel_handler: Arc<Mutex<ChannelHandler>>,
     ) -> Self {
         Self {
+            texture_provider,
             encoded: Arc::new(Mutex::new(Vec::new())),
             audio,
             recording_info,
@@ -76,7 +80,12 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
-
+                let texture_provider = Arc::clone(&self.texture_provider);
+                loop{
+                    thread::sleep(std::time::Duration::from_millis(10));
+                    texture_provider.mark_frame_available();
+                    debug!("marked frame available");
+                }
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
                 
                 let started = std::time::Instant::now();
