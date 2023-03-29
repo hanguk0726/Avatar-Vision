@@ -21,6 +21,7 @@ class Native {
 
   late final MessageChannelContext nativeContext;
   late final NativeMethodChannel _textureChannel;
+  late final NativeMethodChannel _renderingChannel;
   late final NativeMethodChannel _cameraChannel;
   late final NativeMethodChannel _recordingChannel;
   late final NativeMethodChannel _audioChannel;
@@ -38,10 +39,13 @@ class Native {
         context: nativeContext);
     _audioChannel = NativeMethodChannel('audio_channel_background_thread',
         context: nativeContext);
-
+    _renderingChannel = NativeMethodChannel(
+        'rendering_channel_background_thread',
+        context: nativeContext);
     openCameraStream();
     openTextureStream();
     openAudioStream();
+    startRendering();
   }
 
   MessageChannelContext _initNativeContext() {
@@ -102,6 +106,11 @@ class Native {
 
   void stopAudioStream() async {
     final res = await _audioChannel.invokeMethod('stop_audio_stream', {});
+    _showResult(res);
+  }
+
+  void startRendering() async {
+    final res = await _renderingChannel.invokeMethod('start_rendering', {});
     _showResult(res);
   }
 

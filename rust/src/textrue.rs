@@ -10,13 +10,11 @@ use kanal::Receiver;
 use log::{debug, error, info};
 #[derive(Clone)]
 pub struct PixelBufferSource {
-    // pixel_buffer: Arc<Receiver<Vec<u8>>>,
     pixel_buffer: Arc<Mutex<Vec<u8>>>,
     last_pixel_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl PixelBufferSource {
-    // pub fn new(pixel_buffer: Arc<Receiver<Vec<u8>>>) -> Self {
     pub fn new(pixel_buffer: Arc<Mutex<Vec<u8>>>) -> Self {
         Self {
             pixel_buffer,
@@ -29,21 +27,6 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     fn get_payload(&self) -> BoxedPixelData {
         let width = 1280i32;
         let height = 720i32;
-
-        // match  self.pixel_buffer.recv() {
-
-        //     Ok(data) => {
-        //         debug!("pixel buffer is not empty");
-        //         return SimplePixelData::new_boxed(width, height, data);
-        //     }
-        //     Err(_) => {
-        //         info! {"pixel buffer is empty"};
-        //         let data = repeat_with(|| 0u8)
-        //             .take((width * height * 4) as usize)
-        //             .collect::<Vec<u8>>();
-        //         return SimplePixelData::new_boxed(width, height, data);
-        //     }
-        // }
 
         match self.pixel_buffer.lock() {
             Ok(mut data) => {
