@@ -66,6 +66,7 @@ fn init_channels(
     let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let recording = Arc::new(AtomicBool::new(false));
+
     let recording_info = Arc::new(Mutex::new(RecordingInfo::new(recording.clone())));
     let audio = Arc::new(Mutex::new(channel_audio::Pcm {
         data: Arc::new(Mutex::new(vec![])),
@@ -89,10 +90,12 @@ fn init_channels(
         recording_info.clone(),
         channel_handler,
     ));
+
     channel_rendering::init(RenderingHandler {
         texture,
         rendering: Arc::new(AtomicBool::new(false)),
     });
+
     channel_audio::init(AudioHandler {
         stream: RefCell::new(None),
         audio,

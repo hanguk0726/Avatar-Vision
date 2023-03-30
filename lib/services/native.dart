@@ -12,40 +12,62 @@ class Native {
     return _instance;
   }
 
+  bool writingState =
+      false; // whether the recorded video data is being written to the file
+  bool recording = false; // whether the video is being recorded
   static const String rustLibraryName = 'rust';
+
   final dylib = defaultTargetPlatform == TargetPlatform.android
       ? DynamicLibrary.open("lib$rustLibraryName.so")
       : (defaultTargetPlatform == TargetPlatform.windows
           ? DynamicLibrary.open("$rustLibraryName.dll")
           : DynamicLibrary.process());
 
-  late final MessageChannelContext nativeContext;
-  late final NativeMethodChannel _textureChannel;
-  late final NativeMethodChannel _renderingChannel;
-  late final NativeMethodChannel _cameraChannel;
-  late final NativeMethodChannel _recordingChannel;
-  late final NativeMethodChannel _audioChannel;
   late final int textureId;
+
+  late final MessageChannelContext nativeContext;
+
+  late final NativeMethodChannel textureChannel;
+  late final NativeMethodChannel renderingChannel;
+  late final NativeMethodChannel cameraChannel;
+  late final NativeMethodChannel recordingChannel;
+  late final NativeMethodChannel audioChannel;
 
   Future<void> init() async {
     await _init();
     nativeContext = _nativeContext();
-    _textureChannel = NativeMethodChannel('texture_channel_background_thread',
+    textureChannel = NativeMethodChannel('texture_channel_background_thread',
         context: nativeContext);
-    _cameraChannel = NativeMethodChannel('camera_channel_background_thread',
+    cameraChannel = NativeMethodChannel('camera_channel_background_thread',
         context: nativeContext);
-    _recordingChannel = NativeMethodChannel(
+    recordingChannel = NativeMethodChannel(
         'recording_channel_background_thread',
         context: nativeContext);
-    _audioChannel = NativeMethodChannel('audio_channel_background_thread',
+    audioChannel = NativeMethodChannel('audio_channel_background_thread',
         context: nativeContext);
-    _renderingChannel = NativeMethodChannel(
+    renderingChannel = NativeMethodChannel(
         'rendering_channel_background_thread',
         context: nativeContext);
-    openCameraStream();
-    openTextureStream();
-    openAudioStream();
-    startRendering();
+    setChannelHandlers();
+    start();
+  }
+
+  void setChannelHandlers() {
+    recordingChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'mark_writing_state':
+          final Map<String, dynamic> map = jsonDecode(call.arguments);
+          writingState = map['state'];
+          break;
+
+        case 'mark_recording_state':
+          final Map<String, dynamic> map = jsonDecode(call.arguments);
+          recording = map['state'];
+          break;
+        default:
+          debugPrint('Unknown method ${call.method} ');
+      }
+    });
   }
 
   MessageChannelContext _nativeContext() {
@@ -59,7 +81,8 @@ class Native {
   }
 
   Future<void> _init() async {
-    const String rustLibraryInitOnMainThreadCallName = 'rust_init_on_main_thread';
+    const String rustLibraryInitOnMainThreadCallName =
+        'rust_init_on_main_thread';
     final function = dylib
         .lookup<NativeFunction<Int64 Function(Int64)>>(
             rustLibraryInitOnMainThreadCallName)
@@ -75,50 +98,55 @@ class Native {
   }
 
   void openTextureStream() async {
-    final res = await _textureChannel.invokeMethod('open_texture_stream', {});
+    final res = await textureChannel.invokeMethod('open_texture_stream', {});
     _showResult(res);
   }
 
   void startRecording() async {
-    final res = await _recordingChannel.invokeMethod('start_recording', {});
+    final res = await recordingChannel.invokeMethod('start_recording', {});
     _showResult(res);
   }
 
   void stopRecording() async {
-    final res = await _recordingChannel.invokeMethod('stop_recording', {});
+    final res = await recordingChannel.invokeMethod('stop_recording', {});
     _showResult(res);
   }
 
   void openCameraStream() async {
-    final res = await _cameraChannel.invokeMethod('open_camera_stream', {});
+    final res = await cameraChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
 
   void stopCameraStream() async {
-    final res = await _cameraChannel.invokeMethod('stop_camera_stream', {});
+    final res = await cameraChannel.invokeMethod('stop_camera_stream', {});
     _showResult(res);
   }
 
   void openAudioStream() async {
-    final res = await _audioChannel.invokeMethod('open_audio_stream', {});
+    final res = await audioChannel.invokeMethod('open_audio_stream', {});
     _showResult(res);
   }
 
   void stopAudioStream() async {
-    final res = await _audioChannel.invokeMethod('stop_audio_stream', {});
+    final res = await audioChannel.invokeMethod('stop_audio_stream', {});
     _showResult(res);
   }
 
   void startRendering() async {
-    final res = await _renderingChannel.invokeMethod('start_rendering', {});
+    final res = await renderingChannel.invokeMethod('start_rendering', {});
     _showResult(res);
   }
 
-  void reset() async {
-    stopCameraStream();
-    stopAudioStream();
+  void start() {
     openCameraStream();
     openTextureStream();
     openAudioStream();
+    startRendering();
+  }
+
+  void reset() {
+    stopCameraStream();
+    openCameraStream();
+    openTextureStream();
   }
 }

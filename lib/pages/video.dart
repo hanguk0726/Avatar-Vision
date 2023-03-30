@@ -49,9 +49,10 @@ class _MyHomePageState extends State<MyHomePage> {
           },
           onStop: () {
             Native().stopRecording();
+            Native().reset();
           },
-          reset: () => Native().reset(),
         ),
+        
       ]),
     );
   }

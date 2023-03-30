@@ -43,7 +43,7 @@ impl AsyncMethodHandler for TextureHandler {
                         let decoded =
                             decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
                         let mut render_buffer = render_buffer.lock().unwrap();
-                        debug!("index {}, last {}", index, render_buffer.0);
+                        // debug!("index {}, last {}", index, render_buffer.0);
                         if index > render_buffer.0 {
                             *render_buffer = (index, decoded.clone());
                         }

@@ -6,17 +6,18 @@ use std::{
 
 use async_trait::async_trait;
 use irondash_message_channel::{
-    AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
+    AsyncMethodHandler, AsyncMethodInvoker, IntoValue, IsolateId, Late, MethodCall, PlatformError,
+    PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-
 
 use log::{debug, error, info};
 
 use crate::{
     channel::ChannelHandler,
     channel_audio::Pcm,
-    recording::{encode_to_h264, rgba_to_yuv, to_mp4, RecordingInfo},
+    domain::image_processing::rgba_to_yuv,
+    recording::{encode_to_h264, to_mp4, RecordingInfo},
 };
 
 pub struct RecordingHandler {
@@ -24,6 +25,12 @@ pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
+    invoker: Late<AsyncMethodInvoker>,
+}
+
+#[derive(IntoValue)]
+struct State {
+    state: bool,
 }
 
 impl RecordingHandler {
@@ -37,6 +44,7 @@ impl RecordingHandler {
             audio,
             recording_info,
             channel_handler,
+            invoker: Late::new(),
         }
     }
 
@@ -49,7 +57,35 @@ impl RecordingHandler {
 
         debug!("encoded length: {:?}", encoded.len());
     }
+    fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
+        let recording_info = self.recording_info.lock().unwrap();
+        let writing_state = recording_info
+            .writing_state
+            .load(std::sync::atomic::Ordering::Relaxed);
+        self.invoker.call_method_sync(
+            target_isolate,
+            "mark_writing_state",
+            State {
+                state: writing_state,
+            },
+            |_| {},
+        )
+    }
 
+    fn mark_recording_state_on_ui(&self, target_isolate: IsolateId) {
+        let recording_info = self.recording_info.lock().unwrap();
+        let recording = recording_info
+            .recording
+            .load(std::sync::atomic::Ordering::Relaxed);
+        self.invoker.call_method_sync(
+            target_isolate,
+            "mark_recording_state",
+            State {
+                state: recording,
+            },
+            |_| {},
+        )
+    }
     fn save(&self, frames: usize) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
         let encoded = Arc::clone(&self.encoded);
@@ -68,6 +104,10 @@ impl RecordingHandler {
 }
 #[async_trait(?Send)]
 impl AsyncMethodHandler for RecordingHandler {
+    fn assign_invoker(&self, _invoker: AsyncMethodInvoker) {
+        self.invoker.set(_invoker);
+    }
+
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
             "start_recording" => {
@@ -76,9 +116,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
-       
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
-                
+
                 let started = std::time::Instant::now();
                 let mut count = 0;
                 let yuv_data = Arc::new(Mutex::new(Vec::new()));
@@ -95,16 +134,13 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 while let Ok(rgba) = encoding_receiver.recv().await {
-                    debug!("received buffer");
                     count += 1;
-                    let yuv_data_clone = yuv_data.clone();
+                    let yuv_data = yuv_data.clone();
                     pool.spawn(async move {
                         let width = 1280;
                         let height = 720;
-                        let started = std::time::Instant::now();
                         let yuv = rgba_to_yuv(&rgba[..], width, height);
-                        let mut yuv_data = yuv_data_clone.lock().unwrap();
-                        debug!("encoded to yuv: {:?}", started.elapsed().as_millis());
+                        let mut yuv_data = yuv_data.lock().unwrap();
                         yuv_data.push(yuv);
                     });
                 }
@@ -116,10 +152,19 @@ impl AsyncMethodHandler for RecordingHandler {
                     count,
                     started.elapsed().as_secs()
                 );
-
+                {
+                    self.recording_info.lock().unwrap().set_writing_state(true);
+                }
+                self.mark_writing_state_on_ui(call.isolate);
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
+
+                {
+                    self.recording_info.lock().unwrap().set_writing_state(false);
+                }
+                self.mark_writing_state_on_ui(call.isolate);
+
                 pool.shutdown_timeout(std::time::Duration::from_secs(1));
 
                 info!("encoding finished");
@@ -141,6 +186,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 self.channel_handler.lock().unwrap().encoding.1.close();
                 Ok("ok".into())
             }
+
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
                 message: Some(format!("Unknown Method: {}", call.method)),

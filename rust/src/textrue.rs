@@ -32,11 +32,10 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
                 let mut data = take(&mut *data);
                 let mut last_pixel_buffer = self.last_pixel_buffer.lock().unwrap();
                 if data.len() == 0 {
-                    info! {"pixel buffer is empty fallback to backup buffer"};
-                    // use back up buffer
+                    // info! {"pixel buffer is empty fallback to backup buffer"};
                     data = last_pixel_buffer.clone();
                     if data.len() == 0 {
-                        info! {"backup buffer is empty"};
+                        // info! {"backup buffer is empty"};
                         data = repeat_with(|| 0u8)
                             .take((width * height * 4) as usize)
                             .collect::<Vec<u8>>();
