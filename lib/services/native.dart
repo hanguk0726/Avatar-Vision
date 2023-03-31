@@ -5,16 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 
-class Native {
+class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Native._privateConstructor();
   static final Native _instance = Native._privateConstructor();
   factory Native() {
     return _instance;
   }
 
-  bool writingState =
+  bool writing =
       false; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
+
   static const String rustLibraryName = 'rust';
 
   final dylib = defaultTargetPlatform == TargetPlatform.android
@@ -56,13 +57,16 @@ class Native {
     recordingChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'mark_writing_state':
-          final Map<String, dynamic> map = jsonDecode(call.arguments);
-          writingState = map['state'];
+          final Map<String, dynamic> map = call.arguments;
+          writing = map['state'];
+          notifyListeners();
           break;
 
         case 'mark_recording_state':
-          final Map<String, dynamic> map = jsonDecode(call.arguments);
+          debugPrint('mark_recording_state');
+          final Map<String, dynamic> map = call.arguments;
           recording = map['state'];
+          notifyListeners();
           break;
         default:
           debugPrint('Unknown method ${call.method} ');

@@ -80,12 +80,11 @@ impl RecordingHandler {
         self.invoker.call_method_sync(
             target_isolate,
             "mark_recording_state",
-            State {
-                state: recording,
-            },
+            State { state: recording },
             |_| {},
         )
     }
+
     fn save(&self, frames: usize) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
         let encoded = Arc::clone(&self.encoded);
@@ -131,6 +130,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
+                self.mark_recording_state_on_ui(call.isolate);
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 while let Ok(rgba) = encoding_receiver.recv().await {
@@ -183,6 +183,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         .store(false, std::sync::atomic::Ordering::Relaxed);
                     recording_info.stop();
                 }
+                self.mark_recording_state_on_ui(call.isolate);
                 self.channel_handler.lock().unwrap().encoding.1.close();
                 Ok("ok".into())
             }

@@ -39,7 +39,6 @@ pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
         not(feature = "jack")
     ))]
     let host = cpal::default_host();
-
     let device = host.default_input_device().unwrap();
 
     debug!("Input device: {}", device.name()?);
