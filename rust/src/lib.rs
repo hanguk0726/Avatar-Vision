@@ -9,11 +9,12 @@ use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
 
 use textrue::PixelBufferSource;
+use tools::log_::init_logging;
 
 use crate::{
     camera::Camera, channel::ChannelHandler, channel_audio::AudioHandler,
     channel_camera::CameraHandler, channel_recording::RecordingHandler,
-    channel_rendering::RenderingHandler, channel_textrue::TextureHandler, log_::init_logging,
+    channel_rendering::RenderingHandler, channel_textrue::TextureHandler,
     recording::RecordingInfo,
 };
 
@@ -26,9 +27,9 @@ mod channel_recording;
 mod channel_rendering;
 mod channel_textrue;
 mod domain;
-mod log_;
 mod recording;
 mod textrue;
+mod tools;
 
 static START: Once = Once::new();
 

@@ -11,7 +11,7 @@ use openh264::{
     Error,
 };
 
-use crate::{channel_audio::Pcm, domain::image_processing::YUVBuf};
+use crate::{channel_audio::Pcm, domain::image_processing::YUVBuf, tools::ordqueue::OrdQueueIter};
 
 pub struct RecordingInfo {
     pub started: std::time::Instant,
@@ -60,12 +60,13 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-pub fn encode_to_h264(yuv_vec: Vec<Vec<u8>>) -> Vec<u8> {
+pub fn encode_to_h264(mut yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) -> Vec<u8> {
     let started = std::time::Instant::now();
     let mut buf_h264 = Vec::new();
     let mut encoder = encoder(1280, 720).unwrap();
     debug!("encoding to h264...");
-    for yuv in yuv_vec {
+    for _ in 0..len {
+        let yuv = yuv_iter.next().unwrap();
         let yuv = YUVBuf {
             yuv: yuv.clone(),
             width: 1280,

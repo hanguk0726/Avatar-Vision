@@ -18,6 +18,7 @@ use crate::{
     channel_audio::Pcm,
     domain::image_processing::rgba_to_yuv,
     recording::{encode_to_h264, to_mp4, RecordingInfo},
+    tools::ordqueue::{new, OrdQueueIter},
 };
 
 pub struct RecordingHandler {
@@ -48,8 +49,8 @@ impl RecordingHandler {
         }
     }
 
-    fn encode(&self, yuv_vec: Vec<Vec<u8>>) {
-        let processed = encode_to_h264(yuv_vec);
+    fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) {
+        let processed = encode_to_h264(yuv_iter, len);
 
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
@@ -57,6 +58,7 @@ impl RecordingHandler {
 
         debug!("encoded length: {:?}", encoded.len());
     }
+
     fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
         let recording_info = self.recording_info.lock().unwrap();
         let writing_state = recording_info
@@ -119,8 +121,8 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let started = std::time::Instant::now();
                 let mut count = 0;
-                let yuv_data = Arc::new(Mutex::new(Vec::new()));
-
+                let (queue, iter) = new();
+                let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(4)
                     .build()
@@ -134,18 +136,18 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 while let Ok(rgba) = encoding_receiver.recv().await {
-                    count += 1;
-                    let yuv_data = yuv_data.clone();
+                    let queue = queue.clone();
                     pool.spawn(async move {
                         let width = 1280;
                         let height = 720;
                         let yuv = rgba_to_yuv(&rgba[..], width, height);
-                        let mut yuv_data = yuv_data.lock().unwrap();
-                        yuv_data.push(yuv);
+                        queue.push(count, yuv).unwrap();
                     });
+                    // debug!("encoded {} frames", count);
+                    count += 1;
                 }
 
-                self.encode(yuv_data.lock().unwrap().to_owned());
+                self.encode(iter, count);
 
                 debug!(
                     "encoded {} frames, time elapsed {}",

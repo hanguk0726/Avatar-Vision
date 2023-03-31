@@ -6,7 +6,7 @@ use std::{
 
 use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
 
-use log::{debug, error, info};
+use log::{debug, error};
 #[derive(Clone)]
 pub struct PixelBufferSource {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
