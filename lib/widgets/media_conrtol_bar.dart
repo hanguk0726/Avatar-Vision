@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 Widget mediaControlBar(
-    {required Function() onStart,
-    required Function() onStop }) {
+    {required bool recording,
+    required Function() onStart,
+    required Function() onStop}) {
   return Positioned(
     bottom: 30,
     left: 0,
@@ -10,16 +11,16 @@ Widget mediaControlBar(
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
-          onPressed: onStart,
-          child: const Text('Record'),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: onStop,
-          child: const Text('Stop'),
-        ),
-       
+        if (recording)
+          ElevatedButton(
+            onPressed: onStop,
+            child: const Text('Stop'),
+          )
+        else
+          ElevatedButton(
+            onPressed: onStart,
+            child: const Text('Record'),
+          ),
       ],
     ),
   );

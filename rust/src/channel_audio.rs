@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     mem::ManuallyDrop,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     thread,
 };
 
@@ -15,6 +15,7 @@ use log::debug;
 use crate::audio::{open_audio_stream, AudioStream};
 
 pub struct AudioHandler {
+    pub recording : Arc<AtomicBool>,
     pub stream: RefCell<Option<AudioStream>>,
     pub audio: Arc<Mutex<Pcm>>,
 }
@@ -35,7 +36,8 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
-                let recorder = open_audio_stream().unwrap();
+                let recording = self.recording.clone();
+                let recorder = open_audio_stream(recording).unwrap();
 
                 let mut audio = self.audio.lock().unwrap();
                 *audio = recorder.audio.clone();

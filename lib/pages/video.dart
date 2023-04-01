@@ -70,12 +70,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         mediaControlBar(
+          recording: context.watch<Native>().recording,
           onStart: () {
             Native().startRecording();
           },
           onStop: () {
             Native().stopRecording();
-            Native().reset();
           },
         ),
       ]),

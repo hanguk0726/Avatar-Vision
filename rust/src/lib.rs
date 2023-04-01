@@ -14,8 +14,7 @@ use tools::log_::init_logging;
 use crate::{
     camera::Camera, channel::ChannelHandler, channel_audio::AudioHandler,
     channel_camera::CameraHandler, channel_recording::RecordingHandler,
-    channel_rendering::RenderingHandler, channel_textrue::TextureHandler,
-    recording::RecordingInfo,
+    channel_rendering::RenderingHandler, channel_textrue::TextureHandler, recording::RecordingInfo,
 };
 
 mod audio;
@@ -38,8 +37,7 @@ pub extern "C" fn rust_init_on_main_thread(flutter_engine_id: i64) -> i64 {
     START.call_once(|| {
         init_logging();
     });
-    RunLoop::sender_for_main_thread()
-        .send_and_wait(move || init_on_main_thread(flutter_engine_id))
+    RunLoop::sender_for_main_thread().send_and_wait(move || init_on_main_thread(flutter_engine_id))
 }
 
 #[no_mangle]
@@ -79,7 +77,7 @@ fn init_channels(
     channel_textrue::init(TextureHandler {
         pixel_buffer,
         channel_handler: channel_handler.clone(),
-        recording: Arc::clone(&recording),
+        recording: recording.clone(),
     });
 
     channel_camera::init(CameraHandler {
@@ -98,6 +96,7 @@ fn init_channels(
     });
 
     channel_audio::init(AudioHandler {
+        recording,
         stream: RefCell::new(None),
         audio,
     });

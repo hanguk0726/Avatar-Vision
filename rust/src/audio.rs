@@ -2,6 +2,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::Pcm;
@@ -28,7 +29,7 @@ impl AudioStream {
 }
 
 //TODO if failed to create stream, UI should know that sounds are not available
-pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
+pub fn open_audio_stream(recording: Arc<AtomicBool>) -> Result<AudioStream, anyhow::Error> {
     #[cfg(any(
         not(any(
             target_os = "linux",
@@ -56,11 +57,13 @@ pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                let mut buffer = buffer_clone.lock().unwrap();
-                for &sample in data.iter() {
-                    let sample = sample.to_le_bytes();
-                    buffer.push(sample[0]);
-                    buffer.push(sample[1]);
+                if recording.load(std::sync::atomic::Ordering::Relaxed) {
+                    let mut buffer = buffer_clone.lock().unwrap();
+                    for &sample in data.iter() {
+                        let sample = sample.to_le_bytes();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                    }
                 }
             },
             move |err| eprintln!("an error occurred on stream: {}", err),
@@ -69,12 +72,14 @@ pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
         cpal::SampleFormat::F32 => device.build_input_stream(
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                let mut buffer = buffer_clone.lock().unwrap();
-                for &sample in data.iter() {
-                    let i16_sample = (sample * i16::MAX as f32) as i16;
-                    let sample = i16_sample.to_le_bytes();
-                    buffer.push(sample[0]);
-                    buffer.push(sample[1]);
+                if recording.load(std::sync::atomic::Ordering::Relaxed) {
+                    let mut buffer = buffer_clone.lock().unwrap();
+                    for &sample in data.iter() {
+                        let i16_sample = (sample * i16::MAX as f32) as i16;
+                        let sample = i16_sample.to_le_bytes();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                    }
                 }
             },
             move |err| eprintln!("an error occurred on stream: {}", err),

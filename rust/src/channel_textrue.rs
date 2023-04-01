@@ -1,5 +1,5 @@
 use std::{
-    mem::{ManuallyDrop},
+    mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
@@ -10,7 +10,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
-
+use kanal::AsyncSender;
 use log::{debug, info};
 use nokhwa::Buffer;
 
@@ -32,7 +32,7 @@ impl AsyncMethodHandler for TextureHandler {
                     thread::current().id()
                 );
 
-                let encoding_sender = self.channel_handler.lock().unwrap().encoding.0.clone();
+                let mut encoding_sender = self.channel_handler.lock().unwrap().encoding.0.clone();
 
                 let render_buffer: Arc<Mutex<(usize, Vec<u8>)>> = Arc::new(Mutex::new((0, vec![])));
 
@@ -67,16 +67,22 @@ impl AsyncMethodHandler for TextureHandler {
 
                     let render = render_buffer2.lock().unwrap();
                     let decoded = render.1.to_owned();
-                    
+
                     if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
                         encoding_sender
-                        .try_send(decoded.clone())
-                        .unwrap_or_else(|e| {
-                            debug!("encoding channel sending failed: {:?}", e);
-                            false
-                        });
+                            .try_send(decoded.clone())
+                            .unwrap_or_else(|e| {
+                                debug!("encoding channel sending failed: {:?}", e);
+                                false
+                            });
+                    } else {
+                        if encoding_sender.is_closed() {
+                            let mut channel_handler = self.channel_handler.lock().unwrap();
+                            channel_handler.reset_encoding();
+                            encoding_sender = channel_handler.encoding.0.clone();
+                        }
                     }
-                    
+
                     let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;
                 }
