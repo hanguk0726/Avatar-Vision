@@ -47,13 +47,52 @@ pub extern "C" fn rust_init_message_channel_context(data: *mut c_void) -> Functi
 
 fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     assert!(RunLoop::is_main_thread());
+    let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
-    let provider = Arc::new(PixelBufferSource::new());
+    let recording = Arc::new(AtomicBool::new(false));
+    let encoding_sender = channel_handler.lock().unwrap().encoding.0.clone();
+    let encoding_sender = Arc::new(encoding_sender);
+    let provider = Arc::new(PixelBufferSource::new(encoding_sender, recording.clone()));
     let pixel_buffer: Arc<Mutex<Vec<u8>>> = provider.pixel_buffer.clone();
-    let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
-    let texture_id = textrue.id();
+    let texture = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
+    let texture_id = texture.id();
 
-    init_channels(pixel_buffer.clone(), textrue.into_sendable_texture());
+    // init_channels(pixel_buffer.clone(), textrue.into_sendable_texture());
+
+    let recording_info = Arc::new(Mutex::new(RecordingInfo::new(recording.clone())));
+    let audio = Arc::new(Mutex::new(channel_audio::Pcm {
+        data: Arc::new(Mutex::new(vec![])),
+        sample_rate: 0,
+        channels: 0,
+        bit_rate: 0,
+    }));
+
+    channel_textrue::init(TextureHandler {
+        pixel_buffer,
+        channel_handler: channel_handler.clone(),
+        recording: recording.clone(),
+    });
+
+    channel_camera::init(CameraHandler {
+        camera: RefCell::new(Camera::new(channel_handler.clone())),
+    });
+
+    channel_recording::init(RecordingHandler::new(
+        audio.clone(),
+        recording_info.clone(),
+        channel_handler,
+    ));
+
+    channel_rendering::init(RenderingHandler {
+        texture: texture.into_sendable_texture(),
+        rendering: Arc::new(AtomicBool::new(false)),
+    });
+
+    channel_audio::init(AudioHandler {
+        recording,
+        stream: RefCell::new(None),
+        audio,
+    });
 
     texture_id
 }

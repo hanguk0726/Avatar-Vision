@@ -1,23 +1,28 @@
 use std::{
     iter::repeat_with,
     mem::take,
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
 use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
 
+use kanal::AsyncSender;
 use log::{debug, error};
 #[derive(Clone)]
 pub struct PixelBufferSource {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     last_pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    encoding_sender: Arc<AsyncSender<Vec<u8>>>,
+    recording: Arc<AtomicBool>,
 }
 
 impl PixelBufferSource {
-    pub fn new() -> Self {
+    pub fn new(encoding_sender: Arc<AsyncSender<Vec<u8>>>, recording: Arc<AtomicBool>) -> Self {
         Self {
             pixel_buffer: Arc::new(Mutex::new(Vec::new())),
             last_pixel_buffer: Arc::new(Mutex::new(Vec::new())),
+            encoding_sender,
+            recording,
         }
     }
 }
@@ -43,7 +48,14 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
                 } else {
                     *last_pixel_buffer = data.clone();
                 }
-
+                let data_ = data.clone();
+                if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
+                    let encoding_sender = self.encoding_sender.clone();
+                    encoding_sender.try_send(data_).unwrap_or_else(|e| {
+                        error!("error: {:?}", e);
+                        false
+                    });
+                }
                 return SimplePixelData::new_boxed(width, height, data);
             }
             Err(e) => {
