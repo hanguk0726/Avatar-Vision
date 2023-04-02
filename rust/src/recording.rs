@@ -104,7 +104,7 @@ pub fn to_mp4<P: AsRef<Path>>(
     );
     let audio_data = audio.data.lock().unwrap();
     debug!(
-        "audio\ndata: {}, sample_rata: {}, channles: {}, bit_rate: {},",
+        "audio :: data: {}, sample_rata: {}, channles: {}, bit_rate: {},",
         &audio_data.len(),
         &audio.sample_rate,
         &audio.channels,

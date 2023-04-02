@@ -57,19 +57,21 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     recordingChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'mark_writing_state':
+          debugPrint('mark_writing_state');
           final Map<String, dynamic> map = call.arguments;
           writing = map['state'];
           notifyListeners();
-          break;
+          return null;
 
         case 'mark_recording_state':
           debugPrint('mark_recording_state');
           final Map<String, dynamic> map = call.arguments;
           recording = map['state'];
           notifyListeners();
-          break;
+          return null;
         default:
           debugPrint('Unknown method ${call.method} ');
+          return null;
       }
     });
   }

@@ -12,6 +12,7 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 
 use log::{debug, error, info};
+use tokio::runtime::Runtime;
 
 use crate::{
     channel::ChannelHandler,
@@ -59,36 +60,49 @@ impl RecordingHandler {
         debug!("encoded length: {:?}", encoded.len());
     }
 
-    fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
+    async fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
         let recording_info = self.recording_info.lock().unwrap();
         let writing_state = recording_info
             .writing_state
             .load(std::sync::atomic::Ordering::Relaxed);
-        self.invoker.call_method_sync(
-            target_isolate,
-            "mark_writing_state",
-            State {
-                state: writing_state,
-            },
-            |_| {},
-        )
+
+        if let Err(e) = self
+            .invoker
+            .call_method(
+                target_isolate,
+                "mark_writing_state",
+                State {
+                    state: writing_state,
+                },
+            )
+            .await
+        {
+            error!("Error while marking writing state on UI: {:?}", e);
+        }
     }
 
-    fn mark_recording_state_on_ui(&self, target_isolate: IsolateId) {
+    async fn mark_recording_state_on_ui(&self, target_isolate: IsolateId) {
         let recording_info = self.recording_info.lock().unwrap();
         let recording = recording_info
             .recording
             .load(std::sync::atomic::Ordering::Relaxed);
-        self.invoker.call_method_sync(
-            target_isolate,
-            "mark_recording_state",
-            State { state: recording },
-            |_| {},
-        )
+
+        if let Err(e) = self
+            .invoker
+            .call_method(
+                target_isolate,
+                "mark_recording_state",
+                State { state: recording },
+            )
+            .await
+        {
+            error!("Error while marking recording state on UI: {:?}", e);
+        }
     }
 
     fn save(&self, frames: usize) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
+
         let encoded = Arc::clone(&self.encoded);
         let encoded = encoded.lock().unwrap();
 
@@ -123,10 +137,11 @@ impl AsyncMethodHandler for RecordingHandler {
                 let started = std::time::Instant::now();
                 let mut count = 0;
 
+                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 };
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(8)
+                    .worker_threads(num_worker)
                     .build()
                     .unwrap();
 
@@ -134,7 +149,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
-                self.mark_recording_state_on_ui(call.isolate);
+                self.mark_recording_state_on_ui(call.isolate).await;
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 while let Ok(rgba) = encoding_receiver.recv().await {
@@ -159,8 +174,8 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     self.recording_info.lock().unwrap().set_writing_state(true);
                 }
-                self.mark_writing_state_on_ui(call.isolate);
-                
+                self.mark_writing_state_on_ui(call.isolate).await;
+
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
@@ -168,13 +183,14 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     self.recording_info.lock().unwrap().set_writing_state(false);
                 }
-                self.mark_writing_state_on_ui(call.isolate);
+                self.mark_writing_state_on_ui(call.isolate).await;
 
                 pool.shutdown_timeout(std::time::Duration::from_secs(1));
 
                 info!("encoding finished");
                 Ok("ok".into())
             }
+
             "stop_recording" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
@@ -183,12 +199,9 @@ impl AsyncMethodHandler for RecordingHandler {
                 );
                 {
                     let mut recording_info = self.recording_info.lock().unwrap();
-                    recording_info
-                        .recording
-                        .store(false, std::sync::atomic::Ordering::Relaxed);
                     recording_info.stop();
                 }
-                self.mark_recording_state_on_ui(call.isolate);
+                self.mark_recording_state_on_ui(call.isolate).await;
                 self.channel_handler.lock().unwrap().encoding.1.close();
                 Ok("ok".into())
             }
