@@ -117,10 +117,12 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
+
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
 
                 let started = std::time::Instant::now();
                 let mut count = 0;
+
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
@@ -158,6 +160,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     self.recording_info.lock().unwrap().set_writing_state(true);
                 }
                 self.mark_writing_state_on_ui(call.isolate);
+                
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }

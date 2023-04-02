@@ -36,19 +36,6 @@ impl AsyncMethodHandler for TextureHandler {
 
                 let render_buffer: Arc<Mutex<(usize, Vec<u8>)>> = Arc::new(Mutex::new((0, vec![])));
 
-                let decode =
-                    move |index: usize,
-                          buf: Buffer,
-                          render_buffer: Arc<Mutex<(usize, Vec<u8>)>>| {
-                        let decoded =
-                            decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
-                        let mut render_buffer = render_buffer.lock().unwrap();
-                        // debug!("index {}, last {}", index, render_buffer.0);
-                        if index > render_buffer.0 {
-                            *render_buffer = (index, decoded.clone());
-                        }
-                    };
-
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
                 let pool = tokio::runtime::Builder::new_multi_thread()
@@ -57,6 +44,7 @@ impl AsyncMethodHandler for TextureHandler {
                     .unwrap();
 
                 let mut index = 0;
+                
                 while let Ok(buf) = receiver.recv() {
                     let render_buffer = render_buffer.clone();
                     let render_buffer2 = render_buffer.clone();
@@ -68,20 +56,12 @@ impl AsyncMethodHandler for TextureHandler {
                     let render = render_buffer2.lock().unwrap();
                     let decoded = render.1.to_owned();
 
-                    if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        encoding_sender
-                            .try_send(decoded.clone())
-                            .unwrap_or_else(|e| {
-                                debug!("encoding channel sending failed: {:?}", e);
-                                false
-                            });
-                    } else {
-                        if encoding_sender.is_closed() {
-                            let mut channel_handler = self.channel_handler.lock().unwrap();
-                            channel_handler.reset_encoding();
-                            encoding_sender = channel_handler.encoding.0.clone();
-                        }
-                    }
+                    send_to_encoding(
+                        self.recording.clone(),
+                        &mut encoding_sender,
+                        &mut self.channel_handler.lock().unwrap(),
+                        decoded.clone(),
+                    );
 
                     let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;
@@ -108,4 +88,32 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
         );
         RunLoop::current().run();
     });
+}
+
+fn send_to_encoding(
+    recording: Arc<AtomicBool>,
+    encoding_sender: &mut AsyncSender<Vec<u8>>,
+    channel_handler: &mut ChannelHandler,
+    decoded: Vec<u8>,
+) {
+    if recording.load(std::sync::atomic::Ordering::Relaxed) {
+        encoding_sender.try_send(decoded).unwrap_or_else(|e| {
+            debug!("encoding channel sending failed: {:?}", e);
+            false
+        });
+    } else {
+        if encoding_sender.is_closed() {
+            channel_handler.reset_encoding();
+            *encoding_sender = channel_handler.encoding.0.clone();
+        }
+    }
+}
+ 
+fn  decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>) {
+    let decoded =
+        decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+    let mut render_buffer = render_buffer.lock().unwrap();
+    if index > render_buffer.0 {
+        *render_buffer = (index, decoded.clone());
+    }
 }
