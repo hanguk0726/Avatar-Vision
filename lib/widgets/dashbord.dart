@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
@@ -32,20 +34,53 @@ class _SavingIndicator extends State<SavingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "Saving...",
-          style: TextStyle(color: color),
-        ),
-        const SizedBox(width: 10),
-        SpinKitFadingFour(
-          color: color,
-          size: 20.0,
-          controller: _controller,
-        )
-      ],
-    );
+    //rounded container wich glassy effect color
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              width: 200,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Saving...",
+                    style: TextStyle(color: color),
+                  ),
+                  const SizedBox(width: 25),
+                  SpinKitFadingFour(
+                    color: color,
+                    size: 20.0,
+                    controller: _controller,
+                  )
+                ],
+              ),
+            )));
+    // );
+    // return Row(
+    //   mainAxisAlignment: MainAxisAlignment.center,
+    //   children: [
+    //     Text(
+    //       "Saving...",
+    //       style: TextStyle(color: color),
+    //     ),
+    //     const SizedBox(width: 10),
+    //     SpinKitFadingFour(
+    //       color: color,
+    //       size: 20.0,
+    //       controller: _controller,
+    //     )
+    //   ],
+    // );
   }
 }

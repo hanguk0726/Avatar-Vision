@@ -176,6 +176,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_writing_state_on_ui(call.isolate).await;
 
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
