@@ -1,7 +1,7 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
     path::Path,
-    sync::{atomic::AtomicBool, Arc},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
 use log::debug;
@@ -93,6 +93,7 @@ pub fn to_mp4<P: AsRef<Path>>(
     frame_rate: u32,
     audio: Pcm,
 ) -> Result<(), std::io::Error> {
+ 
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
     mp4muxer.init_video(1280, 720, false, "diary");
@@ -101,8 +102,7 @@ pub fn to_mp4<P: AsRef<Path>>(
         audio.sample_rate,
         audio.channels.into(),
     );
-    let audio_data = audio.data.to_owned();
-    let audio_data = audio_data.lock().unwrap();
+    let audio_data = audio.data.lock().unwrap();
     debug!(
         "audio\ndata: {}, sample_rata: {}, channles: {}, bit_rate: {},",
         &audio_data.len(),

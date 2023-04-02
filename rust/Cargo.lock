@@ -1749,6 +1749,7 @@ dependencies = [
  "minimp4",
  "nokhwa",
  "nokhwa-core",
+ "num_cpus",
  "once_cell",
  "openh264",
  "simple_logger",

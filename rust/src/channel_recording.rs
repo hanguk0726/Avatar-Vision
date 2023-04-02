@@ -126,7 +126,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(4)
+                    .worker_threads(8)
                     .build()
                     .unwrap();
 
