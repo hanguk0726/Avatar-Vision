@@ -10,7 +10,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
-use kanal::AsyncSender;
+use kanal::{AsyncSender, Sender};
 use log::{debug, info};
 use nokhwa::Buffer;
 
@@ -44,7 +44,7 @@ impl AsyncMethodHandler for TextureHandler {
                     .unwrap();
 
                 let mut index = 0;
-                
+
                 while let Ok(buf) = receiver.recv() {
                     let render_buffer = render_buffer.clone();
                     let render_buffer2 = render_buffer.clone();
@@ -59,7 +59,7 @@ impl AsyncMethodHandler for TextureHandler {
                     send_to_encoding(
                         self.recording.clone(),
                         &mut encoding_sender,
-                        &mut self.channel_handler.lock().unwrap(),
+                        self.channel_handler.clone(),
                         decoded.clone(),
                     );
 
@@ -92,8 +92,8 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
 
 fn send_to_encoding(
     recording: Arc<AtomicBool>,
-    encoding_sender: &mut AsyncSender<Vec<u8>>,
-    channel_handler: &mut ChannelHandler,
+    encoding_sender: &mut Sender<Vec<u8>>,
+    channel_handler: Arc<Mutex<ChannelHandler>>,
     decoded: Vec<u8>,
 ) {
     if recording.load(std::sync::atomic::Ordering::Relaxed) {
@@ -103,15 +103,15 @@ fn send_to_encoding(
         });
     } else {
         if encoding_sender.is_closed() {
+            let channel_handler = &mut channel_handler.lock().unwrap();
             channel_handler.reset_encoding();
             *encoding_sender = channel_handler.encoding.0.clone();
         }
     }
 }
- 
-fn  decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>) {
-    let decoded =
-        decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+
+fn decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>) {
+    let decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
     let mut render_buffer = render_buffer.lock().unwrap();
     if index > render_buffer.0 {
         *render_buffer = (index, decoded.clone());

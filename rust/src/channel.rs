@@ -1,18 +1,18 @@
 
 
-use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
+use kanal::{AsyncReceiver,  Receiver, Sender};
 use nokhwa::Buffer;
 
 pub struct ChannelHandler {
     pub rendering: (Sender<Buffer>, Receiver<Buffer>),
-    pub encoding: (AsyncSender<Vec<u8>>, AsyncReceiver<Vec<u8>>),
+    pub encoding: (Sender<Vec<u8>>,Receiver<Vec<u8>>),
 }
 
 impl ChannelHandler {
     pub fn new() -> Self {
         let (rendering_sender, rendering_receiver): (Sender<Buffer>, Receiver<Buffer>) =
             kanal::bounded(1);
-        let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
+        let (encoding_sender, encoding_receiver) = kanal::unbounded();
 
         Self {
             rendering: (rendering_sender, rendering_receiver),
@@ -21,7 +21,7 @@ impl ChannelHandler {
     }
 
     pub fn reset_encoding(&mut self) {
-        let (encoding_sender, encoding_receiver) = kanal::unbounded_async();
+        let (encoding_sender, encoding_receiver) = kanal::unbounded();
         self.encoding = (encoding_sender, encoding_receiver);
     }
 
