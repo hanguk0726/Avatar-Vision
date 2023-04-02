@@ -137,7 +137,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 self.mark_recording_state_on_ui(call.isolate);
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
-                while let Ok(rgba) = encoding_receiver.recv() {
+                while let Ok(rgba) = encoding_receiver.recv().await {
                     let queue = queue.clone();
                     pool.spawn(async move {
                         let width = 1280;
@@ -160,7 +160,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     self.recording_info.lock().unwrap().set_writing_state(true);
                 }
                 self.mark_writing_state_on_ui(call.isolate);
-
+                
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
