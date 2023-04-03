@@ -15,18 +15,38 @@ use crate::{channel_audio::Pcm, domain::image_processing::YUVBuf, tools::ordqueu
 
 pub struct RecordingInfo {
     pub started: std::time::Instant,
+    pub ended : Option<std::time::Instant>,
     pub recording: Arc<AtomicBool>,
     pub time_elapsed: f64,
-    pub writing_state: Arc<AtomicBool>,
+    pub writing_state: Arc<Mutex<WritingState>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum WritingState {
+    Encoding,
+    Saving,
+    Idle,
+}   
+
+
+impl WritingState {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            WritingState::Encoding => "Encoding",
+            WritingState::Saving => "Saving",
+            WritingState::Idle => "Idle",
+        }
+    }
 }
 
 impl RecordingInfo {
     pub fn new(recording: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),
+            ended: None,
             recording,
             time_elapsed: 0.0,
-            writing_state: Arc::new(AtomicBool::new(false)),
+            writing_state: Arc::new(Mutex::new(WritingState::Idle)),
         }
     }
 
@@ -38,13 +58,14 @@ impl RecordingInfo {
 
     pub fn stop(&mut self) {
         self.time_elapsed = self.started.elapsed().as_secs_f64();
+        self.ended = Some(std::time::Instant::now());
         self.recording
             .store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
-    pub fn set_writing_state(&mut self, in_progress: bool) {
-        self.writing_state
-            .store(in_progress, std::sync::atomic::Ordering::Relaxed);
+    pub fn set_writing_state(&mut self, state: WritingState) {
+        let mut state_ = self.writing_state.lock().unwrap();
+        *state_ = state;
     }
 
     pub fn frame_rate(&self, frames: usize) -> u32 {
@@ -93,7 +114,6 @@ pub fn to_mp4<P: AsRef<Path>>(
     frame_rate: u32,
     audio: Pcm,
 ) -> Result<(), std::io::Error> {
- 
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
     mp4muxer.init_video(1280, 720, false, "diary");

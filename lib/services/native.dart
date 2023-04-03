@@ -12,8 +12,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     return _instance;
   }
 
-  bool writing =
-      false; // whether the recorded video data is being written to the file
+  WritingState writingState = WritingState
+      .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
 
   static const String rustLibraryName = 'rust';
@@ -59,7 +59,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         case 'mark_writing_state':
           debugPrint('mark_writing_state');
           final Map<String, dynamic> map = call.arguments;
-          writing = map['state'];
+          writingState = WritingState.fromName(map['writing_state']);
           notifyListeners();
           return null;
 
@@ -154,5 +154,37 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     stopCameraStream();
     openCameraStream();
     openTextureStream();
+  }
+}
+
+enum WritingState {
+  encoding,
+  saving,
+  idle;
+
+  static WritingState fromName(String name) {
+    switch (name) {
+      case 'Encoding':
+        return WritingState.encoding;
+      case 'Saving':
+        return WritingState.saving;
+      case 'Idle':
+        return WritingState.idle;
+      default:
+        throw Exception('Unknown WritingState: $name');
+    }
+  }
+
+  String toName() {
+    switch (this) {
+      case WritingState.encoding:
+        return 'Encoding';
+      case WritingState.saving:
+        return 'Saving';
+      case WritingState.idle:
+        return 'Idle';
+      default:
+        throw Exception('Unknown WritingState: $this');
+    }
   }
 }

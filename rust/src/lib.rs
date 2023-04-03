@@ -97,7 +97,7 @@ fn init_channels(
     });
 
     channel_audio::init(AudioHandler {
-        recording,
+        recording_info,
         stream: RefCell::new(None),
         audio,
     });

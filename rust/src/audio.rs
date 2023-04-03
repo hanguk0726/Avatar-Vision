@@ -6,6 +6,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::Pcm;
+use crate::recording::RecordingInfo;
 
 pub struct AudioStream {
     pub stream: SendableStream,

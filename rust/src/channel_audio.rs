@@ -12,10 +12,13 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::audio::{open_audio_stream, AudioStream};
+use crate::{
+    audio::{open_audio_stream, AudioStream},
+    recording::RecordingInfo,
+};
 
 pub struct AudioHandler {
-    pub recording: Arc<AtomicBool>,
+    pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub stream: RefCell<Option<AudioStream>>,
     pub audio: Arc<Mutex<Pcm>>,
 }
@@ -36,6 +39,7 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
+
                 let recorder = open_audio_stream().unwrap();
 
                 let mut audio = self.audio.lock().unwrap();

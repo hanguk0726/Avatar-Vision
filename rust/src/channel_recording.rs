@@ -12,13 +12,12 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 
 use log::{debug, error, info};
-use tokio::runtime::Runtime;
 
 use crate::{
     channel::ChannelHandler,
     channel_audio::Pcm,
     domain::image_processing::rgba_to_yuv,
-    recording::{encode_to_h264, to_mp4, RecordingInfo},
+    recording::{encode_to_h264, to_mp4, RecordingInfo, WritingState},
     tools::ordqueue::{new, OrdQueueIter},
 };
 
@@ -34,7 +33,10 @@ pub struct RecordingHandler {
 struct State {
     state: bool,
 }
-
+#[derive(IntoValue)]
+struct WritingStateDto {
+    writing_state: &'static str,
+}
 impl RecordingHandler {
     pub fn new(
         audio: Arc<Mutex<Pcm>>,
@@ -62,17 +64,15 @@ impl RecordingHandler {
 
     async fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
         let recording_info = self.recording_info.lock().unwrap();
-        let writing_state = recording_info
-            .writing_state
-            .load(std::sync::atomic::Ordering::Relaxed);
+        let writing_state = recording_info.writing_state.lock().unwrap();
 
         if let Err(e) = self
             .invoker
             .call_method(
                 target_isolate,
                 "mark_writing_state",
-                State {
-                    state: writing_state,
+                WritingStateDto {
+                    writing_state: &*writing_state.to_str(),
                 },
             )
             .await
@@ -112,11 +112,13 @@ impl RecordingHandler {
         let audio = Arc::clone(&self.audio);
         let audio = audio.lock().unwrap();
         let audio = audio.to_owned();
+
         to_mp4(&encoded[..], "test", frame_rate, audio).unwrap();
         debug!("*********** saved! ***********");
         Ok(())
     }
 }
+
 #[async_trait(?Send)]
 impl AsyncMethodHandler for RecordingHandler {
     fn assign_invoker(&self, _invoker: AsyncMethodInvoker) {
@@ -152,6 +154,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 self.mark_recording_state_on_ui(call.isolate).await;
 
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
+
                 while let Ok(rgba) = encoding_receiver.recv().await {
                     let queue = queue.clone();
                     pool.spawn(async move {
@@ -164,6 +167,14 @@ impl AsyncMethodHandler for RecordingHandler {
                     count += 1;
                 }
 
+                {
+                    self.recording_info
+                        .lock()
+                        .unwrap()
+                        .set_writing_state(WritingState::Encoding);
+                }
+
+                self.mark_writing_state_on_ui(call.isolate).await;
                 self.encode(iter, count);
 
                 debug!(
@@ -172,17 +183,22 @@ impl AsyncMethodHandler for RecordingHandler {
                     started.elapsed().as_secs()
                 );
                 {
-                    self.recording_info.lock().unwrap().set_writing_state(true);
+                    self.recording_info
+                        .lock()
+                        .unwrap()
+                        .set_writing_state(WritingState::Saving);
                 }
                 self.mark_writing_state_on_ui(call.isolate).await;
 
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
 
                 {
-                    self.recording_info.lock().unwrap().set_writing_state(false);
+                    self.recording_info
+                        .lock()
+                        .unwrap()
+                        .set_writing_state(WritingState::Idle);
                 }
                 self.mark_writing_state_on_ui(call.isolate).await;
 

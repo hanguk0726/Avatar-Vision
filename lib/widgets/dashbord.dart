@@ -2,9 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:video_diary/services/native.dart';
 
 class SavingIndicator extends StatefulWidget {
-  const SavingIndicator({super.key});
+  const SavingIndicator({Key? key, required this.writingState})
+      : super(key: key);
+  final WritingState writingState;
 
   @override
   // ignore: library_private_types_in_public_api
@@ -54,7 +57,7 @@ class _SavingIndicator extends State<SavingIndicator>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Saving...",
+                    widget.writingState.toName(),
                     style: TextStyle(color: color),
                   ),
                   const SizedBox(width: 25),

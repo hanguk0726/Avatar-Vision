@@ -31,7 +31,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final ValueNotifier<bool> writingNotifier = ValueNotifier(Native().writing);
+  final ValueNotifier<WritingState> writingNotifier =
+      ValueNotifier(Native().writingState);
   final ValueNotifier<bool> recordingNotifier =
       ValueNotifier(Native().recording);
   @override
@@ -42,7 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _onNativeChange() {
     // Update the notifiers with the new values
-    writingNotifier.value = Native().writing;
+    writingNotifier.value = Native().writingState;
     recordingNotifier.value = Native().recording;
   }
 
@@ -54,12 +55,13 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Stack(children: [
         texture(),
-        if (context.watch<Native>().writing)
-          const Positioned(
-            top: 8,
-            left: 16,
-            child: SavingIndicator(),
-          ),
+        if (context.watch<Native>().writingState != WritingState.idle)
+          Positioned(
+              top: 8,
+              left: 16,
+              child: SavingIndicator(
+                writingState: context.watch<Native>().writingState,
+              )),
         if (context.watch<Native>().recording)
           const Positioned(
             top: 8,
