@@ -133,7 +133,14 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
+                let update_writing_state = |state: WritingState| async move {
+                    {
+                        self.recording_info.lock().unwrap().set_writing_state(state);
+                    }
+                    self.mark_writing_state_on_ui(call.isolate).await;
+                };
 
+                update_writing_state(WritingState::Collecting).await;
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
 
                 let started = std::time::Instant::now();
@@ -167,14 +174,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     count += 1;
                 }
 
-                {
-                    self.recording_info
-                        .lock()
-                        .unwrap()
-                        .set_writing_state(WritingState::Encoding);
-                }
-
-                self.mark_writing_state_on_ui(call.isolate).await;
+                update_writing_state(WritingState::Encoding).await;
+                // std::thread::sleep(std::time::Duration::from_secs(1));
                 self.encode(iter, count);
 
                 debug!(
@@ -182,14 +183,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     count,
                     started.elapsed().as_secs()
                 );
-                {
-                    self.recording_info
-                        .lock()
-                        .unwrap()
-                        .set_writing_state(WritingState::Saving);
-                }
-                self.mark_writing_state_on_ui(call.isolate).await;
-
+                update_writing_state(WritingState::Saving).await;
+                // std::thread::sleep(std::time::Duration::from_secs(1));
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
@@ -220,6 +215,16 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_recording_state_on_ui(call.isolate).await;
                 self.channel_handler.lock().unwrap().encoding.1.close();
+                Ok("ok".into())
+            }
+
+            "clear_audio_buffer" => {
+                debug!(
+                    "Received request {:?} on thread {:?}",
+                    call,
+                    thread::current().id()
+                );
+                self.audio.lock().unwrap().data.lock().unwrap().clear();
                 Ok("ok".into())
             }
 

@@ -66,7 +66,6 @@ impl Camera {
 #[cfg(debug_assertions)]
 static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
-//# refactor needed
 pub fn inflate_camera_conection(rendering_sender: Sender<Buffer>) -> Result<CallbackCamera, Error> {
     let index = CameraIndex::Index(0);
     let requested =

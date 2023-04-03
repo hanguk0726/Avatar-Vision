@@ -5,8 +5,10 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:video_diary/services/native.dart';
 
 class SavingIndicator extends StatefulWidget {
-  const SavingIndicator({Key? key, required this.writingState})
+  const SavingIndicator(
+      {Key? key, required this.recording, required this.writingState})
       : super(key: key);
+  final bool recording;
   final WritingState writingState;
 
   @override

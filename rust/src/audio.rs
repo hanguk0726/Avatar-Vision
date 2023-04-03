@@ -78,6 +78,7 @@ pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
                     buffer.push(sample[0]);
                     buffer.push(sample[1]);
                 }
+                debug!("audio buffer size: {}", buffer.len());
             },
             move |err| eprintln!("an error occurred on stream: {}", err),
             None,

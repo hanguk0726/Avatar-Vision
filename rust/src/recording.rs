@@ -15,7 +15,6 @@ use crate::{channel_audio::Pcm, domain::image_processing::YUVBuf, tools::ordqueu
 
 pub struct RecordingInfo {
     pub started: std::time::Instant,
-    pub ended : Option<std::time::Instant>,
     pub recording: Arc<AtomicBool>,
     pub time_elapsed: f64,
     pub writing_state: Arc<Mutex<WritingState>>,
@@ -23,6 +22,7 @@ pub struct RecordingInfo {
 
 #[derive(Debug, Clone, Copy)]
 pub enum WritingState {
+    Collecting,
     Encoding,
     Saving,
     Idle,
@@ -32,6 +32,7 @@ pub enum WritingState {
 impl WritingState {
     pub fn to_str(&self) -> &'static str {
         match self {
+            WritingState::Collecting => "Collecting",
             WritingState::Encoding => "Encoding",
             WritingState::Saving => "Saving",
             WritingState::Idle => "Idle",
@@ -43,7 +44,6 @@ impl RecordingInfo {
     pub fn new(recording: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),
-            ended: None,
             recording,
             time_elapsed: 0.0,
             writing_state: Arc::new(Mutex::new(WritingState::Idle)),
@@ -58,7 +58,6 @@ impl RecordingInfo {
 
     pub fn stop(&mut self) {
         self.time_elapsed = self.started.elapsed().as_secs_f64();
-        self.ended = Some(std::time::Instant::now());
         self.recording
             .store(false, std::sync::atomic::Ordering::Relaxed);
     }

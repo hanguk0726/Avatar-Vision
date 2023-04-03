@@ -10,7 +10,6 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
-use kanal::AsyncSender;
 use log::{debug, info};
 use nokhwa::Buffer;
 

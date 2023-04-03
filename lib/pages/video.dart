@@ -31,38 +31,34 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final ValueNotifier<WritingState> writingNotifier =
-      ValueNotifier(Native().writingState);
-  final ValueNotifier<bool> recordingNotifier =
-      ValueNotifier(Native().recording);
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
-  }
-
-  void _onNativeChange() {
-    // Update the notifiers with the new values
-    writingNotifier.value = Native().writingState;
-    recordingNotifier.value = Native().recording;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Native().observeAudioBuffer();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final native = context.watch<Native>();
+    final writingState = native.writingState;
+    final recording = native.recording;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
       body: Stack(children: [
         texture(),
-        if (context.watch<Native>().writingState != WritingState.idle)
+        if (!recording && writingState != WritingState.idle)
           Positioned(
               top: 8,
               left: 16,
               child: SavingIndicator(
-                writingState: context.watch<Native>().writingState,
+                recording: recording,
+                writingState: writingState,
               )),
-        if (context.watch<Native>().recording)
+        if (recording)
           const Positioned(
             top: 8,
             right: 16,
@@ -72,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         mediaControlBar(
-          recording: context.watch<Native>().recording,
+          recording: recording,
           onStart: () {
             Native().startRecording();
           },
