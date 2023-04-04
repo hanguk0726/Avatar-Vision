@@ -49,18 +49,39 @@ class _MyHomePageState extends State<MyHomePage> {
     final recording = native.recording;
     final currentAudioDevice = native.currentAudioDevice;
     final audioDevices = native.audioDevices;
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
+      key: scaffoldKey,
       appBar: AppBar(
         title: const Text('My App'),
+        actions: <Widget>[
+          if (recording)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Icon(Icons.do_not_disturb),
+            )
+          else
+            Builder(
+              builder: (BuildContext context) {
+                return IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                );
+              },
+            ),
+        ],
       ),
-      endDrawer: audioDeviceDrawer(
+      endDrawer: drawer(
           context: context,
           currentAudioDevice: currentAudioDevice,
           audioDevices: audioDevices,
           onChanged: (value) {
             Native().selectAudioDevice(value);
           }),
+      drawerScrimColor: Colors.transparent,
       body: Stack(children: [
         texture(),
         if (!recording && writingState != WritingState.idle)
@@ -80,21 +101,22 @@ class _MyHomePageState extends State<MyHomePage> {
               style: TextStyle(color: Colors.red),
             ),
           ),
-        mediaControlBar(
-          recording: recording,
-          onStart: () {
-            Native().startRecording();
-          },
-          onStop: () {
-            Native().stopRecording();
-          },
-        ),
+        if (scaffoldKey.currentState?.isEndDrawerOpen ?? false == false)
+          mediaControlBar(
+            recording: recording,
+            onStart: () {
+              Native().startRecording();
+            },
+            onStop: () {
+              Native().stopRecording();
+            },
+          ),
       ]),
     );
   }
 }
 
-Widget audioDeviceDrawer(
+Widget drawer(
     {required BuildContext context,
     required String currentAudioDevice,
     required List<String> audioDevices,
@@ -103,26 +125,35 @@ Widget audioDeviceDrawer(
     child: ListView(
       padding: EdgeInsets.zero,
       children: <Widget>[
-        const DrawerHeader(
-          decoration: BoxDecoration(
+        DrawerHeader(
+          decoration: const BoxDecoration(
             color: Colors.blue,
           ),
-          child: Text(
-            'Drawer Header',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-            ),
+          child: Row(
+            children: [
+              const Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  })
+            ],
           ),
         ),
         dropdown(
             value: currentAudioDevice,
-            // items: [],
             items: audioDevices,
             onChanged: onChanged,
             icon: const Icon(Icons.mic),
             textOnEmpty: "No audio input devices found",
-            iconOnEmpty: const Icon(Icons.mic_off) )
+            iconOnEmpty: const Icon(Icons.mic_off))
       ],
     ),
   );

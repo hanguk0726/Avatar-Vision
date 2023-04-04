@@ -7,7 +7,7 @@ Widget dropdown(
     required Icon icon,
     required String textOnEmpty,
     required Icon iconOnEmpty}) {
-  if (items.isEmpty) {
+  if (items.isEmpty || value.isEmpty) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
