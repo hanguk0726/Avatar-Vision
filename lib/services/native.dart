@@ -52,8 +52,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         'rendering_channel_background_thread',
         context: nativeContext);
     setChannelHandlers();
+
     start();
-    debugPrint('audio ${await available_audios()}');
   }
 
   void setChannelHandlers() {
@@ -129,12 +129,14 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void openAudioStream() async {
-    final res = await audioChannel.invokeMethod('open_audio_stream', {});
+  void _openAudioStream(String device) async {
+    final res = await audioChannel.invokeMethod('open_audio_stream', {
+      'device_name': device,
+    });
     _showResult(res);
   }
 
-  void stopAudioStream() async {
+  void _stopAudioStream() async {
     final res = await audioChannel.invokeMethod('stop_audio_stream', {});
     _showResult(res);
   }
@@ -149,16 +151,26 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  Future<List<String>> available_audios() async {
+  void _selectAudioDevice(String device) async {
+    final res = await audioChannel.invokeMethod('select_audio_device', {
+      'device_name': device,
+    });
+    _showResult(res);
+  }
+
+  Future<List<String>> availableAudios() async {
     final res = await audioChannel.invokeMethod('available_audios', {});
     List<String> list_ = res.cast<String>();
     return List<String>.from(list_);
   }
 
-  void start() {
+  void start() async {
     openCameraStream();
     openTextureStream();
-    openAudioStream();
+    var audios = await availableAudios();
+    if (audios.isNotEmpty) {
+      selectAudioDevice(audios[0]);
+    }
     startRendering();
   }
 
@@ -166,6 +178,12 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     stopCameraStream();
     openCameraStream();
     openTextureStream();
+  }
+
+  void selectAudioDevice(String device) {
+    _selectAudioDevice(device);
+    _stopAudioStream();
+    _openAudioStream(device);
   }
 
   void observeAudioBuffer() async {

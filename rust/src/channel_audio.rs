@@ -1,7 +1,6 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    iter::Map,
     mem::ManuallyDrop,
     sync::{Arc, Mutex},
     thread,
@@ -10,10 +9,10 @@ use std::{
 use async_trait::async_trait;
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    Device, Devices, SupportedStreamConfigRange,
+    Device, SupportedStreamConfigRange,
 };
 use irondash_message_channel::{
-    AsyncMethodHandler, IntoValue, MethodCall, PlatformError, PlatformResult, Value,
+    AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
 use log::debug;
@@ -43,8 +42,10 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
+                let map: HashMap<String, String> = call.args.try_into().unwrap();
+                let device_name = map.get("device_name").unwrap().as_str();
 
-                let recorder = open_audio_stream().unwrap();
+                let recorder = open_audio_stream(device_name).unwrap();
 
                 let mut audio = self.audio.lock().unwrap();
                 *audio = recorder.audio.clone();
@@ -60,9 +61,9 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
-                let recorder = self.stream.borrow_mut().take().unwrap();
-
-                recorder.stop();
+                if let Some(recorder) = self.stream.borrow_mut().take() {
+                    recorder.stop();
+                }
 
                 self.stream.replace(None);
                 return PlatformResult::Ok("ok".into());
@@ -115,15 +116,11 @@ impl AsyncMethodHandler for AudioHandler {
                 let device_name = map.get("device_name").unwrap().as_str();
 
                 let inputs = cpal_available_inputs();
-                let device = inputs
-                    .iter()
-                    .find(|d| d.name().unwrap() == device_name)
-                    .unwrap()
-                    .name()
-                    .unwrap();
+                if let Some(_) = inputs.iter().find(|d| d.name().unwrap() == device_name) {
+                    let mut current_device = self.current_device.lock().unwrap();
+                    *current_device = Some(device_name.to_string());
+                }
 
-                let mut current_device = self.current_device.lock().unwrap();
-                *current_device = Some(device);
                 PlatformResult::Ok("ok".into())
             }
             _ => Err(PlatformError {
@@ -146,7 +143,7 @@ pub fn init(audio_handler: AudioHandler) {
     });
 }
 
-fn cpal_available_inputs() -> Vec<Device> {
+pub fn cpal_available_inputs() -> Vec<Device> {
     let available_hosts = cpal::available_hosts();
     println!("Available hosts:\n  {:?}", available_hosts);
     let mut available_inputs: Vec<Device> = Vec::new();

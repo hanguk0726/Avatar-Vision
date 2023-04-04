@@ -2,11 +2,9 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
-
 use std::sync::{Arc, Mutex};
 
-use crate::channel_audio::Pcm;
-
+use crate::channel_audio::{cpal_available_inputs, Pcm};
 
 pub struct AudioStream {
     pub stream: SendableStream,
@@ -29,19 +27,12 @@ impl AudioStream {
     }
 }
 
-//TODO if failed to create stream, UI should know that sounds are not available
-pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
-    #[cfg(any(
-        not(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd"
-        )),
-        not(feature = "jack")
-    ))]
-    let host = cpal::default_host();
-    let device = host.default_input_device().unwrap();
+pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error> {
+    let devices = cpal_available_inputs();
+    let device = devices
+        .iter()
+        .find(|d| d.name().unwrap() == device_name)
+        .unwrap();
 
     debug!("Input device: {}", device.name()?);
     let config = device

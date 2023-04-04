@@ -6,7 +6,7 @@ use std::{
 
 use async_trait::async_trait;
 use irondash_message_channel::{
-    AsyncMethodHandler, AsyncMethodInvoker, IntoValue, IsolateId, Late, MethodCall, PlatformError,
+    AsyncMethodHandler, AsyncMethodInvoker, IsolateId, Late, MethodCall, PlatformError,
     PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
