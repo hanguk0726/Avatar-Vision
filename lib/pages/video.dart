@@ -117,8 +117,12 @@ Widget audioDeviceDrawer(
         ),
         dropdown(
             value: currentAudioDevice,
+            // items: [],
             items: audioDevices,
-            onChanged: onChanged)
+            onChanged: onChanged,
+            icon: const Icon(Icons.mic),
+            textOnEmpty: "No audio input devices found",
+            iconOnEmpty: const Icon(Icons.mic_off) )
       ],
     ),
   );

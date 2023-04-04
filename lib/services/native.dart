@@ -103,7 +103,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   static void _showResult(Object res) {
     const encoder = JsonEncoder.withIndent('  ');
     final text = encoder.convert(res);
-    debugPrint(text);
+    // debugPrint(text);
   }
 
   void openTextureStream() async {

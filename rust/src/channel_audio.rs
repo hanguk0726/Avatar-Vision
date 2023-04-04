@@ -70,11 +70,11 @@ impl AsyncMethodHandler for AudioHandler {
             }
 
             "clear_audio_buffer" => {
-                debug!(
-                    "Received request {:?} on thread {:?}",
-                    call,
-                    thread::current().id()
-                );
+                // debug!(
+                //     "Received request {:?} on thread {:?}",
+                //     call,
+                //     thread::current().id()
+                // );
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
                 Ok("ok".into())
             }
