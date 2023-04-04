@@ -8,7 +8,7 @@ use irondash_message_channel::{irondash_init_message_channel_context, FunctionRe
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
 
-use log::debug;
+
 use textrue::PixelBufferSource;
 use tools::log_::init_logging;
 
@@ -99,5 +99,6 @@ fn init_channels(
     channel_audio::init(AudioHandler {
         stream: RefCell::new(None),
         audio,
+        current_device: Arc::new(Mutex::new(None)),
     });
 }

@@ -29,14 +29,6 @@ pub struct RecordingHandler {
     invoker: Late<AsyncMethodInvoker>,
 }
 
-#[derive(IntoValue)]
-struct State {
-    state: bool,
-}
-#[derive(IntoValue)]
-struct WritingStateDto {
-    writing_state: &'static str,
-}
 impl RecordingHandler {
     pub fn new(
         audio: Arc<Mutex<Pcm>>,
@@ -71,9 +63,7 @@ impl RecordingHandler {
             .call_method(
                 target_isolate,
                 "mark_writing_state",
-                WritingStateDto {
-                    writing_state: &*writing_state.to_str(),
-                },
+                &*writing_state.to_str(),
             )
             .await
         {
@@ -89,11 +79,7 @@ impl RecordingHandler {
 
         if let Err(e) = self
             .invoker
-            .call_method(
-                target_isolate,
-                "mark_recording_state",
-                State { state: recording },
-            )
+            .call_method(target_isolate, "mark_recording_state", recording)
             .await
         {
             error!("Error while marking recording state on UI: {:?}", e);
@@ -175,7 +161,11 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
 
                 update_writing_state(WritingState::Encoding).await;
-                // std::thread::sleep(std::time::Duration::from_secs(1));
+
+                #[cfg(debug_assertions)]
+                {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
                 self.encode(iter, count);
 
                 debug!(
@@ -184,7 +174,10 @@ impl AsyncMethodHandler for RecordingHandler {
                     started.elapsed().as_secs()
                 );
                 update_writing_state(WritingState::Saving).await;
-                // std::thread::sleep(std::time::Duration::from_secs(1));
+                #[cfg(debug_assertions)]
+                {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
                 if let Err(e) = self.save(count) {
                     error!("Failed to save video {:?}", e);
                 }
@@ -215,16 +208,6 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_recording_state_on_ui(call.isolate).await;
                 self.channel_handler.lock().unwrap().encoding.1.close();
-                Ok("ok".into())
-            }
-
-            "clear_audio_buffer" => {
-                debug!(
-                    "Received request {:?} on thread {:?}",
-                    call,
-                    thread::current().id()
-                );
-                self.audio.lock().unwrap().data.lock().unwrap().clear();
                 Ok("ok".into())
             }
 

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:video_diary/services/native.dart';
 
+import '../domain/writing_state.dart';
+
 class SavingIndicator extends StatefulWidget {
   const SavingIndicator(
       {Key? key, required this.recording, required this.writingState})
@@ -39,7 +41,6 @@ class _SavingIndicator extends State<SavingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    //rounded container wich glassy effect color
     return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: BackdropFilter(
@@ -71,21 +72,5 @@ class _SavingIndicator extends State<SavingIndicator>
                 ],
               ),
             )));
-    // );
-    // return Row(
-    //   mainAxisAlignment: MainAxisAlignment.center,
-    //   children: [
-    //     Text(
-    //       "Saving...",
-    //       style: TextStyle(color: color),
-    //     ),
-    //     const SizedBox(width: 10),
-    //     SpinKitFadingFour(
-    //       color: color,
-    //       size: 20.0,
-    //       controller: _controller,
-    //     )
-    //   ],
-    // );
   }
 }

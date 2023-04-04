@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 
+import '../domain/writing_state.dart';
+
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Native._privateConstructor();
   static final Native _instance = Native._privateConstructor();
@@ -51,6 +53,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         context: nativeContext);
     setChannelHandlers();
     start();
+    debugPrint('audio ${await available_audios()}');
   }
 
   void setChannelHandlers() {
@@ -58,15 +61,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_writing_state':
           debugPrint('mark_writing_state');
-          final Map<String, dynamic> map = call.arguments;
-          writingState = WritingState.fromName(map['writing_state']);
+          writingState = WritingState.fromName(call.arguments);
           notifyListeners();
           return null;
 
         case 'mark_recording_state':
           debugPrint('mark_recording_state');
-          final Map<String, dynamic> map = call.arguments;
-          recording = map['state'];
+          recording = call.arguments;
           notifyListeners();
           return null;
         default:
@@ -144,8 +145,14 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void clearAudioBuffer() async {
-    final res = await recordingChannel.invokeMethod('clear_audio_buffer', {});
+    final res = await audioChannel.invokeMethod('clear_audio_buffer', {});
     _showResult(res);
+  }
+
+  Future<List<String>> available_audios() async {
+    final res = await audioChannel.invokeMethod('available_audios', {});
+    List<String> list_ = res.cast<String>();
+    return List<String>.from(list_);
   }
 
   void start() {
@@ -167,43 +174,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       if (writingState == WritingState.idle) {
         clearAudioBuffer();
       }
-    }
-  }
-}
-
-enum WritingState {
-  collecting,
-  encoding,
-  saving,
-  idle;
-
-  static WritingState fromName(String name) {
-    switch (name) {
-      case 'Collecting':
-        return WritingState.collecting;
-      case 'Encoding':
-        return WritingState.encoding;
-      case 'Saving':
-        return WritingState.saving;
-      case 'Idle':
-        return WritingState.idle;
-      default:
-        throw Exception('Unknown WritingState: $name');
-    }
-  }
-
-  String toName() {
-    switch (this) {
-      case WritingState.collecting:
-        return 'Collecting';
-      case WritingState.encoding:
-        return 'Encoding';
-      case WritingState.saving:
-        return 'Saving';
-      case WritingState.idle:
-        return 'Idle';
-      default:
-        throw Exception('Unknown WritingState: $this');
     }
   }
 }

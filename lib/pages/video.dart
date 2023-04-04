@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/services/native.dart';
 
-import '../widgets/dashbord.dart';
+import '../domain/writing_state.dart';
+import '../widgets/saving_indicator.dart';
 import '../widgets/media_conrtol_bar.dart';
 import '../widgets/texture.dart';
 

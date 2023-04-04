@@ -2,11 +2,11 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
-use std::sync::atomic::AtomicBool;
+
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::Pcm;
-use crate::recording::RecordingInfo;
+
 
 pub struct AudioStream {
     pub stream: SendableStream,
@@ -78,7 +78,7 @@ pub fn open_audio_stream() -> Result<AudioStream, anyhow::Error> {
                     buffer.push(sample[0]);
                     buffer.push(sample[1]);
                 }
-                debug!("audio buffer size: {}", buffer.len());
+                // debug!("audio buffer size: {}", buffer.len());
             },
             move |err| eprintln!("an error occurred on stream: {}", err),
             None,
