@@ -17,6 +17,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   WritingState writingState = WritingState
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
+  String currentAudioDevice = ''; // the current audio device name
+  List<String> audioDevices = []; // the list of audio devices
 
   static const String rustLibraryName = 'rust';
 
@@ -151,25 +153,35 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void _selectAudioDevice(String device) async {
+  Future<void> _selectAudioDevice(String device) async {
     final res = await audioChannel.invokeMethod('select_audio_device', {
       'device_name': device,
     });
     _showResult(res);
+    return;
   }
 
-  Future<List<String>> availableAudios() async {
+  Future<void> _currentAudioDevice() async {
+    final res = await audioChannel.invokeMethod('current_audio_device', {});
+    currentAudioDevice = res;
+    notifyListeners();
+    return;
+  }
+
+  Future<void> _availableAudios() async {
     final res = await audioChannel.invokeMethod('available_audios', {});
     List<String> list_ = res.cast<String>();
-    return List<String>.from(list_);
+    audioDevices = List<String>.from(list_);
+    notifyListeners();
+    return;
   }
 
   void start() async {
     openCameraStream();
     openTextureStream();
-    var audios = await availableAudios();
-    if (audios.isNotEmpty) {
-      selectAudioDevice(audios[0]);
+    await _availableAudios();
+    if (audioDevices.isNotEmpty) {
+      selectAudioDevice(audioDevices.first);
     }
     startRendering();
   }
@@ -180,8 +192,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     openTextureStream();
   }
 
-  void selectAudioDevice(String device) {
-    _selectAudioDevice(device);
+  void selectAudioDevice(String device) async {
+    await _selectAudioDevice(device);
+    _currentAudioDevice();
     _stopAudioStream();
     _openAudioStream(device);
   }

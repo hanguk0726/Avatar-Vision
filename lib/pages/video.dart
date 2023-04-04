@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/services/native.dart';
+import 'package:video_diary/widgets/dropdown.dart';
 
 import '../domain/writing_state.dart';
 import '../widgets/saving_indicator.dart';
@@ -13,6 +14,7 @@ class Video extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Video Diary',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -45,10 +47,20 @@ class _MyHomePageState extends State<MyHomePage> {
     final native = context.watch<Native>();
     final writingState = native.writingState;
     final recording = native.recording;
+    final currentAudioDevice = native.currentAudioDevice;
+    final audioDevices = native.audioDevices;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text('My App'),
       ),
+      endDrawer: audioDeviceDrawer(
+          context: context,
+          currentAudioDevice: currentAudioDevice,
+          audioDevices: audioDevices,
+          onChanged: (value) {
+            Native().selectAudioDevice(value);
+          }),
       body: Stack(children: [
         texture(),
         if (!recording && writingState != WritingState.idle)
@@ -80,4 +92,34 @@ class _MyHomePageState extends State<MyHomePage> {
       ]),
     );
   }
+}
+
+Widget audioDeviceDrawer(
+    {required BuildContext context,
+    required String currentAudioDevice,
+    required List<String> audioDevices,
+    required Function(String) onChanged}) {
+  return Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: <Widget>[
+        const DrawerHeader(
+          decoration: BoxDecoration(
+            color: Colors.blue,
+          ),
+          child: Text(
+            'Drawer Header',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+            ),
+          ),
+        ),
+        dropdown(
+            value: currentAudioDevice,
+            items: audioDevices,
+            onChanged: onChanged)
+      ],
+    ),
+  );
 }
