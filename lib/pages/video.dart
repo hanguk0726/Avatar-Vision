@@ -43,8 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Native().observeAudioBuffer((samples) {
         setState(() {
-          this.samples = samples.sublist(samples.length - 256);
-          print(samples.length);
+          this.samples = samples;
         });
       });
     });

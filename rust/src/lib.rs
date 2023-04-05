@@ -8,7 +8,7 @@ use irondash_message_channel::{irondash_init_message_channel_context, FunctionRe
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
 
-
+use recording::WritingState;
 use textrue::PixelBufferSource;
 use tools::log_::init_logging;
 
@@ -53,7 +53,7 @@ fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let pixel_buffer: Arc<Mutex<Vec<u8>>> = provider.pixel_buffer.clone();
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
-    
+
     init_channels(pixel_buffer.clone(), textrue.into_sendable_texture());
 
     texture_id
@@ -66,8 +66,12 @@ fn init_channels(
     let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let recording = Arc::new(AtomicBool::new(false));
+    let capture_white_sound = Arc::new(AtomicBool::new(true));
 
-    let recording_info = Arc::new(Mutex::new(RecordingInfo::new(recording.clone())));
+    let recording_info = Arc::new(Mutex::new(RecordingInfo::new(
+        recording.clone(),
+        capture_white_sound.clone()
+    )));
     let audio = Arc::new(Mutex::new(channel_audio::Pcm {
         data: Arc::new(Mutex::new(vec![])),
         sample_rate: 0,
@@ -97,6 +101,7 @@ fn init_channels(
     });
 
     channel_audio::init(AudioHandler {
+        capture_white_sound,
         stream: RefCell::new(None),
         audio,
         current_device: Arc::new(Mutex::new(None)),

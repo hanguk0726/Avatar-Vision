@@ -2,9 +2,12 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
+use std::ops::Not;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::{cpal_available_inputs, Pcm};
+use crate::recording::WritingState;
 
 pub struct AudioStream {
     pub stream: SendableStream,
@@ -27,7 +30,10 @@ impl AudioStream {
     }
 }
 
-pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error> {
+pub fn open_audio_stream(
+    device_name: &str,
+    capture_white_sound: Arc<AtomicBool>,
+) -> Result<AudioStream, anyhow::Error> {
     let devices = cpal_available_inputs();
     let device = devices
         .iter()
@@ -50,11 +56,24 @@ pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error
             &config.config(),
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-                for &sample in data.iter() {
-                    let sample = sample.to_le_bytes();
-                    buffer.push(sample[0]);
-                    buffer.push(sample[1]);
+
+                let amplitude = data
+                    .iter()
+                    .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample as f32)));
+                let capture_white_sound = capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                if capture_white_sound || amplitude > 0.1 {
+                    for &sample in data.iter() {
+                        let sample = sample.to_le_bytes();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                    }
+                } else {
+                    for _ in 0..data.len() {
+                        buffer.push(0);
+                        buffer.push(0);
+                    }
                 }
+              
             },
             move |err| eprintln!("an error occurred on stream: {}", err),
             None,
@@ -63,11 +82,12 @@ pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-                //
+
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));
-                if amplitude > 0.1 { // only when not recording
+                let capture_white_sound = capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                if capture_white_sound || amplitude > 0.1 {
                     for &sample in data.iter() {
                         let i16_sample = (sample * i16::MAX as f32) as i16;
                         let sample = i16_sample.to_le_bytes();
@@ -80,15 +100,8 @@ pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error
                         buffer.push(0);
                     }
                 }
-                 
-                //
 
-                // for &sample in data.iter() {
-                //     let i16_sample = (sample * i16::MAX as f32) as i16;
-                //     let sample = i16_sample.to_le_bytes();
-                //     buffer.push(sample[0]);
-                //     buffer.push(sample[1]);
-                // }
+
                 // debug!("audio buffer size: {}", buffer.len());
             },
             move |err| eprintln!("an error occurred on stream: {}", err),

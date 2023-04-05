@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     io::Read,
     mem::ManuallyDrop,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     thread,
 };
 
@@ -18,9 +18,10 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::audio::{open_audio_stream, AudioStream};
+use crate::{audio::{open_audio_stream, AudioStream}, recording::WritingState};
 
 pub struct AudioHandler {
+    pub capture_white_sound: Arc<AtomicBool>,
     pub stream: RefCell<Option<AudioStream>>,
     pub audio: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
@@ -45,8 +46,9 @@ impl AsyncMethodHandler for AudioHandler {
                 );
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let device_name = map.get("device_name").unwrap().as_str();
+                let capture_white_sound = self.capture_white_sound.clone();
 
-                let recorder = open_audio_stream(device_name).unwrap();
+                let recorder = open_audio_stream(device_name, capture_white_sound).unwrap();
 
                 let mut audio = self.audio.lock().unwrap();
                 *audio = recorder.audio.clone();
@@ -141,21 +143,16 @@ impl AsyncMethodHandler for AudioHandler {
 }
 
 fn pcm_data_to_waveform(pcm_data: &[u8], channel_count: u16) -> Vec<f32> {
-    let bytes_per_sample = 2 * channel_count as usize;
-    let samples_per_channel = pcm_data.len() / bytes_per_sample;
-    let mut waveform = Vec::with_capacity(samples_per_channel);
-    let mut sample_iter = pcm_data.chunks_exact(bytes_per_sample);
-    for _ in 0..samples_per_channel {
-        let sample_bytes = sample_iter.next().unwrap();
-        let sample = match channel_count {
-            1 => i16::from_le_bytes([sample_bytes[0], sample_bytes[1]]) as f32,
-            2 => {
-                let left = i16::from_le_bytes([sample_bytes[0], sample_bytes[1]]) as f32;
-                let right = i16::from_le_bytes([sample_bytes[2], sample_bytes[3]]) as f32;
-                (left + right) / 2.0
-            }
-            _ => unimplemented!(),
-        };
+    //get  last 256 
+    let mut pcm_data = pcm_data.to_vec();
+    let mut waveform = vec![];
+    let mut pcm_data = pcm_data.split_off(pcm_data.len() - 256 * channel_count as usize);
+    let mut pcm_data = pcm_data.chunks_exact(2);
+    while let Some(chunk) = pcm_data.next() {
+        let mut bytes = [0; 2];
+        bytes.copy_from_slice(chunk);
+        let sample = i16::from_le_bytes(bytes);
+        let sample = sample as f32 / i16::MAX as f32;
         waveform.push(sample);
     }
     waveform

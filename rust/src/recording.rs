@@ -18,6 +18,7 @@ pub struct RecordingInfo {
     pub recording: Arc<AtomicBool>,
     pub time_elapsed: f64,
     pub writing_state: Arc<Mutex<WritingState>>,
+    pub capture_white_sound: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -26,8 +27,7 @@ pub enum WritingState {
     Encoding,
     Saving,
     Idle,
-}   
-
+}
 
 impl WritingState {
     pub fn to_str(&self) -> &'static str {
@@ -40,13 +40,26 @@ impl WritingState {
     }
 }
 
+impl PartialEq for WritingState {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (WritingState::Collecting, WritingState::Collecting) => true,
+            (WritingState::Encoding, WritingState::Encoding) => true,
+            (WritingState::Saving, WritingState::Saving) => true,
+            (WritingState::Idle, WritingState::Idle) => true,
+            _ => false,
+        }
+    }
+}
+
 impl RecordingInfo {
-    pub fn new(recording: Arc<AtomicBool>) -> Self {
+    pub fn new(recording: Arc<AtomicBool>, active_audio_only: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),
             recording,
             time_elapsed: 0.0,
             writing_state: Arc::new(Mutex::new(WritingState::Idle)),
+            capture_white_sound: active_audio_only,
         }
     }
 
@@ -65,6 +78,10 @@ impl RecordingInfo {
     pub fn set_writing_state(&mut self, state: WritingState) {
         let mut state_ = self.writing_state.lock().unwrap();
         *state_ = state;
+
+        let capture_white_sound = state != WritingState::Idle;
+        self.capture_white_sound
+            .store(capture_white_sound, std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn frame_rate(&self, frames: usize) -> u32 {
