@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
@@ -34,11 +35,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List<double> samples = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Native().observeAudioBuffer();
+      Native().observeAudioBuffer((samples) {
+        setState(() {
+          this.samples = samples.sublist(samples.length - 256);
+          print(samples.length);
+        });
+      });
     });
   }
 
@@ -111,6 +119,14 @@ class _MyHomePageState extends State<MyHomePage> {
               Native().stopRecording();
             },
           ),
+        if (currentAudioDevice.isNotEmpty)
+          RectangleWaveform(
+            samples: samples,
+            height: 300,
+            width: 600,
+            isCentered: true,
+            showActiveWaveform: true,
+          ),
       ]),
     );
   }
@@ -153,7 +169,7 @@ Widget drawer(
             onChanged: onChanged,
             icon: const Icon(Icons.mic),
             textOnEmpty: "No audio input devices found",
-            iconOnEmpty: const Icon(Icons.mic_off))
+            iconOnEmpty: const Icon(Icons.mic_off)),
       ],
     ),
   );

@@ -63,12 +63,32 @@ pub fn open_audio_stream(device_name: &str) -> Result<AudioStream, anyhow::Error
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-                for &sample in data.iter() {
-                    let i16_sample = (sample * i16::MAX as f32) as i16;
-                    let sample = i16_sample.to_le_bytes();
-                    buffer.push(sample[0]);
-                    buffer.push(sample[1]);
+                //
+                let amplitude = data
+                    .iter()
+                    .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));
+                if amplitude > 0.1 { // only when not recording
+                    for &sample in data.iter() {
+                        let i16_sample = (sample * i16::MAX as f32) as i16;
+                        let sample = i16_sample.to_le_bytes();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                    }
+                } else {
+                    for _ in 0..data.len() {
+                        buffer.push(0);
+                        buffer.push(0);
+                    }
                 }
+                 
+                //
+
+                // for &sample in data.iter() {
+                //     let i16_sample = (sample * i16::MAX as f32) as i16;
+                //     let sample = i16_sample.to_le_bytes();
+                //     buffer.push(sample[0]);
+                //     buffer.push(sample[1]);
+                // }
                 // debug!("audio buffer size: {}", buffer.len());
             },
             move |err| eprintln!("an error occurred on stream: {}", err),

@@ -132,7 +132,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let started = std::time::Instant::now();
                 let mut count = 0;
 
-                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 };
+                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 };// spilit this into a mode so that user can choose
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()

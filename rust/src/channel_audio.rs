@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
+    io::Read,
     mem::ManuallyDrop,
     sync::{Arc, Mutex},
     thread,
@@ -64,7 +65,6 @@ impl AsyncMethodHandler for AudioHandler {
                 if let Some(recorder) = self.stream.borrow_mut().take() {
                     recorder.stop();
                 }
-
                 self.stream.replace(None);
                 return PlatformResult::Ok("ok".into());
             }
@@ -75,8 +75,16 @@ impl AsyncMethodHandler for AudioHandler {
                 //     call,
                 //     thread::current().id()
                 // );
-                self.audio.lock().unwrap().data.lock().unwrap().clear();
-                Ok("ok".into())
+                let mut data = vec![];
+                let mut channels = 0;
+                {
+                    let audio = self.audio.lock().unwrap();
+                    channels = audio.channels;
+                    data = audio.data.lock().unwrap().drain(..).collect::<Vec<u8>>();
+                }
+                // debug!("data len: {}", data.len());
+                let processed = pcm_data_to_waveform(&data, channels);
+                Ok(processed.into())
             }
 
             "available_audios" => {
@@ -132,6 +140,26 @@ impl AsyncMethodHandler for AudioHandler {
     }
 }
 
+fn pcm_data_to_waveform(pcm_data: &[u8], channel_count: u16) -> Vec<f32> {
+    let bytes_per_sample = 2 * channel_count as usize;
+    let samples_per_channel = pcm_data.len() / bytes_per_sample;
+    let mut waveform = Vec::with_capacity(samples_per_channel);
+    let mut sample_iter = pcm_data.chunks_exact(bytes_per_sample);
+    for _ in 0..samples_per_channel {
+        let sample_bytes = sample_iter.next().unwrap();
+        let sample = match channel_count {
+            1 => i16::from_le_bytes([sample_bytes[0], sample_bytes[1]]) as f32,
+            2 => {
+                let left = i16::from_le_bytes([sample_bytes[0], sample_bytes[1]]) as f32;
+                let right = i16::from_le_bytes([sample_bytes[2], sample_bytes[3]]) as f32;
+                (left + right) / 2.0
+            }
+            _ => unimplemented!(),
+        };
+        waveform.push(sample);
+    }
+    waveform
+}
 pub fn init(audio_handler: AudioHandler) {
     thread::spawn(|| {
         let _ = ManuallyDrop::new(audio_handler.register("audio_channel_background_thread"));
