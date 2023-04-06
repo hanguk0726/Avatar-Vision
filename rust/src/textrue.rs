@@ -43,7 +43,6 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
                 } else {
                     *last_pixel_buffer = data.clone();
                 }
-
                 return SimplePixelData::new_boxed(width, height, data);
             }
             Err(e) => {

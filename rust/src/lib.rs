@@ -66,7 +66,7 @@ fn init_channels(
     let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let recording = Arc::new(AtomicBool::new(false));
-    let capture_white_sound = Arc::new(AtomicBool::new(true));
+    let capture_white_sound = Arc::new(AtomicBool::new(false));
 
     let recording_info = Arc::new(Mutex::new(RecordingInfo::new(
         recording.clone(),

@@ -143,10 +143,14 @@ impl AsyncMethodHandler for AudioHandler {
 }
 
 fn pcm_data_to_waveform(pcm_data: &[u8], channel_count: u16) -> Vec<f32> {
-    //get  last 256 
     let mut pcm_data = pcm_data.to_vec();
     let mut waveform = vec![];
-    let mut pcm_data = pcm_data.split_off(pcm_data.len() - 256 * channel_count as usize);
+    let length = 256usize;
+    if pcm_data.len() < length * channel_count as usize {
+        return waveform;
+    }
+
+    let pcm_data: Vec<u8> = pcm_data.split_off(pcm_data.len() - length * channel_count as usize);
     let mut pcm_data = pcm_data.chunks_exact(2);
     while let Some(chunk) = pcm_data.next() {
         let mut bytes = [0; 2];
@@ -157,6 +161,8 @@ fn pcm_data_to_waveform(pcm_data: &[u8], channel_count: u16) -> Vec<f32> {
     }
     waveform
 }
+
+
 pub fn init(audio_handler: AudioHandler) {
     thread::spawn(|| {
         let _ = ManuallyDrop::new(audio_handler.register("audio_channel_background_thread"));

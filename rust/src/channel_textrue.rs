@@ -71,6 +71,7 @@ impl AsyncMethodHandler for TextureHandler {
 
                     let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;
+              
                 }
 
                 info!("render_texture finished");

@@ -1,13 +1,11 @@
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait,   StreamTrait};
 use cpal::Stream;
 use log::debug;
 
-use std::ops::Not;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::channel_audio::{cpal_available_inputs, Pcm};
-use crate::recording::WritingState;
 
 pub struct AudioStream {
     pub stream: SendableStream,

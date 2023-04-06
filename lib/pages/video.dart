@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
@@ -8,6 +7,7 @@ import '../domain/writing_state.dart';
 import '../widgets/saving_indicator.dart';
 import '../widgets/media_conrtol_bar.dart';
 import '../widgets/texture.dart';
+import '../widgets/waveform.dart';
 
 class Video extends StatelessWidget {
   const Video({Key? key}) : super(key: key);
@@ -118,14 +118,42 @@ class _MyHomePageState extends State<MyHomePage> {
               Native().stopRecording();
             },
           ),
-        if (currentAudioDevice.isNotEmpty)
-          RectangleWaveform(
-            samples: samples,
-            height: 300,
-            width: 600,
-            isCentered: true,
-            showActiveWaveform: true,
-          ),
+        if (currentAudioDevice.isNotEmpty && samples.isNotEmpty)
+          SizedBox(
+              height: 300,
+              width: 600,
+              child: Waveform(
+                data: [
+                  0,
+                  10,
+                  20,
+                  30,
+                  40,
+                  50,
+                  60,
+                  70,
+                  80,
+                  90,
+                  100,
+                  90,
+                  80,
+                  70,
+                  60,
+                  50,
+                  40,
+                  30,
+                  20,
+                  10
+                ],
+                height: 100,
+                width: 300,
+                duration: const Duration(milliseconds: 1000),
+              )),
+        // child: Waveform(
+        //   data: samples,
+        //   height: 300,
+        //   width: 600,
+        // )),
       ]),
     );
   }

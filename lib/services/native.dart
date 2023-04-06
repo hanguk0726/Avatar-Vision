@@ -121,7 +121,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void openCameraStream() async {
+  openCameraStream() async {
     final res = await cameraChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
@@ -151,7 +151,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Future<List<double>> clearAudioBuffer() async {
     final res = await audioChannel.invokeMethod('clear_audio_buffer', {});
 
-    return  res.cast<double>();
+    return res.cast<double>();
   }
 
   Future<void> _selectAudioDevice(String device) async {
@@ -204,7 +204,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     Function(List<double> buffer) onBuffer,
   ) async {
     while (true) {
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 2000));
       if (writingState == WritingState.idle) {
         final buffer = await clearAudioBuffer();
         onBuffer(buffer);
