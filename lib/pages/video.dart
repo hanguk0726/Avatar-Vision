@@ -35,20 +35,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<double> samples = [];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Native().observeAudioBuffer((samples) {
-        setState(() {
-          this.samples = samples;
-        });
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
@@ -118,42 +104,6 @@ class _MyHomePageState extends State<MyHomePage> {
               Native().stopRecording();
             },
           ),
-        if (currentAudioDevice.isNotEmpty && samples.isNotEmpty)
-          SizedBox(
-              height: 300,
-              width: 600,
-              child: Waveform(
-                data: [
-                  0,
-                  10,
-                  20,
-                  30,
-                  40,
-                  50,
-                  60,
-                  70,
-                  80,
-                  90,
-                  100,
-                  90,
-                  80,
-                  70,
-                  60,
-                  50,
-                  40,
-                  30,
-                  20,
-                  10
-                ],
-                height: 100,
-                width: 300,
-                duration: const Duration(milliseconds: 1000),
-              )),
-        // child: Waveform(
-        //   data: samples,
-        //   height: 300,
-        //   width: 600,
-        // )),
       ]),
     );
   }
@@ -164,6 +114,17 @@ Widget drawer(
     required String currentAudioDevice,
     required List<String> audioDevices,
     required Function(String) onChanged}) {
+  bool audioActive = true;
+  // WidgetsBinding.instance.addPostFrameCallback((_) {
+  //   Native().observeAudioBuffer((samples) {
+  //     if (samples.isNotEmpty || samples.every((element) => element == 0)) {
+  //       audioActive = false;
+  //     } else {
+  //       audioActive = true;
+  //     }
+  //     print ("audioActive: $audioActive");
+  //   });
+  // });
   return Drawer(
     child: ListView(
       padding: EdgeInsets.zero,
@@ -197,6 +158,12 @@ Widget drawer(
             icon: const Icon(Icons.mic),
             textOnEmpty: "No audio input devices found",
             iconOnEmpty: const Icon(Icons.mic_off)),
+        Waveform(
+          audioActive: audioActive,
+          height: 100,
+          width: 300,
+          durationMillis: 500,
+        ),
       ],
     ),
   );

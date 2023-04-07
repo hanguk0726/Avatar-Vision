@@ -1,16 +1,39 @@
 import 'package:flutter/material.dart';
 
 class Waveform extends StatefulWidget {
-  final List<double> data;
+  final List<double> data = [
+    0,
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    90,
+    100,
+    90,
+    80,
+    70,
+    60,
+    50,
+    40,
+    30,
+    20,
+    10
+  ];
+  final bool audioActive;
   final double height;
   final double width;
-  final Duration duration;
+  final int durationMillis;
 
   Waveform({
-    required this.data,
+    super.key,
+    required this.audioActive,
     required this.height,
     required this.width,
-    required this.duration,
+    required this.durationMillis,
   });
 
   @override
@@ -25,10 +48,29 @@ class _WaveformState extends State<Waveform>
   @override
   void initState() {
     super.initState();
-
-    _controller = AnimationController(vsync: this, duration: widget.duration);
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
-    _controller.repeat();
+    int duration = widget.durationMillis;
+    int reverseDuration = (widget.durationMillis / 2).round();
+    _controller = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: duration),
+        reverseDuration: Duration(milliseconds: reverseDuration))
+      ..addListener(() {
+        setState(() {});
+      })
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _controller.reverse();
+        } else if (status == AnimationStatus.dismissed) {
+          _controller.forward();
+        }
+      })
+      ..forward();
+    final curvedAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutSine,
+      reverseCurve: Curves.easeInOutSine,
+    );
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
   }
 
   @override
@@ -40,8 +82,8 @@ class _WaveformState extends State<Waveform>
   @override
   void didUpdateWidget(Waveform oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.duration != oldWidget.duration) {
-      _controller.duration = widget.duration;
+    if (widget.durationMillis != oldWidget.durationMillis) {
+      _controller.duration = Duration(milliseconds: widget.durationMillis);
     }
   }
 
@@ -56,7 +98,7 @@ class _WaveformState extends State<Waveform>
         return CustomPaint(
           size: Size(widget.width, widget.height),
           painter: _WaveformPainter(
-            data: widget.data,
+            data: widget.audioActive ? widget.data : [0],
             barWidth: barWidth,
             progress: _animation.value,
           ),
@@ -114,8 +156,6 @@ class _WaveformPainter extends CustomPainter {
 
     // Draw the remaining rectangles
     for (int i = 1; i < data.length; i++) {
-      // final double left = i * barWidth - barWidth / 2;
-      // final double right = i * barWidth + barWidth / 2;
       final double left = i * barWidth - barWidth / 2 + 10;
       final double right = i * barWidth + barWidth / 2 - 10;
       final double top = halfHeight - data[i] * progress;

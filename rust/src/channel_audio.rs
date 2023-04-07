@@ -1,7 +1,6 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::Read,
     mem::ManuallyDrop,
     sync::{Arc, Mutex, atomic::AtomicBool},
     thread,

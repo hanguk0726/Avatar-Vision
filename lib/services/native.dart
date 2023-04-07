@@ -204,7 +204,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     Function(List<double> buffer) onBuffer,
   ) async {
     while (true) {
-      await Future.delayed(const Duration(milliseconds: 2000));
+      await Future.delayed(const Duration(milliseconds: 100));
       if (writingState == WritingState.idle) {
         final buffer = await clearAudioBuffer();
         onBuffer(buffer);
