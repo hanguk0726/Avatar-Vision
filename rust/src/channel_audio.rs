@@ -77,15 +77,14 @@ impl AsyncMethodHandler for AudioHandler {
                 //     thread::current().id()
                 // );
                 let mut data = vec![];
-                let mut channels = 0;
                 {
                     let audio = self.audio.lock().unwrap();
-                    channels = audio.channels;
                     data = audio.data.lock().unwrap().drain(..).collect::<Vec<u8>>();
                 }
                 // debug!("data len: {}", data.len());
-                let processed = pcm_data_to_waveform(&data, channels);
-                Ok(processed.into())
+
+                let has_audio = data.iter().any(|&x| x != 0);
+                Ok(has_audio.into())
             }
 
             "available_audios" => {
@@ -141,25 +140,6 @@ impl AsyncMethodHandler for AudioHandler {
     }
 }
 
-fn pcm_data_to_waveform(pcm_data: &[u8], channel_count: u16) -> Vec<f32> {
-    let mut pcm_data = pcm_data.to_vec();
-    let mut waveform = vec![];
-    let length = 256usize;
-    if pcm_data.len() < length * channel_count as usize {
-        return waveform;
-    }
-
-    let pcm_data: Vec<u8> = pcm_data.split_off(pcm_data.len() - length * channel_count as usize);
-    let mut pcm_data = pcm_data.chunks_exact(2);
-    while let Some(chunk) = pcm_data.next() {
-        let mut bytes = [0; 2];
-        bytes.copy_from_slice(chunk);
-        let sample = i16::from_le_bytes(bytes);
-        let sample = sample as f32 / i16::MAX as f32;
-        waveform.push(sample);
-    }
-    waveform
-}
 
 
 pub fn init(audio_handler: AudioHandler) {

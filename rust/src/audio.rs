@@ -1,4 +1,4 @@
-use cpal::traits::{DeviceTrait,   StreamTrait};
+use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
@@ -27,7 +27,6 @@ impl AudioStream {
         debug!("audio stream dropped");
     }
 }
-
 pub fn open_audio_stream(
     device_name: &str,
     capture_white_sound: Arc<AtomicBool>,
@@ -49,6 +48,7 @@ pub fn open_audio_stream(
 
     let buffer_clone = Arc::clone(&buffer);
 
+    const HAS_AUDIO: f32 = 0.03;
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
@@ -58,8 +58,9 @@ pub fn open_audio_stream(
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample as f32)));
-                let capture_white_sound = capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
-                if capture_white_sound || amplitude > 0.1 {
+                let capture_white_sound =
+                    capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                if capture_white_sound || amplitude > HAS_AUDIO {
                     for &sample in data.iter() {
                         let sample = sample.to_le_bytes();
                         buffer.push(sample[0]);
@@ -71,7 +72,6 @@ pub fn open_audio_stream(
                         buffer.push(0);
                     }
                 }
-              
             },
             move |err| eprintln!("an error occurred on stream: {}", err),
             None,
@@ -80,12 +80,12 @@ pub fn open_audio_stream(
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));
-                let capture_white_sound = capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
-                if capture_white_sound || amplitude > 0.1 {
+                let capture_white_sound =
+                    capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                if capture_white_sound || amplitude > HAS_AUDIO {
                     for &sample in data.iter() {
                         let i16_sample = (sample * i16::MAX as f32) as i16;
                         let sample = i16_sample.to_le_bytes();
@@ -98,7 +98,6 @@ pub fn open_audio_stream(
                         buffer.push(0);
                     }
                 }
-
 
                 // debug!("audio buffer size: {}", buffer.len());
             },

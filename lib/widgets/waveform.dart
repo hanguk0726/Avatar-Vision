@@ -1,36 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 class Waveform extends StatefulWidget {
   final List<double> data = [
     0,
+    5,
     10,
+    15,
     20,
+    25,
     30,
+    35,
     40,
+    45,
     50,
-    60,
-    70,
-    80,
-    90,
-    100,
-    90,
-    80,
-    70,
-    60,
-    50,
+    45,
     40,
+    35,
     30,
+    25,
     20,
-    10
+    15,
+    10,
+    5
   ];
-  final bool audioActive;
+  final BehaviorSubject<bool> hasAudio;
   final double height;
   final double width;
   final int durationMillis;
 
   Waveform({
     super.key,
-    required this.audioActive,
+    required this.hasAudio,
     required this.height,
     required this.width,
     required this.durationMillis,
@@ -45,32 +46,37 @@ class _WaveformState extends State<Waveform>
   late AnimationController _controller;
   late Animation<double> _animation;
 
+  late BehaviorSubject<bool> hasAudio;
   @override
   void initState() {
     super.initState();
+    hasAudio = widget.hasAudio;
     int duration = widget.durationMillis;
     int reverseDuration = (widget.durationMillis / 2).round();
     _controller = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: duration),
         reverseDuration: Duration(milliseconds: reverseDuration))
-      ..addListener(() {
-        setState(() {});
-      })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           _controller.reverse();
-        } else if (status == AnimationStatus.dismissed) {
-          _controller.forward();
         }
-      })
-      ..forward();
+      });
+
     final curvedAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOutSine,
       reverseCurve: Curves.easeInOutSine,
     );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
+
+    hasAudio.listen((hasAudio) {
+      if (hasAudio && _controller.status == AnimationStatus.dismissed) {
+        _controller.forward();
+      }
+      // print status
+      print(_controller.status);
+    });
   }
 
   @override
@@ -98,7 +104,7 @@ class _WaveformState extends State<Waveform>
         return CustomPaint(
           size: Size(widget.width, widget.height),
           painter: _WaveformPainter(
-            data: widget.audioActive ? widget.data : [0],
+            data: widget.data,
             barWidth: barWidth,
             progress: _animation.value,
           ),
@@ -160,7 +166,7 @@ class _WaveformPainter extends CustomPainter {
       final double right = i * barWidth + barWidth / 2 - 10;
       final double top = halfHeight - data[i] * progress;
       final double bottom = halfHeight + data[i] * progress;
-      final rect = Rect.fromLTRB(left, top + 10, right, bottom - 10);
+      final rect = Rect.fromLTRB(left, top + 5, right, bottom - 5);
       canvas.drawRRect(
           RRect.fromRectAndRadius(rect, Radius.circular(halfHeight)), paint);
     }

@@ -148,10 +148,10 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  Future<List<double>> clearAudioBuffer() async {
+  Future<bool> clearAudioBuffer() async {
     final res = await audioChannel.invokeMethod('clear_audio_buffer', {});
 
-    return res.cast<double>();
+    return Future.value(res);
   }
 
   Future<void> _selectAudioDevice(String device) async {
@@ -201,13 +201,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void observeAudioBuffer(
-    Function(List<double> buffer) onBuffer,
+    Function(bool hasAudio) listen,
   ) async {
     while (true) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
       if (writingState == WritingState.idle) {
-        final buffer = await clearAudioBuffer();
-        onBuffer(buffer);
+        final hasAudio = await clearAudioBuffer();
+        listen(hasAudio);
       }
     }
   }

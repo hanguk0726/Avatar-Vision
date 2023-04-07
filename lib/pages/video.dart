@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
 
@@ -114,17 +115,13 @@ Widget drawer(
     required String currentAudioDevice,
     required List<String> audioDevices,
     required Function(String) onChanged}) {
-  bool audioActive = true;
-  // WidgetsBinding.instance.addPostFrameCallback((_) {
-  //   Native().observeAudioBuffer((samples) {
-  //     if (samples.isNotEmpty || samples.every((element) => element == 0)) {
-  //       audioActive = false;
-  //     } else {
-  //       audioActive = true;
-  //     }
-  //     print ("audioActive: $audioActive");
-  //   });
-  // });
+  BehaviorSubject<bool> hasAudio = BehaviorSubject.seeded(false);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Native().observeAudioBuffer((hasAudio_) {
+      hasAudio.add(hasAudio_);
+      print("hasAudio: $hasAudio_");
+    });
+  });
   return Drawer(
     child: ListView(
       padding: EdgeInsets.zero,
@@ -159,7 +156,7 @@ Widget drawer(
             textOnEmpty: "No audio input devices found",
             iconOnEmpty: const Icon(Icons.mic_off)),
         Waveform(
-          audioActive: audioActive,
+          hasAudio: hasAudio,
           height: 100,
           width: 300,
           durationMillis: 500,
