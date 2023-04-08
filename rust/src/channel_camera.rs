@@ -86,7 +86,7 @@ impl AsyncMethodHandler for CameraHandler {
                 let cameras = query(ApiBackend::Auto).unwrap();
                 let camera_names: Vec<String> =
                     cameras.iter().map(|c| c.human_name().clone()).collect();
-
+                    debug!("available_cameras: {:?}", camera_names);
                 Ok(camera_names.into())
             }
 

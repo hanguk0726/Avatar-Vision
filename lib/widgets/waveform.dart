@@ -70,7 +70,7 @@ class _WaveformState extends State<Waveform>
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
 
     hasAudio.listen((hasAudio) {
-      if (hasAudio && _controller.status == AnimationStatus.dismissed && !_controller.isAnimating) {
+      if (hasAudio && _controller.status == AnimationStatus.dismissed && !_controller.isAnimating && mounted) {
         _controller.forward();
       }
     });

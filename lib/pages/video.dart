@@ -10,6 +10,8 @@ import '../widgets/media_conrtol_bar.dart';
 import '../widgets/texture.dart';
 import '../widgets/waveform.dart';
 
+final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
 class Video extends StatelessWidget {
   const Video({Key? key}) : super(key: key);
 
@@ -45,75 +47,79 @@ class _MyHomePageState extends State<MyHomePage> {
     final audioDevices = native.audioDevices;
     final currentCameraDevice = native.currentCameraDevice;
     final cameraDevices = native.cameraDevices;
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-    return Scaffold(
-      key: scaffoldKey,
-      appBar: AppBar(
-        title: const Text('My App'),
-        actions: <Widget>[
+    return Consumer<Native>(builder: (context, provider, child) {
+      return Scaffold(
+        key: _scaffoldKey,
+        appBar: AppBar(
+          title: const Text('My App'),
+          actions: <Widget>[
+            if (recording)
+              const Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: Icon(Icons.do_not_disturb),
+              )
+            else
+              Builder(
+                builder: (BuildContext context) {
+                  return IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () {
+                      Scaffold.of(context).openEndDrawer();
+                    },
+                  );
+                },
+              ),
+          ],
+        ),
+        endDrawer: drawer(
+            context: context,
+            currentAudioDevice: currentAudioDevice,
+            audioDevices: audioDevices,
+            onChangedAudioDevice: (value) {
+              Native().selectAudioDevice(value);
+            },
+            currentCameraDevice: currentCameraDevice,
+            cameraDevices: cameraDevices,
+            onChangedCameraDevice: (value) {
+              Native().selectCameraDevice(value);
+            }),
+        drawerScrimColor: Colors.transparent,
+        body: Stack(children: [
+          texture(),
+          if (!recording && writingState != WritingState.idle)
+            Positioned(
+                top: 8,
+                left: 16,
+                child: SavingIndicator(
+                  recording: recording,
+                  writingState: writingState,
+                )),
           if (recording)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: Icon(Icons.do_not_disturb),
-            )
-          else
-            Builder(
-              builder: (BuildContext context) {
-                return IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                );
+            const Positioned(
+              top: 8,
+              right: 16,
+              child: Text(
+                "REC",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          if (_scaffoldKey.currentState?.isEndDrawerOpen ??
+              false == false && currentCameraDevice.isNotEmpty)
+            mediaControlBar(
+              recording: recording,
+              onStart: () {
+                Native().startRecording();
+              },
+              onStop: () {
+                Native().stopRecording();
               },
             ),
-        ],
-      ),
-      endDrawer: drawer(
-          context: context,
-          currentAudioDevice: currentAudioDevice,
-          audioDevices: audioDevices,
-          onChangedAudioDevice: (value) {
-            Native().selectAudioDevice(value);
-          },
-          currentCameraDevice: currentCameraDevice,
-          cameraDevices: cameraDevices,
-          onChangedCameraDevice: (value) {
-            Native().selectCameraDevice(value);
-          }),
-      drawerScrimColor: Colors.transparent,
-      body: Stack(children: [
-        texture(),
-        if (!recording && writingState != WritingState.idle)
-          Positioned(
-              top: 8,
-              left: 16,
-              child: SavingIndicator(
-                recording: recording,
-                writingState: writingState,
-              )),
-        if (recording)
-          const Positioned(
-            top: 8,
-            right: 16,
-            child: Text(
-              "REC",
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        if (scaffoldKey.currentState?.isEndDrawerOpen ?? false == false)
-          mediaControlBar(
-            recording: recording,
-            onStart: () {
-              Native().startRecording();
-            },
-            onStop: () {
-              Native().stopRecording();
-            },
-          ),
-      ]),
-    );
+          if (currentCameraDevice.isEmpty)
+            const Center(child: Text("No camera devices found")),
+        ]),
+      );
+    });
   }
 }
 
@@ -152,8 +158,8 @@ Widget drawer(
               const Spacer(),
               IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () {
-                    Native().queryDevices();
+                  onPressed: () async {
+                    await Native().queryDevices();
                   }),
               const Spacer(),
               IconButton(

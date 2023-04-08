@@ -77,7 +77,8 @@ impl AsyncMethodHandler for AudioHandler {
                 //     thread::current().id()
                 // );
                 let mut data = vec![];
-                {
+                
+                if let Some(_) = self.current_device.lock().unwrap().as_ref() {
                     let audio = self.audio.lock().unwrap();
                     data = audio.data.lock().unwrap().drain(..).collect::<Vec<u8>>();
                 }
