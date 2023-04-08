@@ -18,7 +18,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
   String currentAudioDevice = ''; // the current audio device name
+  String currentCameraDevice = ''; // the current camera device name
   List<String> audioDevices = []; // the list of audio devices
+  List<String> cameraDevices = []; // the list of camera devices
 
   static const String rustLibraryName = 'rust';
 
@@ -162,9 +164,24 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     return;
   }
 
+  Future<void> _selectCameraDevice(String device) async {
+    final res = await cameraChannel.invokeMethod('select_camera_device', {
+      'device_name': device,
+    });
+    _showResult(res);
+    return;
+  }
+
   Future<void> _currentAudioDevice() async {
     final res = await audioChannel.invokeMethod('current_audio_device', {});
     currentAudioDevice = res;
+    notifyListeners();
+    return;
+  }
+
+  Future<void> _currentCameraDevice() async {
+    final res = await cameraChannel.invokeMethod('current_camera_device', {});
+    currentCameraDevice = res;
     notifyListeners();
     return;
   }
@@ -177,19 +194,29 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     return;
   }
 
+  Future<void> _availableCameras() async {
+    final res = await cameraChannel.invokeMethod('available_cameras', {});
+    List<String> list_ = res.cast<String>();
+    cameraDevices = List<String>.from(list_);
+    notifyListeners();
+    return;
+  }
+
   void start() async {
-    openCameraStream();
-    openTextureStream();
     await _availableAudios();
     if (audioDevices.isNotEmpty) {
       selectAudioDevice(audioDevices.first);
     }
-    startRendering();
+    await _availableCameras();
+    if (cameraDevices.isNotEmpty) {
+      selectCameraDevice(cameraDevices.first);
+    }
   }
 
-  void reset() {
+  void startCamera() {
     stopCameraStream();
     openCameraStream();
+    startRendering();
     openTextureStream();
   }
 
@@ -198,6 +225,12 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _currentAudioDevice();
     _stopAudioStream();
     _openAudioStream(device);
+  }
+
+  void selectCameraDevice(String device) async {
+    await _selectCameraDevice(device);
+    _currentCameraDevice();
+    startCamera();
   }
 
   void observeAudioBuffer(

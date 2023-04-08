@@ -1,9 +1,9 @@
-use kanal::{Sender};
+use kanal::Sender;
 use std::sync::{Arc, Mutex};
 
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
-use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType};
+use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType, CameraInfo};
 use nokhwa::{Buffer, CallbackCamera};
 
 use std::cell::RefCell;
@@ -15,6 +15,7 @@ use crate::channel::ChannelHandler;
 pub struct Camera {
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub camera: Option<CallbackCamera>,
+    pub current_camera_info: Arc<Mutex<Option<CameraInfo>>>,
 }
 
 impl Camera {
@@ -22,9 +23,10 @@ impl Camera {
         Self {
             channel_handler,
             camera: None,
+            current_camera_info: Arc::new(Mutex::new(None)),
         }
     }
-    pub fn infate_camera(&mut self) {
+    pub fn infate_camera(&mut self, index: CameraIndex) {
         let mut channel_handler = self.channel_handler.lock().unwrap();
         let mut rendering_sender = channel_handler.rendering.0.clone();
 
@@ -32,8 +34,8 @@ impl Camera {
             channel_handler.reset();
             rendering_sender = channel_handler.rendering.0.clone();
         }
-        
-        if let Ok(camera) = inflate_camera_conection(rendering_sender) {
+
+        if let Ok(camera) = inflate_camera_conection(index, rendering_sender) {
             self.camera = Some(camera);
         } else {
             debug!("Failed to inflate camera");
@@ -58,7 +60,7 @@ impl Camera {
             drop(camera);
             self.channel_handler.lock().unwrap().rendering.0.close();
         } else {
-            debug!("Failed to stop camera stream");
+            debug!("No camera to stop");
         }
     }
 }
@@ -66,8 +68,10 @@ impl Camera {
 #[cfg(debug_assertions)]
 static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
-pub fn inflate_camera_conection(rendering_sender: Sender<Buffer>) -> Result<CallbackCamera, Error> {
-    let index = CameraIndex::Index(0);
+pub fn inflate_camera_conection(
+    index: CameraIndex,
+    rendering_sender: Sender<Buffer>,
+) -> Result<CallbackCamera, Error> {
     let requested =
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
 

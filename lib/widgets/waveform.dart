@@ -2,28 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Waveform extends StatefulWidget {
-  final List<double> data = [
+  final  List<double> data = [
     0,
-    5,
-    10,
+    3,
+    6,
+    9,
+    12,
     15,
-    20,
-    25,
-    30,
-    35,
-    40,
-    45,
-    50,
-    45,
-    40,
-    35,
-    30,
-    25,
-    20,
+    18,
+    21,
+    24,
+    27,
+    24,
+    21,
+    18,
     15,
-    10,
-    5
+    12,
+    9,
+    6,
+    3,
   ];
+
   final BehaviorSubject<bool> hasAudio;
   final double height;
   final double width;
@@ -71,11 +70,9 @@ class _WaveformState extends State<Waveform>
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
 
     hasAudio.listen((hasAudio) {
-      if (hasAudio && _controller.status == AnimationStatus.dismissed) {
+      if (hasAudio && _controller.status == AnimationStatus.dismissed && !_controller.isAnimating) {
         _controller.forward();
       }
-      // print status
-      print(_controller.status);
     });
   }
 

@@ -43,6 +43,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final recording = native.recording;
     final currentAudioDevice = native.currentAudioDevice;
     final audioDevices = native.audioDevices;
+    final currentCameraDevice = native.currentCameraDevice;
+    final cameraDevices = native.cameraDevices;
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
@@ -72,8 +74,13 @@ class _MyHomePageState extends State<MyHomePage> {
           context: context,
           currentAudioDevice: currentAudioDevice,
           audioDevices: audioDevices,
-          onChanged: (value) {
+          onChangedAudioDevice: (value) {
             Native().selectAudioDevice(value);
+          },
+          currentCameraDevice: currentCameraDevice,
+          cameraDevices: cameraDevices,
+          onChangedCameraDevice: (value) {
+            Native().selectCameraDevice(value);
           }),
       drawerScrimColor: Colors.transparent,
       body: Stack(children: [
@@ -114,17 +121,20 @@ Widget drawer(
     {required BuildContext context,
     required String currentAudioDevice,
     required List<String> audioDevices,
-    required Function(String) onChanged}) {
+    required Function(String) onChangedAudioDevice,
+    required String currentCameraDevice,
+    required List<String> cameraDevices,
+    required Function(String) onChangedCameraDevice}) {
   BehaviorSubject<bool> hasAudio = BehaviorSubject.seeded(false);
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Native().observeAudioBuffer((hasAudio_) {
       hasAudio.add(hasAudio_);
-      print("hasAudio: $hasAudio_");
     });
   });
   return Drawer(
-    child: ListView(
-      padding: EdgeInsets.zero,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         DrawerHeader(
           decoration: const BoxDecoration(
@@ -151,16 +161,23 @@ Widget drawer(
         dropdown(
             value: currentAudioDevice,
             items: audioDevices,
-            onChanged: onChanged,
+            onChanged: onChangedAudioDevice,
             icon: const Icon(Icons.mic),
             textOnEmpty: "No audio input devices found",
             iconOnEmpty: const Icon(Icons.mic_off)),
         Waveform(
           hasAudio: hasAudio,
           height: 100,
-          width: 300,
+          width: 270,
           durationMillis: 500,
         ),
+        dropdown(
+            value: currentCameraDevice,
+            items: cameraDevices,
+            onChanged: onChangedCameraDevice,
+            icon: const Icon(Icons.camera_alt),
+            textOnEmpty: "No camera devices found",
+            iconOnEmpty: const Icon(Icons.no_photography)),
       ],
     ),
   );

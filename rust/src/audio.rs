@@ -48,7 +48,7 @@ pub fn open_audio_stream(
 
     let buffer_clone = Arc::clone(&buffer);
 
-    const HAS_AUDIO: f32 = 0.03;
+    const HAS_AUDIO: f32 = 0.02;
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
@@ -85,6 +85,7 @@ pub fn open_audio_stream(
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));
                 let capture_white_sound =
                     capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                // debug!("amplitude: {}", amplitude);
                 if capture_white_sound || amplitude > HAS_AUDIO {
                     for &sample in data.iter() {
                         let i16_sample = (sample * i16::MAX as f32) as i16;
