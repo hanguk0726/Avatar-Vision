@@ -42,24 +42,31 @@ pub fn open_audio_stream(
         .default_input_config()
         .expect("Failed to get default input config");
 
+    // let config = cpal::SupportedStreamConfig::new(
+    //     config.channels(),
+    //     config.sample_rate(),
+    //     config.buffer_size().clone(),
+    //     cpal::SampleFormat::I16,
+    // );
+    
     debug!("Default input config: {:?}", config);
 
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 
     let buffer_clone = Arc::clone(&buffer);
 
-    const HAS_AUDIO: f32 = 0.02;
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
             move |data: &[i16], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-
+                const HAS_AUDIO: f32 = 10000.0;
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample as f32)));
                 let capture_white_sound =
                     capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
+                // debug!("amplitude: {}", amplitude);
                 if capture_white_sound || amplitude > HAS_AUDIO {
                     for &sample in data.iter() {
                         let sample = sample.to_le_bytes();
@@ -80,6 +87,7 @@ pub fn open_audio_stream(
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
+                const HAS_AUDIO: f32 = 0.02;
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));

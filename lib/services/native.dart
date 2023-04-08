@@ -57,6 +57,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         context: nativeContext);
     setChannelHandlers();
 
+    queryDevices();
     start();
   }
 
@@ -202,12 +203,15 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     return;
   }
 
-  void start() async {
+  void queryDevices() async {
     await _availableAudios();
+    await _availableCameras();
+  }
+
+  void start() {
     if (audioDevices.isNotEmpty) {
       selectAudioDevice(audioDevices.first);
     }
-    await _availableCameras();
     if (cameraDevices.isNotEmpty) {
       selectCameraDevice(cameraDevices.first);
     }

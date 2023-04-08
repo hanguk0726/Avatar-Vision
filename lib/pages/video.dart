@@ -151,6 +151,12 @@ Widget drawer(
               ),
               const Spacer(),
               IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    Native().queryDevices();
+                  }),
+              const Spacer(),
+              IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () {
                     Navigator.pop(context);
