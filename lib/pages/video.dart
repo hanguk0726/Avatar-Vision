@@ -104,8 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: TextStyle(color: Colors.red),
               ),
             ),
-          if (_scaffoldKey.currentState?.isEndDrawerOpen ??
-              false == false && currentCameraDevice.isNotEmpty)
+          if (currentCameraDevice.isNotEmpty)
             mediaControlBar(
               recording: recording,
               onStart: () {

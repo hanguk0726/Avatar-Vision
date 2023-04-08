@@ -37,10 +37,10 @@ class Waveform extends StatefulWidget {
   });
 
   @override
-  _WaveformState createState() => _WaveformState();
+  WaveformState createState() => WaveformState();
 }
 
-class _WaveformState extends State<Waveform>
+class WaveformState extends State<Waveform>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
