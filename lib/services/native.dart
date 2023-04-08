@@ -58,7 +58,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     setChannelHandlers();
 
     await queryDevices();
-    start();
   }
 
   void setChannelHandlers() {
@@ -208,11 +207,11 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     await _availableCameras();
     // try to fill current devices if they are empty
     if (currentAudioDevice.isEmpty || currentCameraDevice.isEmpty) {
-      start();
+      _startWithDefualt();
     }
   }
 
-  void start() {
+  void _startWithDefualt() {
     if (audioDevices.isNotEmpty) {
       selectAudioDevice(audioDevices.first);
     }

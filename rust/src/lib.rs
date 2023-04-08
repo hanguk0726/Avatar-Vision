@@ -8,7 +8,6 @@ use irondash_message_channel::{irondash_init_message_channel_context, FunctionRe
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
 
-use recording::WritingState;
 use textrue::PixelBufferSource;
 use tools::log_::init_logging;
 
