@@ -49,6 +49,11 @@ class _MyHomePageState extends State<MyHomePage> {
     final currentCameraDevice = native.currentCameraDevice;
     final cameraDevices = native.cameraDevices;
 
+    bool showWritingIndicator = !recording && writingState != WritingState.idle;
+    bool showRenderButton = writingState == WritingState.idle &&
+        !rendering &&
+        currentCameraDevice.isNotEmpty;
+
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
         key: _scaffoldKey,
@@ -73,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
           ],
         ),
-        endDrawer: drawer(
+        endDrawer: _drawer(
             context: context,
             currentAudioDevice: currentAudioDevice,
             audioDevices: audioDevices,
@@ -91,24 +96,14 @@ class _MyHomePageState extends State<MyHomePage> {
             texture()
           else
             const Center(child: Text("not rendering")),
-          if (!recording && writingState != WritingState.idle)
-            Positioned(
-                top: 8,
-                left: 16,
-                child: SavingIndicator(
-                  recording: recording,
-                  writingState: writingState,
-                )),
-          if (recording)
-            const Positioned(
-              top: 8,
-              right: 16,
-              child: Text(
-                "REC",
-                style: TextStyle(color: Colors.red),
-              ),
+          if (showWritingIndicator)
+            _savingIndicator(
+              recording: recording,
+              writingState: writingState,
             ),
-          if (currentCameraDevice.isNotEmpty)
+          if (recording) _recordingIndicator(),
+          if (showRenderButton) _renderButton(),
+          if (currentCameraDevice.isNotEmpty && rendering)
             mediaControlBar(
               recording: recording,
               onStart: () {
@@ -126,7 +121,41 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Widget drawer(
+Widget _savingIndicator(
+    {required bool recording, required WritingState writingState}) {
+  return Positioned(
+      top: 8,
+      left: 16,
+      child: SavingIndicator(
+        recording: recording,
+        writingState: writingState,
+      ));
+}
+
+Widget _renderButton() {
+  return Positioned(
+      bottom: 30,
+      left: 0,
+      right: 0,
+      child: Center(
+          child: ElevatedButton(
+        onPressed: Native().startCamera,
+        child: const Text('Render'),
+      )));
+}
+
+Widget _recordingIndicator() {
+  return const Positioned(
+    top: 8,
+    right: 16,
+    child: Text(
+      "REC",
+      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+    ),
+  );
+}
+
+Widget _drawer(
     {required BuildContext context,
     required String currentAudioDevice,
     required List<String> audioDevices,

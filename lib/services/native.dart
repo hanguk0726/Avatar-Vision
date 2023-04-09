@@ -89,7 +89,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_rendering_state':
           rendering = call.arguments;
-          debugPrint('Rendering: $rendering');
           notifyListeners();
           return null;
         default:
