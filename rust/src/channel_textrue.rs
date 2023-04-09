@@ -57,10 +57,12 @@ impl AsyncMethodHandler for TextureHandler {
                     let decoded = render.1.to_owned();
 
                     if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        encoding_sender.try_send(decoded.clone()).unwrap_or_else(|e| {
-                            debug!("encoding channel sending failed: {:?}", e);
-                            false
-                        });
+                        encoding_sender
+                            .try_send(decoded.clone())
+                            .unwrap_or_else(|e| {
+                                debug!("encoding channel sending failed: {:?}", e);
+                                false
+                            });
                     } else {
                         if encoding_sender.is_closed() {
                             let mut channel_handler = self.channel_handler.lock().unwrap();
@@ -71,7 +73,6 @@ impl AsyncMethodHandler for TextureHandler {
 
                     let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;
-              
                 }
 
                 info!("render_texture finished");

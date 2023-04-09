@@ -68,7 +68,6 @@ impl AsyncMethodHandler for CameraHandler {
                 if let Some(camera_info) = cameras.iter().find(|c| c.human_name() == camera_name) {
                     let mut current_camera_info = camera.current_camera_info.lock().unwrap();
                     current_camera_info.replace(camera_info.clone());
-
                     return PlatformResult::Ok("ok".into());
                 }
                 PlatformResult::Err(PlatformError {

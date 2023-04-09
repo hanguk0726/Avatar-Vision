@@ -43,6 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final native = context.watch<Native>();
     final writingState = native.writingState;
     final recording = native.recording;
+    final rendering = native.rendering;
     final currentAudioDevice = native.currentAudioDevice;
     final audioDevices = native.audioDevices;
     final currentCameraDevice = native.currentCameraDevice;
@@ -86,7 +87,10 @@ class _MyHomePageState extends State<MyHomePage> {
             }),
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
-          texture(),
+          if (rendering)
+            texture()
+          else
+            const Center(child: Text("not rendering")),
           if (!recording && writingState != WritingState.idle)
             Positioned(
                 top: 8,

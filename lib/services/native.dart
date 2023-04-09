@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 
+import '../domain/setting.dart';
 import '../domain/writing_state.dart';
 
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
@@ -17,6 +18,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   WritingState writingState = WritingState
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
+  bool rendering = false; // whether the video is being rendered
   String currentAudioDevice = ''; // the current audio device name
   String currentCameraDevice = ''; // the current camera device name
   List<String> audioDevices = []; // the list of audio devices
@@ -64,14 +66,30 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     recordingChannel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'mark_writing_state':
-          debugPrint('mark_writing_state');
           writingState = WritingState.fromName(call.arguments);
+          if (writingState == WritingState.encoding &&
+              !Setting().renderingWhileEncoding) {
+            stopRendering();
+            stopCameraStream();
+          }
           notifyListeners();
           return null;
 
         case 'mark_recording_state':
-          debugPrint('mark_recording_state');
           recording = call.arguments;
+          notifyListeners();
+          return null;
+        default:
+          debugPrint('Unknown method ${call.method} ');
+          return null;
+      }
+    });
+
+    renderingChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'mark_rendering_state':
+          rendering = call.arguments;
+          debugPrint('Rendering: $rendering');
           notifyListeners();
           return null;
         default:
@@ -123,7 +141,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  openCameraStream() async {
+  void openCameraStream() async {
     final res = await cameraChannel.invokeMethod('open_camera_stream', {});
     _showResult(res);
   }
@@ -147,6 +165,11 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void startRendering() async {
     final res = await renderingChannel.invokeMethod('start_rendering', {});
+    _showResult(res);
+  }
+
+  void stopRendering() async {
+    final res = await renderingChannel.invokeMethod('stop_rendering', {});
     _showResult(res);
   }
 

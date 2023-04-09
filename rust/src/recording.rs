@@ -103,7 +103,7 @@ pub fn encode_to_h264(mut yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) -> Vec<u8
     let mut encoder = encoder(1280, 720).unwrap();
     debug!("encoding to h264...");
     for _ in 0..len {
-        let time_each = std::time::Instant::now();
+        // let time_each = std::time::Instant::now();
         let yuv = YUVBuf {
             yuv: yuv_iter.next().unwrap(),
             width: 1280,
@@ -118,7 +118,7 @@ pub fn encode_to_h264(mut yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) -> Vec<u8
                 buf_h264.extend_from_slice(nal)
             }
         }
-        debug!("encoded to h264: {:?}", time_each.elapsed());
+        // debug!("encoded to h264: {:?}", time_each.elapsed());
     }
 
     debug!("encoded to h264: {:?}", started.elapsed());
