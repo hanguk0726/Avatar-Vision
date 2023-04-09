@@ -73,3 +73,21 @@ class _SavingIndicator extends State<SavingIndicator>
             )));
   }
 }
+
+Widget loadingIndicator(String text) {
+  Color color = const Color.fromARGB(255, 87, 87, 87);
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(
+        "$text...",
+        style: TextStyle(color: color, fontSize: 40),
+      ),
+      const SizedBox(width: 50),
+      SpinKitFadingCube(
+        color: color,
+        size: 40.0,
+      )
+    ],
+  );
+}

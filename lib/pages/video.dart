@@ -5,8 +5,8 @@ import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
 
 import '../domain/writing_state.dart';
-import '../widgets/saving_indicator.dart';
 import '../widgets/media_conrtol_bar.dart';
+import '../widgets/saving_indicator.dart';
 import '../widgets/texture.dart';
 import '../widgets/waveform.dart';
 
@@ -49,10 +49,12 @@ class _MyHomePageState extends State<MyHomePage> {
     final currentCameraDevice = native.currentCameraDevice;
     final cameraDevices = native.cameraDevices;
 
-    bool showWritingIndicator = !recording && writingState != WritingState.idle;
+    bool showSavingIndicator =
+        rendering && !recording && writingState != WritingState.idle;
     bool showRenderButton = writingState == WritingState.idle &&
         !rendering &&
         currentCameraDevice.isNotEmpty;
+    bool showMediaControlButton = currentCameraDevice.isNotEmpty && rendering;
 
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
@@ -92,18 +94,15 @@ class _MyHomePageState extends State<MyHomePage> {
             }),
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
-          if (rendering)
-            texture()
-          else
-            const Center(child: Text("not rendering")),
-          if (showWritingIndicator)
+          if (rendering) texture() else loadingIndicator(writingState.toName()), // TODO on idle rust send message to flutter to do sth
+          if (showSavingIndicator)
             _savingIndicator(
               recording: recording,
               writingState: writingState,
             ),
           if (recording) _recordingIndicator(),
           if (showRenderButton) _renderButton(),
-          if (currentCameraDevice.isNotEmpty && rendering)
+          if (showMediaControlButton)
             mediaControlBar(
               recording: recording,
               onStart: () {
