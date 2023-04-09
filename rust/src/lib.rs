@@ -65,6 +65,7 @@ fn init_channels(
     let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
 
     let recording = Arc::new(AtomicBool::new(false));
+    let rendering = Arc::new(AtomicBool::new(false));
     let capture_white_sound = Arc::new(AtomicBool::new(false));
 
     let recording_info = Arc::new(Mutex::new(RecordingInfo::new(
@@ -85,7 +86,8 @@ fn init_channels(
     });
 
     channel_camera::init(CameraHandler {
-        camera: RefCell::new(Camera::new(channel_handler.clone())),
+        rendering: rendering.clone(),
+        camera: Arc::new(Mutex::new(Camera::new(channel_handler.clone()))),
     });
 
     channel_recording::init(RecordingHandler::new(
@@ -94,11 +96,11 @@ fn init_channels(
         channel_handler,
     ));
 
-    channel_rendering::init(RenderingHandler::new(texture));
+    channel_rendering::init(RenderingHandler::new(texture, rendering));
 
     channel_audio::init(AudioHandler {
         capture_white_sound,
-        stream: RefCell::new(None),
+        stream: Arc::new(Mutex::new(None)),
         audio,
         current_device: Arc::new(Mutex::new(None)),
     });

@@ -21,10 +21,13 @@ pub struct RenderingHandler {
 }
 
 impl RenderingHandler {
-    pub fn new(texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>) -> Self {
+    pub fn new(
+        texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
+        rendering: Arc<AtomicBool>,
+    ) -> Self {
         Self {
             texture,
-            rendering: Arc::new(AtomicBool::new(false)),
+            rendering,
             invoker: Late::new(),
         }
     }
@@ -67,7 +70,8 @@ impl AsyncMethodHandler for RenderingHandler {
 
                 let rendering = self.rendering.clone();
 
-                thread::spawn(move || { // avoid blocking the method channel
+                thread::spawn(move || {
+                    // avoid blocking the method channel
                     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
                         thread::sleep(std::time::Duration::from_millis(16)); // 60fps = 16.666ms
                         texture_provider.mark_frame_available();

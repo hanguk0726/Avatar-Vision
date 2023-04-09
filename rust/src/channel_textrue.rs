@@ -13,7 +13,7 @@ use irondash_run_loop::RunLoop;
 use log::{debug, info};
 use nokhwa::Buffer;
 
-use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb};
+use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb, recording};
 pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
@@ -43,7 +43,9 @@ impl AsyncMethodHandler for TextureHandler {
                     .unwrap();
 
                 let mut index = 0;
-
+                let pixel_buffer = self.pixel_buffer.clone();
+                let recording = self.recording.clone();
+                let channel_handler = self.channel_handler.clone();
                 while let Ok(buf) = receiver.recv() {
                     let render_buffer = render_buffer.clone();
                     let render_buffer2 = render_buffer.clone();
@@ -56,7 +58,7 @@ impl AsyncMethodHandler for TextureHandler {
 
                     let decoded = render.1.to_owned();
 
-                    if self.recording.load(std::sync::atomic::Ordering::Relaxed) {
+                    if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         encoding_sender
                             .try_send(decoded.clone())
                             .unwrap_or_else(|e| {
@@ -65,19 +67,18 @@ impl AsyncMethodHandler for TextureHandler {
                             });
                     } else {
                         if encoding_sender.is_closed() {
-                            let mut channel_handler = self.channel_handler.lock().unwrap();
+                            let mut channel_handler = channel_handler.lock().unwrap();
                             channel_handler.reset_encoding();
                             encoding_sender = channel_handler.encoding.0.clone();
                         }
                     }
 
-                    let mut pixel_buffer = self.pixel_buffer.lock().unwrap();
+                    let mut pixel_buffer = pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;
                 }
-
-                info!("render_texture finished");
                 Ok("ok".into())
             }
+
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
                 message: Some(format!("Unknown Method: {}", call.method)),

@@ -21,7 +21,7 @@ use crate::{audio::{open_audio_stream, AudioStream}};
 
 pub struct AudioHandler {
     pub capture_white_sound: Arc<AtomicBool>,
-    pub stream: RefCell<Option<AudioStream>>,
+    pub stream: Arc<Mutex<Option<AudioStream>>>,
     pub audio: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
 }
@@ -54,7 +54,7 @@ impl AsyncMethodHandler for AudioHandler {
 
                 recorder.play().unwrap();
 
-                self.stream.replace(Some(recorder));
+                self.stream.lock().unwrap().replace(recorder);
                 PlatformResult::Ok("ok".into())
             }
             "stop_audio_stream" => {
@@ -63,10 +63,10 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
-                if let Some(recorder) = self.stream.borrow_mut().take() {
+                if let Some(recorder) = self.stream.lock().unwrap().take() {
                     recorder.stop();
                 }
-                self.stream.replace(None);
+
                 return PlatformResult::Ok("ok".into());
             }
 

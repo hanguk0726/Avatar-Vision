@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
-use nokhwa::utils::{CameraIndex, RequestedFormat, RequestedFormatType, CameraInfo};
+use nokhwa::utils::{CameraIndex, CameraInfo, RequestedFormat, RequestedFormatType};
 use nokhwa::{Buffer, CallbackCamera};
 
 use std::cell::RefCell;
@@ -17,7 +17,6 @@ pub struct Camera {
     pub camera: Option<CallbackCamera>,
     pub current_camera_info: Arc<Mutex<Option<CameraInfo>>>,
 }
-
 impl Camera {
     pub fn new(channel_handler: Arc<Mutex<ChannelHandler>>) -> Self {
         Self {
@@ -42,6 +41,13 @@ impl Camera {
         }
     }
 
+    pub fn health_check(&mut self) -> bool {
+        let camera = self.camera.as_mut().unwrap();
+        match camera.poll_frame() {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
     pub fn open_camera_stream(&mut self) {
         if let Some(mut camera) = self.camera.take() {
             if let Err(_) = camera.open_stream() {
@@ -76,18 +82,18 @@ pub fn inflate_camera_conection(
         RequestedFormat::new::<RgbAFormat>(RequestedFormatType::AbsoluteHighestFrameRate);
 
     let camera = CallbackCamera::new(index, requested, move |buf| {
-        debug_time_elasped();
+        // debug_time_elasped();
         rendering_sender.try_send_realtime(buf).unwrap_or_else(|e| {
             error!("Error sending frame: {:?}", e);
             false
         });
     })
     .map_err(|why| {
-        eprintln!("Error opening camera: {:?}", why);
+        error!("Error opening camera: {:?}", why);
         Error
     })?;
     let format = camera.camera_format().map_err(|why| {
-        eprintln!("Error reading camera format: {:?}", why);
+        error!("Error reading camera format: {:?}", why);
         Error
     })?;
     let camera_info = camera.info().clone();

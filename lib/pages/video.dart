@@ -94,7 +94,11 @@ class _MyHomePageState extends State<MyHomePage> {
             }),
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
-          if (rendering) texture() else loadingIndicator(writingState.toName()), // TODO on idle rust send message to flutter to do sth
+          if (rendering)
+            texture()
+          else if (writingState != WritingState.idle)
+            loadingIndicator(writingState
+                .toName()),  
           if (showSavingIndicator)
             _savingIndicator(
               recording: recording,
