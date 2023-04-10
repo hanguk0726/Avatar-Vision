@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../services/native.dart';
+
 class Waveform extends StatefulWidget {
-  final  List<double> data = [
+  final List<double> data = [
     0,
     3,
     6,
@@ -23,14 +25,12 @@ class Waveform extends StatefulWidget {
     3,
   ];
 
-  final BehaviorSubject<bool> hasAudio;
   final double height;
   final double width;
   final int durationMillis;
 
   Waveform({
     super.key,
-    required this.hasAudio,
     required this.height,
     required this.width,
     required this.durationMillis,
@@ -45,13 +45,20 @@ class WaveformState extends State<Waveform>
   late AnimationController _controller;
   late Animation<double> _animation;
 
-  late BehaviorSubject<bool> hasAudio;
+  late BehaviorSubject<bool> _hasAudio;
   @override
   void initState() {
     super.initState();
-    hasAudio = widget.hasAudio;
+    _hasAudio = BehaviorSubject.seeded(false);
     int duration = widget.durationMillis;
     int reverseDuration = (widget.durationMillis / 2).round();
+    Native().observeAudioBuffer((hasAudio) {
+      if (!_hasAudio.isClosed) {
+        _hasAudio.add(hasAudio);
+        return true;
+      }
+      return false;
+    });
     _controller = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: duration),
@@ -69,8 +76,11 @@ class WaveformState extends State<Waveform>
     );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
 
-    hasAudio.listen((hasAudio) {
-      if (hasAudio && _controller.status == AnimationStatus.dismissed && !_controller.isAnimating && mounted) {
+    _hasAudio.listen((hasAudio) {
+      if (hasAudio &&
+          _controller.status == AnimationStatus.dismissed &&
+          !_controller.isAnimating &&
+          mounted) {
         _controller.forward();
       }
     });
@@ -79,6 +89,7 @@ class WaveformState extends State<Waveform>
   @override
   void dispose() {
     _controller.dispose();
+    _hasAudio.close();
     super.dispose();
   }
 

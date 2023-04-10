@@ -166,12 +166,7 @@ Widget _drawer(
     required String currentCameraDevice,
     required List<String> cameraDevices,
     required Function(String) onChangedCameraDevice}) {
-  BehaviorSubject<bool> hasAudio = BehaviorSubject.seeded(false);
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Native().observeAudioBuffer((hasAudio_) {
-      hasAudio.add(hasAudio_);
-    });
-  });
+ 
   return Drawer(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -213,7 +208,6 @@ Widget _drawer(
             textOnEmpty: "No audio input devices found",
             iconOnEmpty: const Icon(Icons.mic_off)),
         Waveform(
-          hasAudio: hasAudio,
           height: 100,
           width: 270,
           durationMillis: 500,

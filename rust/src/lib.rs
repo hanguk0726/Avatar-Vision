@@ -84,11 +84,11 @@ fn init_channels(
         channel_handler: channel_handler.clone(),
         recording: recording.clone(),
     });
-
-    channel_camera::init(CameraHandler {
-        rendering: rendering.clone(),
-        camera: Arc::new(Mutex::new(Camera::new(channel_handler.clone()))),
-    });
+    
+    channel_camera::init(CameraHandler::new(
+        rendering.clone(),
+        Arc::new(Mutex::new(Camera::new(channel_handler.clone()))),
+    ));
 
     channel_recording::init(RecordingHandler::new(
         audio.clone(),

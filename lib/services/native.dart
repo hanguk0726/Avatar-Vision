@@ -19,6 +19,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
   bool rendering = false; // whether the video is being rendered
+  bool camera_health =
+      true; // whether the camera is ok (connection, resource etc.)
   String currentAudioDevice = ''; // the current audio device name
   String currentCameraDevice = ''; // the current camera device name
   List<String> audioDevices = []; // the list of audio devices
@@ -89,6 +91,18 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_rendering_state':
           rendering = call.arguments;
+          notifyListeners();
+          return null;
+        default:
+          debugPrint('Unknown method ${call.method} ');
+          return null;
+      }
+    });
+
+    cameraChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'camera_health_check':
+          camera_health = call.arguments;
           notifyListeners();
           return null;
         default:
@@ -263,13 +277,15 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void observeAudioBuffer(
-    Function(bool hasAudio) listen,
+    bool Function(bool hasAudio) listen,
   ) async {
     while (true) {
       await Future.delayed(const Duration(milliseconds: 200));
       if (writingState == WritingState.idle) {
         final hasAudio = await clearAudioBuffer();
-        listen(hasAudio);
+        if (!listen(hasAudio)) {
+          break;
+        }
       }
     }
   }

@@ -24,6 +24,7 @@ pub struct TextureHandler {
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
+            
             "open_texture_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
