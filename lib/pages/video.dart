@@ -6,7 +6,7 @@ import 'package:video_diary/widgets/dropdown.dart';
 
 import '../domain/writing_state.dart';
 import '../widgets/media_conrtol_bar.dart';
-import '../widgets/saving_indicator.dart';
+import '../widgets/indicator.dart';
 import '../widgets/texture.dart';
 import '../widgets/waveform.dart';
 
@@ -48,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final audioDevices = native.audioDevices;
     final currentCameraDevice = native.currentCameraDevice;
     final cameraDevices = native.cameraDevices;
+    final cameraHealthCheck = native.cameraHealthCheck;
 
     bool showSavingIndicator =
         rendering && !recording && writingState != WritingState.idle;
@@ -97,8 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (rendering)
             texture()
           else if (writingState != WritingState.idle)
-            loadingIndicator(writingState
-                .toName()),  
+            message(writingState.toName(), true, true),
           if (showSavingIndicator)
             _savingIndicator(
               recording: recording,
@@ -118,6 +118,18 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           if (currentCameraDevice.isEmpty)
             const Center(child: Text("No camera devices found")),
+          if (!cameraHealthCheck)
+            message(
+              "The camera device has encountered an error. Please pull out the usb and reconnect it.",
+              false,
+              false,
+              // slightly_frowning_face.png file from assets
+              icon: Image.asset(
+                'assets/slightly_frowning_face.png',
+                width: 50,
+                height: 50,
+              ),
+            )
         ]),
       );
     });
@@ -166,7 +178,6 @@ Widget _drawer(
     required String currentCameraDevice,
     required List<String> cameraDevices,
     required Function(String) onChangedCameraDevice}) {
- 
   return Drawer(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.start,

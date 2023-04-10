@@ -13,46 +13,27 @@ use irondash_message_channel::{
     PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use log::{debug, error};
+use log::debug;
 use nokhwa::{
     query,
     utils::{ApiBackend, CameraIndex},
 };
-use tokio::runtime::Runtime;
 
 use crate::camera::Camera;
 
 pub struct CameraHandler {
     pub rendering: Arc<AtomicBool>,
     pub camera: Arc<Mutex<Camera>>,
-    invoker: Late<AsyncMethodInvoker>,
 }
 
 impl CameraHandler {
     pub fn new(rendering: Arc<AtomicBool>, camera: Arc<Mutex<Camera>>) -> Self {
-        Self {
-            rendering,
-            camera,
-            invoker: Late::new(),
-        }
-    }
-
-    async fn send_health_check(&self, target_isolate: IsolateId, health_check: bool) {
-        // if let Err(e) = self
-        //     .invoker
-        //     .call_method(target_isolate, "health_check", Value::Bool(health_check))
-        //     .await
-        // {
-        //     error!("error: {:?}", e);
-        // }
+        Self { rendering, camera }
     }
 }
 
 #[async_trait(?Send)]
 impl AsyncMethodHandler for CameraHandler {
-    fn assign_invoker(&self, _invoker: AsyncMethodInvoker) {
-        self.invoker.set(_invoker);
-    }
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
             "open_camera_stream" => {
@@ -61,45 +42,21 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
+                let mut camera = self.camera.lock().unwrap();
+                let mut camera_index: Option<CameraIndex> = None;
                 {
-                    let mut camera = self.camera.lock().unwrap();
-                    let mut camera_index: Option<CameraIndex> = None;
-                    {
-                        let camera_info = &mut camera.current_camera_info.lock().unwrap();
-                        camera_index.replace(camera_info.as_ref().unwrap().index().clone());
-                    }
-                    if camera_index.is_none() {
-                        return PlatformResult::Err(PlatformError {
-                            code: "method_failed".into(),
-                            message: Some(format!("open_camera_stream failed: {}", call.method)),
-                            detail: Value::Null,
-                        });
-                    }
-                    camera.infate_camera(camera_index.unwrap());
-                    camera.open_camera_stream();
+                    let camera_info = &mut camera.current_camera_info.lock().unwrap();
+                    camera_index.replace(camera_info.as_ref().unwrap().index().clone());
                 }
-                // let camera = self.camera.clone();
-                // let rendering = self.rendering.clone();
-
-                // let (s, r) = kanal::oneshot::<bool>();
-
-                // thread::spawn(move || {
-                //     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
-                //         let camera = camera.clone();
-                //         let mut camera = camera.lock().unwrap();
-                //         let health_check = camera.health_check();
-                //         if health_check.not() {
-                //             error!("camera health check failed");
-                //             s.send(health_check).unwrap();
-                //             break;
-                //         }
-                //         std::thread::sleep(std::time::Duration::from_millis(1000));
-                //     }
-                // });
-
-                // if let Ok(health_check) = r.to_async().recv().await {
-                //     self.send_health_check(call.isolate, health_check).await;
-                // }
+                if camera_index.is_none() {
+                    return PlatformResult::Err(PlatformError {
+                        code: "method_failed".into(),
+                        message: Some(format!("open_camera_stream failed: {}", call.method)),
+                        detail: Value::Null,
+                    });
+                }
+                camera.infate_camera(camera_index.unwrap());
+                camera.open_camera_stream();
 
                 return PlatformResult::Ok("ok".into());
             }
@@ -112,6 +69,10 @@ impl AsyncMethodHandler for CameraHandler {
                 let mut camera = self.camera.lock().unwrap();
                 camera.stop_camera_stream();
                 Ok("ok".into())
+            }
+            "camera_health_check" => {
+                let mut camera = self.camera.lock().unwrap();
+                Ok(camera.health_check().into())
             }
 
             "select_camera_device" => {

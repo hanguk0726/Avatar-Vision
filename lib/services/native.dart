@@ -19,7 +19,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
   bool rendering = false; // whether the video is being rendered
-  bool camera_health =
+  bool cameraHealthCheck =
       true; // whether the camera is ok (connection, resource etc.)
   String currentAudioDevice = ''; // the current audio device name
   String currentCameraDevice = ''; // the current camera device name
@@ -91,18 +91,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_rendering_state':
           rendering = call.arguments;
-          notifyListeners();
-          return null;
-        default:
-          debugPrint('Unknown method ${call.method} ');
-          return null;
-      }
-    });
-
-    cameraChannel.setMethodCallHandler((call) async {
-      switch (call.method) {
-        case 'camera_health_check':
-          camera_health = call.arguments;
+          observeCameraHealth();
           notifyListeners();
           return null;
         default:
@@ -238,6 +227,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     return;
   }
 
+  Future<void> _cameraHealthCheck() async {
+    final res = await cameraChannel.invokeMethod('camera_health_check', {});
+    cameraHealthCheck = res;
+    notifyListeners();
+    return;
+  }
+
   Future<void> queryDevices() async {
     await _availableAudios();
     await _availableCameras();
@@ -274,6 +270,20 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     await _selectCameraDevice(device);
     _currentCameraDevice();
     startCamera();
+  }
+
+  void observeCameraHealth() async {
+    while (true) {
+      if (!rendering) break;
+      await Future.delayed(const Duration(milliseconds: 1000));
+      await _cameraHealthCheck();
+      if (!cameraHealthCheck) {
+        stopRendering();
+        stopCameraStream();
+        queryDevices();
+        break;
+      }
+    }
   }
 
   void observeAudioBuffer(
