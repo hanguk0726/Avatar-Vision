@@ -87,7 +87,7 @@ pub fn open_audio_stream(
             &config.config(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 let mut buffer = buffer_clone.lock().unwrap();
-                const HAS_AUDIO: f32 = 0.02;
+                const HAS_AUDIO: f32 = 0.03;
                 let amplitude = data
                     .iter()
                     .fold(0.0, |max: f32, &sample| max.max(f32::abs(sample)));

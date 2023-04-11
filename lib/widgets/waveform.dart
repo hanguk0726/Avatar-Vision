@@ -52,13 +52,9 @@ class WaveformState extends State<Waveform>
     _hasAudio = BehaviorSubject.seeded(false);
     int duration = widget.durationMillis;
     int reverseDuration = (widget.durationMillis / 2).round();
-    Native().observeAudioBuffer((hasAudio) {
-      if (!_hasAudio.isClosed) {
-        _hasAudio.add(hasAudio);
-        return true;
-      }
-      return false;
-    });
+
+    Native().observeAudioBuffer(_hasAudio);
+    
     _controller = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: duration),

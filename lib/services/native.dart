@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../domain/setting.dart';
 import '../domain/writing_state.dart';
@@ -286,17 +287,17 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
-  void observeAudioBuffer(
-    bool Function(bool hasAudio) listen,
-  ) async {
+  void observeAudioBuffer(BehaviorSubject<bool> stream) async {
     while (true) {
-      await Future.delayed(const Duration(milliseconds: 200));
       if (writingState == WritingState.idle) {
-        final hasAudio = await clearAudioBuffer();
-        if (!listen(hasAudio)) {
+        bool hanAudio = await clearAudioBuffer();
+        if (!stream.isClosed) {
+          stream.add(hanAudio);
+        } else {
           break;
         }
       }
+      await Future.delayed(const Duration(milliseconds: 200));
     }
   }
 }
