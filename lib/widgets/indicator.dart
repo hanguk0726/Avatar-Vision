@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
+import '../domain/color_.dart';
 import '../domain/writing_state.dart';
 
 class SavingIndicator extends StatefulWidget {
@@ -20,7 +21,7 @@ class SavingIndicator extends StatefulWidget {
 class _SavingIndicator extends State<SavingIndicator>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-  Color color = const Color.fromARGB(255, 87, 87, 87);
+  Color color = customGrey;
 
   @override
   void initState() {
@@ -74,15 +75,19 @@ class _SavingIndicator extends State<SavingIndicator>
   }
 }
 
-Widget message(String text, bool ellipsis, bool indicator,
-    {Widget? icon}) {
-  Color color = const Color.fromARGB(255, 87, 87, 87);
+Widget message(String text, bool ellipsis, bool indicator, {Widget? icon}) {
+  Color color = customGrey;
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
+      if (icon != null) ...[
+        icon,
+        const SizedBox(width: 50),
+      ],
       Text(
         ellipsis ? "$text..." : text,
         style: TextStyle(color: color, fontSize: 40),
+        textAlign: TextAlign.center,
       ),
       const SizedBox(width: 50),
       if (indicator)
@@ -90,7 +95,6 @@ Widget message(String text, bool ellipsis, bool indicator,
           color: color,
           size: 40.0,
         ),
-      if (icon != null) icon
     ],
   );
 }

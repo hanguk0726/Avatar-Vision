@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:video_diary/domain/color_.dart';
+import 'package:video_diary/domain/setting.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
 
@@ -72,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Builder(
                 builder: (BuildContext context) {
                   return IconButton(
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(Icons.settings),
                     onPressed: () {
                       Scaffold.of(context).openEndDrawer();
                     },
@@ -119,16 +121,16 @@ class _MyHomePageState extends State<MyHomePage> {
           if (currentCameraDevice.isEmpty)
             const Center(child: Text("No camera devices found")),
           if (!cameraHealthCheck)
-            message(
-              "The camera device has encountered an error. Please pull out the usb and reconnect it.",
-              false,
-              false,
-              // slightly_frowning_face.png file from assets
-              icon: Image.asset(
-                'assets/slightly_frowning_face.png',
-                width: 50,
-                height: 50,
-              ),
+            Center(
+              child: message(
+                  "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
+                  false,
+                  false,
+                  icon: Icon(
+                    Icons.error_outline,
+                    color: customGrey,
+                    size: 100.0,
+                  )),
             )
         ]),
       );
@@ -178,25 +180,18 @@ Widget _drawer(
     required String currentCameraDevice,
     required List<String> cameraDevices,
     required Function(String) onChangedCameraDevice}) {
+  const spacer = SizedBox(height: 24);
+  final setting = Provider.of<Setting>(context);
   return Drawer(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        DrawerHeader(
-          decoration: const BoxDecoration(
-            color: Colors.blue,
-          ),
+        spacer,
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0, right: 8.0),
           child: Row(
             children: [
-              const Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-              const Spacer(),
               IconButton(
                   icon: const Icon(Icons.refresh),
                   onPressed: () async {
@@ -207,10 +202,12 @@ Widget _drawer(
                   icon: const Icon(Icons.close),
                   onPressed: () {
                     Navigator.pop(context);
-                  })
+                  }),
             ],
           ),
         ),
+        const Divider(),
+        spacer,
         dropdown(
             value: currentAudioDevice,
             items: audioDevices,
@@ -218,11 +215,12 @@ Widget _drawer(
             icon: const Icon(Icons.mic),
             textOnEmpty: "No audio input devices found",
             iconOnEmpty: const Icon(Icons.mic_off)),
-        Waveform(
-          height: 100,
-          width: 270,
-          durationMillis: 500,
-        ),
+        if (currentAudioDevice.isNotEmpty)
+          Waveform(
+            height: 100,
+            width: 270,
+            durationMillis: 500,
+          ),
         dropdown(
             value: currentCameraDevice,
             items: cameraDevices,
@@ -230,6 +228,28 @@ Widget _drawer(
             icon: const Icon(Icons.camera_alt),
             textOnEmpty: "No camera devices found",
             iconOnEmpty: const Icon(Icons.no_photography)),
+        spacer,
+        const Divider(),
+        spacer,
+        Tooltip(
+            message:
+                'Depending on the cpu specification, This may increase encoding time',
+            preferBelow: true,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+              child: Row(
+                children: [
+                  const Text("Render while recording"),
+                  const Spacer(),
+                  Switch(
+                    value: setting.renderingWhileEncoding,
+                    onChanged: (value) {
+                      setting.toggleRenderingWhileEncoding();
+                    },
+                  ),
+                ],
+              ),
+            )),
       ],
     ),
   );

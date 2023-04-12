@@ -276,7 +276,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   void observeCameraHealth() async {
     while (true) {
       if (!rendering) break;
-      await Future.delayed(const Duration(milliseconds: 1000));
       await _cameraHealthCheck();
       if (!cameraHealthCheck) {
         stopRendering();
@@ -284,6 +283,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         queryDevices();
         break;
       }
+      await Future.delayed(const Duration(milliseconds: 1000));
     }
   }
 

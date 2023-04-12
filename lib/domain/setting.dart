@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 class Setting with ChangeNotifier, DiagnosticableTreeMixin {
@@ -6,6 +10,44 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   factory Setting() {
     return _instance;
   }
-
+  final fileName = 'diary_app_setting.json';
   bool renderingWhileEncoding = false;
+
+  Map<String, dynamic> _toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['renderingWhileEncoding'] = renderingWhileEncoding;
+    return data;
+  }
+
+  bool toggleRenderingWhileEncoding() {
+    renderingWhileEncoding = !renderingWhileEncoding;
+    save();
+    notifyListeners();
+    return renderingWhileEncoding;
+  }
+
+  void save() {
+    String jsonString = jsonEncode(_toJson());
+    File file = File(fileName);
+    List<int> bytes = utf8.encode(jsonString);
+    try {
+      file.writeAsBytesSync(bytes);
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+    }
+  }
+
+  Future<void> load() async {
+    File file = File(fileName);
+    bool exists = await file.exists();
+    if (!exists) {
+      return;
+    }
+    String jsonString = file.readAsStringSync();
+    final Map<String, dynamic> data = jsonDecode(jsonString);
+    renderingWhileEncoding = data['renderingWhileEncoding'] as bool;
+    return;
+  }
 }
