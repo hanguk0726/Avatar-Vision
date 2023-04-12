@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:video_diary/domain/color_.dart';
+import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/domain/setting.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
 
 import '../domain/writing_state.dart';
-import '../widgets/media_conrtol_bar.dart';
 import '../widgets/indicator.dart';
+import '../widgets/media_conrtol_bar.dart';
+import '../widgets/tab.dart';
 import '../widgets/texture.dart';
 import '../widgets/waveform.dart';
 
@@ -25,21 +26,29 @@ class Video extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Video Page'),
+      home: const VideoState(title: 'Video Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class VideoState extends StatefulWidget {
   final String title;
 
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  const VideoState({Key? key, required this.title}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<VideoState> createState() => _VideoStateState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _VideoStateState extends State<VideoState> {
+  BehaviorSubject tabItem = BehaviorSubject<TabItem>();
+
+  @override
+  void dispose() {
+    tabItem.close();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
@@ -59,42 +68,43 @@ class _MyHomePageState extends State<MyHomePage> {
         currentCameraDevice.isNotEmpty;
     bool showMediaControlButton = currentCameraDevice.isNotEmpty && rendering;
 
+// _settings(
+//             context: context,
+//             currentAudioDevice: currentAudioDevice,
+//             audioDevices: audioDevices,
+//             onChangedAudioDevice: (value) {
+//               Native().selectAudioDevice(value);
+//             },
+//             currentCameraDevice: currentCameraDevice,
+//             cameraDevices: cameraDevices,
+//             onChangedCameraDevice: (value) {
+//               Native().selectCameraDevice(value);
+//             })
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
         key: _scaffoldKey,
-        appBar: AppBar(
-          title: const Text('My App'),
-          actions: <Widget>[
-            if (recording)
-              const Padding(
-                padding: EdgeInsets.only(right: 16),
-                child: Icon(Icons.do_not_disturb),
-              )
-            else
-              Builder(
-                builder: (BuildContext context) {
-                  return IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () {
-                      Scaffold.of(context).openEndDrawer();
-                    },
-                  );
-                },
-              ),
-          ],
-        ),
-        endDrawer: _drawer(
-            context: context,
-            currentAudioDevice: currentAudioDevice,
-            audioDevices: audioDevices,
-            onChangedAudioDevice: (value) {
-              Native().selectAudioDevice(value);
-            },
-            currentCameraDevice: currentCameraDevice,
-            cameraDevices: cameraDevices,
-            onChangedCameraDevice: (value) {
-              Native().selectCameraDevice(value);
-            }),
+        // backgroundColor: customNavy,
+        // appBar: AppBar(
+        //   title: const Text('My App'),
+        //   actions: <Widget>[
+        //     if (recording)
+        //       const Padding(
+        //         padding: EdgeInsets.only(right: 16),
+        //         child: Icon(Icons.do_not_disturb),
+        //       )
+        //     else
+        //       Builder(
+        //         builder: (BuildContext context) {
+        //           return IconButton(
+        //             icon: const Icon(Icons.settings),
+        //             onPressed: () {
+        //               Scaffold.of(context).openEndDrawer();
+        //             },
+        //           );
+        //         },
+        //       ),
+        //   ],
+        // ),
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
           if (rendering)
@@ -131,7 +141,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: customGrey,
                     size: 100.0,
                   )),
-            )
+            ),
+          Tabs(
+            buttonLabels: const [
+              TabItem.mainCam,
+              TabItem.pastEntries,
+              TabItem.submut,
+              TabItem.task,
+            ],
+            onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+          ),
         ]),
       );
     });
@@ -162,17 +181,20 @@ Widget _renderButton() {
 }
 
 Widget _recordingIndicator() {
-  return const Positioned(
+  return Positioned(
     top: 8,
-    right: 16,
+    left: 16,
     child: Text(
       "REC",
-      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+      style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontFamily: mainFont),
     ),
   );
 }
 
-Widget _drawer(
+Widget _settings(
     {required BuildContext context,
     required String currentAudioDevice,
     required List<String> audioDevices,
@@ -182,75 +204,74 @@ Widget _drawer(
     required Function(String) onChangedCameraDevice}) {
   const spacer = SizedBox(height: 24);
   final setting = Provider.of<Setting>(context);
-  return Drawer(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        spacer,
-        Padding(
-          padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-          child: Row(
-            children: [
-              IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () async {
-                    await Native().queryDevices();
-                  }),
-              const Spacer(),
-              IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  }),
-            ],
-          ),
+  return Column(
+    mainAxisAlignment: MainAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: <Widget>[
+      spacer,
+      Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+        child: Row(
+          children: [
+            IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () async {
+                  await Native().queryDevices();
+                }),
+            const Spacer(),
+            IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+          ],
         ),
-        const Divider(),
-        spacer,
-        dropdown(
-            value: currentAudioDevice,
-            items: audioDevices,
-            onChanged: onChangedAudioDevice,
-            icon: const Icon(Icons.mic),
-            textOnEmpty: "No audio input devices found",
-            iconOnEmpty: const Icon(Icons.mic_off)),
-        if (currentAudioDevice.isNotEmpty)
-          Waveform(
-            height: 100,
-            width: 270,
-            durationMillis: 500,
-          ),
-        dropdown(
-            value: currentCameraDevice,
-            items: cameraDevices,
-            onChanged: onChangedCameraDevice,
-            icon: const Icon(Icons.camera_alt),
-            textOnEmpty: "No camera devices found",
-            iconOnEmpty: const Icon(Icons.no_photography)),
-        spacer,
-        const Divider(),
-        spacer,
-        Tooltip(
-            message:
-                'Depending on the cpu specification, This may increase encoding time',
-            preferBelow: true,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-              child: Row(
-                children: [
-                  const Text("Render while recording"),
-                  const Spacer(),
-                  Switch(
-                    value: setting.renderingWhileEncoding,
-                    onChanged: (value) {
-                      setting.toggleRenderingWhileEncoding();
-                    },
-                  ),
-                ],
-              ),
-            )),
-      ],
-    ),
+      ),
+      const Divider(),
+      spacer,
+      dropdown(
+          value: currentAudioDevice,
+          items: audioDevices,
+          onChanged: onChangedAudioDevice,
+          icon: const Icon(Icons.mic),
+          textOnEmpty: "No audio input devices found",
+          iconOnEmpty: const Icon(Icons.mic_off)),
+      if (currentAudioDevice.isNotEmpty)
+        Waveform(
+          height: 100,
+          width: 270,
+          durationMillis: 500,
+        ),
+      spacer,
+      dropdown(
+          value: currentCameraDevice,
+          items: cameraDevices,
+          onChanged: onChangedCameraDevice,
+          icon: const Icon(Icons.camera_alt),
+          textOnEmpty: "No camera devices found",
+          iconOnEmpty: const Icon(Icons.no_photography)),
+      spacer,
+      const Divider(),
+      spacer,
+      Tooltip(
+          message:
+              'Depending on the cpu specification, This may increase encoding time',
+          preferBelow: true,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+            child: Row(
+              children: [
+                const Text("Render while recording"),
+                const Spacer(),
+                Switch(
+                  value: setting.renderingWhileEncoding,
+                  onChanged: (value) {
+                    setting.toggleRenderingWhileEncoding();
+                  },
+                ),
+              ],
+            ),
+          )),
+    ],
   );
 }

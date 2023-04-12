@@ -135,7 +135,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void startRecording() async {
-    final res = await recordingChannel.invokeMethod('start_recording', {});
+    final res = await recordingChannel.invokeMethod('start_recording', {
+         'title': "test",
+    });
     _showResult(res);
   }
 

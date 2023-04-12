@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{Arc, Mutex},
-    thread,
+    thread, collections::HashMap,
 };
 
 use async_trait::async_trait;
@@ -86,7 +86,7 @@ impl RecordingHandler {
         }
     }
 
-    fn save(&self, frames: usize) -> Result<(), std::io::Error> {
+    fn save(&self, frames: usize, title: &str) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
 
         let encoded = Arc::clone(&self.encoded);
@@ -99,7 +99,7 @@ impl RecordingHandler {
         let audio = audio.lock().unwrap();
         let audio = audio.to_owned();
 
-        to_mp4(&encoded[..], "test", frame_rate, audio).unwrap();
+        to_mp4(&encoded[..], title, frame_rate, audio).unwrap();
         debug!("*********** saved! ***********");
         Ok(())
     }
@@ -119,6 +119,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
+                let map: HashMap<String, String> = call.args.try_into().unwrap();
+                let title = map.get("title").unwrap().as_str();
                 let update_writing_state = |state: WritingState| async move {
                     {
                         self.recording_info.lock().unwrap().set_writing_state(state);
@@ -178,7 +180,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                if let Err(e) = self.save(count) {
+                if let Err(e) = self.save(count, title) {
                     error!("Failed to save video {:?}", e);
                 }
 
