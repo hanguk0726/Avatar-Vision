@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:video_diary/domain/assets.dart';
 
 import '../services/native.dart';
 
@@ -14,6 +15,10 @@ class Waveform extends StatefulWidget {
     18,
     21,
     24,
+    27,
+    30,
+    33,
+    30,
     27,
     24,
     21,
@@ -54,7 +59,7 @@ class WaveformState extends State<Waveform>
     int reverseDuration = (widget.durationMillis / 2).round();
 
     Native().observeAudioBuffer(_hasAudio);
-    
+
     _controller = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: duration),
@@ -138,9 +143,9 @@ class _WaveformPainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        Colors.blue.withOpacity(0.4),
-        Colors.blue.withOpacity(0.8),
-        Colors.blue.withOpacity(0.4),
+        customSky.withOpacity(0.4),
+        customSky.withOpacity(0.8),
+        customSky.withOpacity(0.4),
       ],
     );
 

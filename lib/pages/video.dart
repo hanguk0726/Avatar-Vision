@@ -8,8 +8,8 @@ import 'package:video_diary/widgets/dropdown.dart';
 
 import '../domain/writing_state.dart';
 import '../widgets/indicator.dart';
-import '../widgets/media_conrtol_bar.dart';
 import '../widgets/tab.dart';
+import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
 import '../widgets/waveform.dart';
 
@@ -41,7 +41,7 @@ class VideoState extends StatefulWidget {
 }
 
 class _VideoStateState extends State<VideoState> {
-  BehaviorSubject tabItem = BehaviorSubject<TabItem>();
+  BehaviorSubject<TabItem> tabItem = BehaviorSubject<TabItem>();
 
   @override
   void dispose() {
@@ -55,9 +55,9 @@ class _VideoStateState extends State<VideoState> {
     final writingState = native.writingState;
     final recording = native.recording;
     final rendering = native.rendering;
+    final currentCameraDevice = native.currentCameraDevice;
     final currentAudioDevice = native.currentAudioDevice;
     final audioDevices = native.audioDevices;
-    final currentCameraDevice = native.currentCameraDevice;
     final cameraDevices = native.cameraDevices;
     final cameraHealthCheck = native.cameraHealthCheck;
 
@@ -68,22 +68,10 @@ class _VideoStateState extends State<VideoState> {
         currentCameraDevice.isNotEmpty;
     bool showMediaControlButton = currentCameraDevice.isNotEmpty && rendering;
 
-// _settings(
-//             context: context,
-//             currentAudioDevice: currentAudioDevice,
-//             audioDevices: audioDevices,
-//             onChangedAudioDevice: (value) {
-//               Native().selectAudioDevice(value);
-//             },
-//             currentCameraDevice: currentCameraDevice,
-//             cameraDevices: cameraDevices,
-//             onChangedCameraDevice: (value) {
-//               Native().selectCameraDevice(value);
-//             })
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
         key: _scaffoldKey,
-        // backgroundColor: customNavy,
+        backgroundColor: customNavy,
         // appBar: AppBar(
         //   title: const Text('My App'),
         //   actions: <Widget>[
@@ -108,49 +96,58 @@ class _VideoStateState extends State<VideoState> {
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
           if (rendering)
-            texture()
-          else if (writingState != WritingState.idle)
-            message(writingState.toName(), true, true),
-          if (showSavingIndicator)
-            _savingIndicator(
-              recording: recording,
-              writingState: writingState,
-            ),
-          if (recording) _recordingIndicator(),
-          if (showRenderButton) _renderButton(),
-          if (showMediaControlButton)
-            mediaControlBar(
-              recording: recording,
-              onStart: () {
-                Native().startRecording();
-              },
-              onStop: () {
-                Native().stopRecording();
-              },
-            ),
-          if (currentCameraDevice.isEmpty)
-            const Center(child: Text("No camera devices found")),
-          if (!cameraHealthCheck)
-            Center(
-              child: message(
-                  "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
-                  false,
-                  false,
-                  icon: Icon(
-                    Icons.error_outline,
-                    color: customGrey,
-                    size: 100.0,
-                  )),
-            ),
-          Tabs(
-            buttonLabels: const [
-              TabItem.mainCam,
-              TabItem.pastEntries,
-              TabItem.submut,
-              TabItem.task,
-            ],
-            onTabSelected: (tabItem_) => tabItem.add(tabItem_),
-          ),
+            texture(),
+          // else if (writingState != WritingState.idle)
+          //   message(writingState.toName(), true, true),
+          // if (showSavingIndicator)
+          //   _savingIndicator(
+          //     recording: recording,
+          //     writingState: writingState,
+          //   ),
+          // if (recording) _recordingIndicator(),
+          // if (showRenderButton) _renderButton(),
+          // if (showMediaControlButton)
+          //   mediaControlBar(
+          //     recording: recording,
+          //     onStart: () {
+          //       Native().startRecording();
+          //     },
+          //     onStop: () {
+          //       Native().stopRecording();
+          //     },
+          //   ),
+          // if (currentCameraDevice.isEmpty)
+          //   const Center(child: Text("No camera devices found")),
+          // if (!cameraHealthCheck)
+          //   Center(
+          //     child: message(
+          //         "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
+          //         false,
+          //         false,
+          //         icon: Icon(
+          //           Icons.error_outline,
+          //           color: customGrey,
+          //           size: 100.0,
+          //         )),
+          //   ),
+          Padding(
+              padding: const EdgeInsets.only(top: 32, left: 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tabs(
+                    buttonLabels: const [
+                      TabItem.mainCam,
+                      TabItem.pastEntries,
+                      TabItem.submut,
+                      TabItem.settings,
+                    ],
+                    onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                  ),
+                  TabItemWidget(tabItem: tabItem)
+                ],
+              )),
         ]),
       );
     });
@@ -180,98 +177,3 @@ Widget _renderButton() {
       )));
 }
 
-Widget _recordingIndicator() {
-  return Positioned(
-    top: 8,
-    left: 16,
-    child: Text(
-      "REC",
-      style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontFamily: mainFont),
-    ),
-  );
-}
-
-Widget _settings(
-    {required BuildContext context,
-    required String currentAudioDevice,
-    required List<String> audioDevices,
-    required Function(String) onChangedAudioDevice,
-    required String currentCameraDevice,
-    required List<String> cameraDevices,
-    required Function(String) onChangedCameraDevice}) {
-  const spacer = SizedBox(height: 24);
-  final setting = Provider.of<Setting>(context);
-  return Column(
-    mainAxisAlignment: MainAxisAlignment.start,
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: <Widget>[
-      spacer,
-      Padding(
-        padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-        child: Row(
-          children: [
-            IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () async {
-                  await Native().queryDevices();
-                }),
-            const Spacer(),
-            IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () {
-                  Navigator.pop(context);
-                }),
-          ],
-        ),
-      ),
-      const Divider(),
-      spacer,
-      dropdown(
-          value: currentAudioDevice,
-          items: audioDevices,
-          onChanged: onChangedAudioDevice,
-          icon: const Icon(Icons.mic),
-          textOnEmpty: "No audio input devices found",
-          iconOnEmpty: const Icon(Icons.mic_off)),
-      if (currentAudioDevice.isNotEmpty)
-        Waveform(
-          height: 100,
-          width: 270,
-          durationMillis: 500,
-        ),
-      spacer,
-      dropdown(
-          value: currentCameraDevice,
-          items: cameraDevices,
-          onChanged: onChangedCameraDevice,
-          icon: const Icon(Icons.camera_alt),
-          textOnEmpty: "No camera devices found",
-          iconOnEmpty: const Icon(Icons.no_photography)),
-      spacer,
-      const Divider(),
-      spacer,
-      Tooltip(
-          message:
-              'Depending on the cpu specification, This may increase encoding time',
-          preferBelow: true,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-            child: Row(
-              children: [
-                const Text("Render while recording"),
-                const Spacer(),
-                Switch(
-                  value: setting.renderingWhileEncoding,
-                  onChanged: (value) {
-                    setting.toggleRenderingWhileEncoding();
-                  },
-                ),
-              ],
-            ),
-          )),
-    ],
-  );
-}

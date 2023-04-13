@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/widgets/tabItem.dart';
 
 import '../tools/custom_button_clipper.dart';
 
@@ -22,35 +23,33 @@ class TabsState extends State<Tabs> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: customSky, width: 2.0),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(10.0),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
-              children: widget.buttonLabels
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => ToggleButton(
-                      text: entry.value.name,
-                      isActive: _selectedIndex == entry.key,
-                      onPressed: () {
-                        setState(() {
-                          _selectedIndex = entry.key;
-                          widget.onTabSelected(entry.value);
-                        });
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: customSky, width: 2.0),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(10.0),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6.0),
+        child: FittedBox(
+          child: Row(
+            children: widget.buttonLabels
+                .asMap()
+                .entries
+                .map(
+                  (entry) => ToggleButton(
+                    text: entry.value.name,
+                    isActive: _selectedIndex == entry.key,
+                    onPressed: () {
+                      setState(() {
+                        _selectedIndex = entry.key;
+                        widget.onTabSelected(entry.value);
+                      });
+                    },
+                  ),
+                )
+                .toList(),
           ),
         ),
       ),
@@ -74,9 +73,11 @@ class ToggleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     Color buttonColor = isActive ? customSky : customOcean;
     Color textColor = buttonColor == customSky ? customNavy : Colors.white;
+    double width_ = text.length * 11;
+    double width = width_ > 100 ? width_ : 100;
     return SizedBox(
       height: 25,
-      width: 100,
+      width: width,
       child: ClipPath(
         clipper: CustomButtonClipper(),
         child: Container(
@@ -97,22 +98,11 @@ class ToggleButton extends StatelessWidget {
                   fontFamily: 'TitilliumWeb',
                   fontWeight: FontWeight.w600,
                   color: textColor,
-                  fontSize: 16),
+                  fontSize: 13),
             ),
           ),
         ),
       ),
     );
   }
-}
-
-enum TabItem {
-  mainCam('MAIN CAM'),
-  pastEntries('PAST ENTRIES'),
-  submut('SUBMIT'),
-  task('TASK');
-
-  final String name;
-
-  const TabItem(this.name);
 }

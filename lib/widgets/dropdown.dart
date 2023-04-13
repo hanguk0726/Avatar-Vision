@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_diary/domain/assets.dart';
 
 Widget dropdown(
     {required String value,
@@ -6,12 +7,13 @@ Widget dropdown(
     required Function(String) onChanged,
     required Icon icon,
     required String textOnEmpty,
-    required Icon iconOnEmpty}) {
+    required Icon iconOnEmpty,
+    required Color textColor}) {
   if (items.isEmpty || value.isEmpty) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(textOnEmpty),
+        Text(textOnEmpty, style: TextStyle(color: textColor)),
         const SizedBox(width: 8),
         iconOnEmpty,
       ],
@@ -26,11 +28,12 @@ Widget dropdown(
     icon: icon,
     iconSize: 24,
     elevation: 16,
-    style: const TextStyle(color: Colors.black),
+    style: TextStyle(color: textColor),
     underline: Container(
       height: 2,
       color: Colors.grey[300],
     ),
+    dropdownColor: customOrange,
     onChanged: (String? newValue) {
       if (newValue!.isNotEmpty) {
         onChanged(newValue);
