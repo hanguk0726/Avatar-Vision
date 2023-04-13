@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:video_diary/widgets/tab.dart';
 import 'package:video_diary/widgets/waveform.dart';
 
 import '../domain/assets.dart';
@@ -43,22 +42,50 @@ class TabItemWidgetState extends State<TabItemWidget> {
 Widget _buildTabItem(TabItem? tabItem, BuildContext context) {
   switch (tabItem) {
     case TabItem.mainCam:
-      return _recordingIndicator();
+      return _recordingIndicator(context);
     case TabItem.settings:
       return _settings(context);
     default:
-      return _recordingIndicator();
+      return _recordingIndicator(context);
   }
 }
 
-Widget _recordingIndicator() {
-  return Text(
-    "REC",
-    style: TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-        fontFamily: mainFont,
-        fontSize: 24),
+Widget _recordingIndicator(BuildContext context) {
+  // final native = Provider.of<Native>(context);
+  // final recording = native.recording;
+  // if (!recording) {
+  //   return const SizedBox();
+  // }
+  Color seeThroughBlue = Colors.transparent;
+
+  Color vividBlue = Color.fromARGB(255, 255, 49, 56).withOpacity(0.8);
+  return FittedBox(
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Text(
+          "REC",
+          style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontFamily: mainFont,
+              fontSize: 24),
+        ),
+        const SizedBox(width: 8),
+        //circle clip
+        ClipOval(
+          child: Container(
+            width: 24,
+            height: 24,
+            color: vividBlue,
+            foregroundDecoration: BoxDecoration(
+              color: seeThroughBlue,
+              backgroundBlendMode: BlendMode.hardLight,
+            ),
+          ),
+        )
+      ],
+    ),
   );
 }
 
@@ -149,7 +176,8 @@ Widget _settings(BuildContext context) {
                             child: Row(
                               children: [
                                 const Text("Render while recording",
-                                    style: TextStyle(color: color, fontSize: 16)),
+                                    style:
+                                        TextStyle(color: color, fontSize: 16)),
                                 const Spacer(),
                                 Switch(
                                   value: setting.renderingWhileEncoding,

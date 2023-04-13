@@ -72,27 +72,6 @@ class _VideoStateState extends State<VideoState> {
       return Scaffold(
         key: _scaffoldKey,
         backgroundColor: customNavy,
-        // appBar: AppBar(
-        //   title: const Text('My App'),
-        //   actions: <Widget>[
-        //     if (recording)
-        //       const Padding(
-        //         padding: EdgeInsets.only(right: 16),
-        //         child: Icon(Icons.do_not_disturb),
-        //       )
-        //     else
-        //       Builder(
-        //         builder: (BuildContext context) {
-        //           return IconButton(
-        //             icon: const Icon(Icons.settings),
-        //             onPressed: () {
-        //               Scaffold.of(context).openEndDrawer();
-        //             },
-        //           );
-        //         },
-        //       ),
-        //   ],
-        // ),
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
           if (rendering)
