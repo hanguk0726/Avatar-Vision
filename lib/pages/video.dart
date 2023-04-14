@@ -76,18 +76,12 @@ class _VideoStateState extends State<VideoState> {
         backgroundColor: customNavy,
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
-          //empty container for the background
-          Container(),
+          Container(), //empty container for the background
           if (rendering) texture(),
           // else if (writingState != WritingState.idle)
           //   message(writingState.toName(), true, true),
-          // if (showSavingIndicator)
-          //   _savingIndicator(
-          //     recording: recording,
-          //     writingState: writingState,
-          //   ),
-          // if (currentCameraDevice.isEmpty)
-          //   const Center(child: Text("No camera devices found")),
+          if (currentCameraDevice.isEmpty)
+              Center(child: Text("No camera devices found", style: TextStyle(color: Colors.white, fontFamily: mainFont, fontSize: 32))),
           // if (!cameraHealthCheck)
           //   Center(
           //     child: message(
@@ -121,32 +115,16 @@ class _VideoStateState extends State<VideoState> {
           Positioned(
               bottom: 32,
               right: 32,
-              child: mediaControlButton(context: context))
+              child: mediaControlButton(context: context)),
+          Positioned(
+              top: 32,
+              right: 32,
+              child: SavingIndicator(
+                recording: recording,
+                writingState: writingState,
+              ))
         ]),
       );
     });
   }
-}
-
-Widget _savingIndicator(
-    {required bool recording, required WritingState writingState}) {
-  return Positioned(
-      top: 8,
-      left: 16,
-      child: SavingIndicator(
-        recording: recording,
-        writingState: writingState,
-      ));
-}
-
-Widget _renderButton() {
-  return Positioned(
-      bottom: 30,
-      left: 0,
-      right: 0,
-      child: Center(
-          child: ElevatedButton(
-        onPressed: Native().startCamera,
-        child: const Text('Render'),
-      )));
 }

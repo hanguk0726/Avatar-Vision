@@ -21,7 +21,8 @@ class SavingIndicator extends StatefulWidget {
 class _SavingIndicator extends State<SavingIndicator>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-  Color color = customGrey;
+  Color color = customSky;
+  Color textColor = customNavy;
 
   @override
   void initState() {
@@ -41,6 +42,8 @@ class _SavingIndicator extends State<SavingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    String idle = WritingState.idle.toName();
+    if (widget.writingState.toName() == idle) return const SizedBox();
     return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: BackdropFilter(
@@ -49,11 +52,11 @@ class _SavingIndicator extends State<SavingIndicator>
               width: 200,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
+                color: color.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 2,
+                  color: color.withOpacity(0.2),
+                  width: 4,
                 ),
               ),
               child: Row(
@@ -61,11 +64,15 @@ class _SavingIndicator extends State<SavingIndicator>
                 children: [
                   Text(
                     widget.writingState.toName(),
-                    style: TextStyle(color: color),
+                    style: TextStyle(
+                        color: textColor,
+                        fontFamily: mainFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 25),
                   SpinKitFadingFour(
-                    color: color,
+                    color: customNavy,
                     size: 20.0,
                     controller: _controller,
                   )
@@ -86,7 +93,7 @@ Widget message(String text, bool ellipsis, bool indicator, {Widget? icon}) {
       ],
       Text(
         ellipsis ? "$text..." : text,
-        style: TextStyle(color: color, fontSize: 40),
+        style: TextStyle(color: color, fontSize: 40, fontFamily: mainFont),
         textAlign: TextAlign.center,
       ),
       const SizedBox(width: 50),

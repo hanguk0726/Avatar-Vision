@@ -17,20 +17,21 @@ Widget mediaControlButton({required BuildContext context}) {
   bool showRenderButton = writingState == WritingState.idle &&
       !rendering &&
       currentCameraDevice.isNotEmpty;
-  bool showMediaControlButton = currentCameraDevice.isNotEmpty && rendering && !recording;
+  bool showMediaControlButton =
+      currentCameraDevice.isNotEmpty && rendering && !recording;
   if (showMediaControlButton) {
     return customButton(customSky, customNavy, 'REC', () {
       Native().startRecording();
     });
   }
   if (recording) {
-    return customButton(customOrange, customNavy, 'STOP', () {
+    return customButton(customOrange, Colors.white, 'STOP', () {
       Native().stopRecording();
     });
   }
 
   if (showRenderButton) {
-    return customButton(customSky, customNavy, 'RENDER', () {
+    return customButton(customOcean, Colors.white, 'RENDER', () {
       Native().startCamera();
     });
   }

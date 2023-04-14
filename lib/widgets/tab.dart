@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/tabItem.dart';
@@ -57,7 +58,7 @@ class TabsState extends State<Tabs> {
   }
 }
 
-class ToggleButton extends StatelessWidget {
+class ToggleButton extends StatefulWidget {
   final String text;
   final bool isActive;
   final VoidCallback onPressed;
@@ -70,39 +71,75 @@ class ToggleButton extends StatelessWidget {
   });
 
   @override
+  ToggleButtonState createState() => ToggleButtonState();
+}
+
+class ToggleButtonState extends State<ToggleButton> {
+  bool isHovering = false;
+  late double width;
+
+  @override
+  void initState() {
+    super.initState();
+    double width_ = widget.text.length * 11;
+    width = width_ > 100 ? width_ : 100;
+  }
+
+  Color buttonColor() {
+    if (widget.isActive) {
+      return customSky;
+    } else if (isHovering) {
+      return customOrange;
+    } else {
+      return customOcean;
+    }
+  }
+
+  Color textColor() {
+    return buttonColor() == customSky ? customNavy : Colors.white;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Color buttonColor = isActive ? customSky : customOcean;
-    Color textColor = buttonColor == customSky ? customNavy : Colors.white;
-    double width_ = text.length * 11;
-    double width = width_ > 100 ? width_ : 100;
-    return SizedBox(
-      height: 25,
-      width: width,
-      child: ClipPath(
-        clipper: CustomButtonClipper(),
-        child: Container(
-          decoration: BoxDecoration(
-            color: buttonColor,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(6.0),
+    return MouseRegion(
+      onHover: (PointerHoverEvent event) {
+        // setState(() {
+        //   isHovering = true;
+        // });
+      },
+      onExit: (PointerExitEvent event) {
+        // setState(() {
+        //   isHovering = false;
+        // });
+      },
+      child: SizedBox(
+          height: 25,
+          width: width,
+          child: ClipPath(
+            clipper: CustomButtonClipper(),
+            child: Container(
+              decoration: BoxDecoration(
+                color: buttonColor(),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(6.0),
+                ),
+              ),
+              child: TextButton(
+                onPressed: widget.onPressed,
+                style: const ButtonStyle(
+                  alignment: Alignment.centerLeft,
+                ),
+                child: Text(
+                  widget.text,
+                  style: TextStyle(
+                      fontFamily: 'TitilliumWeb',
+                      fontWeight: FontWeight.w600,
+                      color: textColor(),
+                      fontSize: 13),
+                ),
+              ),
             ),
-          ),
-          child: TextButton(
-            onPressed: onPressed,
-            style: const ButtonStyle(
-              alignment: Alignment.centerLeft,
-            ),
-            child: Text(
-              text,
-              style: TextStyle(
-                  fontFamily: 'TitilliumWeb',
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                  fontSize: 13),
-            ),
-          ),
-        ),
-      ),
+          )),
     );
   }
 }
