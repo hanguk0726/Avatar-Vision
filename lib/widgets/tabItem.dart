@@ -3,12 +3,15 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:video_diary/widgets/button.dart';
 import 'package:video_diary/widgets/waveform.dart';
 
 import '../domain/assets.dart';
 import '../domain/setting.dart';
 import '../services/native.dart';
 import 'dropdown.dart';
+
+const _width = 500.0;
 
 class TabItemWidget extends StatefulWidget {
   final BehaviorSubject<TabItem> tabItem;
@@ -42,23 +45,26 @@ class TabItemWidgetState extends State<TabItemWidget> {
 Widget _buildTabItem(TabItem? tabItem, BuildContext context) {
   switch (tabItem) {
     case TabItem.mainCam:
-      return _recordingIndicator(context);
+      return _mainCam(context);
     case TabItem.settings:
       return _settings(context);
     default:
-      return _recordingIndicator(context);
+      return _mainCam(context);
   }
 }
 
-Widget _recordingIndicator(BuildContext context) {
-  // final native = Provider.of<Native>(context);
-  // final recording = native.recording;
-  // if (!recording) {
-  //   return const SizedBox();
-  // }
-  Color seeThroughBlue = Colors.transparent;
+Widget _mainCam(BuildContext context) {
+  return _recordingIndicator(context);
+}
 
-  Color vividBlue = Color.fromARGB(255, 255, 49, 56).withOpacity(0.8);
+Widget _recordingIndicator(BuildContext context) {
+  final native = Provider.of<Native>(context);
+  final recording = native.recording;
+  if (!recording) {
+    return const SizedBox();
+  }
+
+  Color customRed = const Color.fromARGB(255, 255, 56, 63);
   return FittedBox(
     child: Row(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -72,16 +78,12 @@ Widget _recordingIndicator(BuildContext context) {
               fontSize: 24),
         ),
         const SizedBox(width: 8),
-        //circle clip
         ClipOval(
-          child: Container(
-            width: 24,
-            height: 24,
-            color: vividBlue,
-            foregroundDecoration: BoxDecoration(
-              color: seeThroughBlue,
-              backgroundBlendMode: BlendMode.hardLight,
-            ),
+          child: ColorFiltered(
+            colorFilter:
+                ColorFilter.mode(customRed.withOpacity(0.8), BlendMode.lighten),
+            child: Container(
+                width: 24, height: 24, color: customRed.withOpacity(0.5)),
           ),
         )
       ],
@@ -90,7 +92,6 @@ Widget _recordingIndicator(BuildContext context) {
 }
 
 Widget _settings(BuildContext context) {
-  const width = 500.0;
   const color = Colors.white;
   const spacer = SizedBox(height: 24);
   final native = Provider.of<Native>(context);
@@ -109,7 +110,7 @@ Widget _settings(BuildContext context) {
   }
 
   return SizedBox(
-      width: width,
+      width: _width,
       child: ClipRRect(
           child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),

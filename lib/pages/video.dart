@@ -5,8 +5,10 @@ import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/domain/setting.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
+import 'package:video_diary/widgets/media_conrtol_bar.dart';
 
 import '../domain/writing_state.dart';
+import '../widgets/button.dart';
 import '../widgets/indicator.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
@@ -74,26 +76,15 @@ class _VideoStateState extends State<VideoState> {
         backgroundColor: customNavy,
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
-          if (rendering)
-            texture(),
+          //empty container for the background
+          Container(),
+          if (rendering) texture(),
           // else if (writingState != WritingState.idle)
           //   message(writingState.toName(), true, true),
           // if (showSavingIndicator)
           //   _savingIndicator(
           //     recording: recording,
           //     writingState: writingState,
-          //   ),
-          // if (recording) _recordingIndicator(),
-          // if (showRenderButton) _renderButton(),
-          // if (showMediaControlButton)
-          //   mediaControlBar(
-          //     recording: recording,
-          //     onStart: () {
-          //       Native().startRecording();
-          //     },
-          //     onStop: () {
-          //       Native().stopRecording();
-          //     },
           //   ),
           // if (currentCameraDevice.isEmpty)
           //   const Center(child: Text("No camera devices found")),
@@ -127,6 +118,10 @@ class _VideoStateState extends State<VideoState> {
                   TabItemWidget(tabItem: tabItem)
                 ],
               )),
+          Positioned(
+              bottom: 32,
+              right: 32,
+              child: mediaControlButton(context: context))
         ]),
       );
     });
@@ -155,4 +150,3 @@ Widget _renderButton() {
         child: const Text('Render'),
       )));
 }
-
