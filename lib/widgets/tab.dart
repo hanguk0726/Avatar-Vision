@@ -62,6 +62,7 @@ class ToggleButton extends StatefulWidget {
   final String text;
   final bool isActive;
   final VoidCallback onPressed;
+  final hoverEffect = false;
 
   const ToggleButton({
     super.key,
@@ -77,12 +78,29 @@ class ToggleButton extends StatefulWidget {
 class ToggleButtonState extends State<ToggleButton> {
   bool isHovering = false;
   late double width;
-
+  late Function(PointerHoverEvent) onHover;
+  late Function(PointerExitEvent) onHoverExit;
   @override
   void initState() {
     super.initState();
     double width_ = widget.text.length * 11;
     width = width_ > 100 ? width_ : 100;
+
+    if (widget.hoverEffect) {
+      onHover = (PointerHoverEvent event) {
+        setState(() {
+          isHovering = true;
+        });
+      };
+      onHoverExit = (PointerExitEvent event) {
+        setState(() {
+          isHovering = false;
+        });
+      };
+    } else {
+      onHover = (PointerHoverEvent event) {};
+      onHoverExit = (PointerExitEvent event) {};
+    }
   }
 
   Color buttonColor() {
@@ -102,16 +120,8 @@ class ToggleButtonState extends State<ToggleButton> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onHover: (PointerHoverEvent event) {
-        // setState(() {
-        //   isHovering = true;
-        // });
-      },
-      onExit: (PointerExitEvent event) {
-        // setState(() {
-        //   isHovering = false;
-        // });
-      },
+      onHover: onHover,
+      onExit: onHoverExit,
       child: SizedBox(
           height: 25,
           width: width,

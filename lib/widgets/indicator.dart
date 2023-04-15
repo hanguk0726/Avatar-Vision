@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:video_diary/domain/setting.dart';
 
 import '../domain/assets.dart';
 import '../domain/writing_state.dart';
@@ -42,8 +43,6 @@ class _SavingIndicator extends State<SavingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    String idle = WritingState.idle.toName();
-    if (widget.writingState.toName() == idle) return const SizedBox();
     return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: BackdropFilter(
@@ -83,7 +82,7 @@ class _SavingIndicator extends State<SavingIndicator>
 }
 
 Widget message(String text, bool ellipsis, bool indicator, {Widget? icon}) {
-  Color color = customGrey;
+  Color color = Colors.white;
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [

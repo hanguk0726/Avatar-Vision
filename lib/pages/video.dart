@@ -54,22 +54,19 @@ class _VideoStateState extends State<VideoState> {
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
+    final setting = context.watch<Setting>();
     final writingState = native.writingState;
     final recording = native.recording;
     final rendering = native.rendering;
     final currentCameraDevice = native.currentCameraDevice;
-    final currentAudioDevice = native.currentAudioDevice;
-    final audioDevices = native.audioDevices;
-    final cameraDevices = native.cameraDevices;
     final cameraHealthCheck = native.cameraHealthCheck;
+    final renderingWhileEncoding = setting.renderingWhileEncoding;
 
-    bool showSavingIndicator =
-        rendering && !recording && writingState != WritingState.idle;
-    bool showRenderButton = writingState == WritingState.idle &&
-        !rendering &&
-        currentCameraDevice.isNotEmpty;
-    bool showMediaControlButton = currentCameraDevice.isNotEmpty && rendering;
-
+    bool noWritingStateIndicator =
+        writingState.toName() == WritingState.idle.toName() ||
+            (writingState.toName() == WritingState.collecting.toName() &&
+                rendering);
+                
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
         key: _scaffoldKey,
@@ -78,22 +75,25 @@ class _VideoStateState extends State<VideoState> {
         body: Stack(children: [
           Container(), //empty container for the background
           if (rendering) texture(),
-          // else if (writingState != WritingState.idle)
-          //   message(writingState.toName(), true, true),
           if (currentCameraDevice.isEmpty)
-              Center(child: Text("No camera devices found", style: TextStyle(color: Colors.white, fontFamily: mainFont, fontSize: 32))),
-          // if (!cameraHealthCheck)
-          //   Center(
-          //     child: message(
-          //         "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
-          //         false,
-          //         false,
-          //         icon: Icon(
-          //           Icons.error_outline,
-          //           color: customGrey,
-          //           size: 100.0,
-          //         )),
-          //   ),
+            Center(
+                child: Text("No camera devices found",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: mainFont,
+                        fontSize: 32))),
+          if (!cameraHealthCheck)
+            Center(
+              child: message(
+                  "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
+                  false,
+                  false,
+                  icon: Icon(
+                    Icons.error_outline,
+                    color: customOrange,
+                    size: 100.0,
+                  )),
+            ),
           Padding(
               padding: const EdgeInsets.only(top: 32, left: 32),
               child: Column(
@@ -116,13 +116,19 @@ class _VideoStateState extends State<VideoState> {
               bottom: 32,
               right: 32,
               child: mediaControlButton(context: context)),
-          Positioned(
-              top: 32,
-              right: 32,
-              child: SavingIndicator(
-                recording: recording,
-                writingState: writingState,
-              ))
+
+          if (noWritingStateIndicator)
+            const SizedBox()
+          else if (renderingWhileEncoding)
+            Positioned(
+                top: 32,
+                right: 32,
+                child: SavingIndicator(
+                  recording: recording,
+                  writingState: writingState,
+                ))
+          else
+            message(writingState.toName(), true, true)
         ]),
       );
     });
