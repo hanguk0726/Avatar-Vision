@@ -22,10 +22,10 @@ nokhwa-core = "0.1.0"
 nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] }
 kanal = "0.1.0-pre8"
 openh264 = "0.4.0"
-cpal = "0.15.0"
+cpal = "0.15.2"
 anyhow = "1.0.40"
 hound = "3.5.0"
-minimp4 = { git = "https://github.com/hanguk0726/minimp4.rs.git" }  # Conflict between 'clang-sys' version of 'nokhwa'
+minimp4 = { git = "https://github.com/darkskygit/minimp4.rs" }   
 num_cpus = "1.15.0"
 log = "0.4"
 simple_logger = "4.0.0"
