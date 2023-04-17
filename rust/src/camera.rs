@@ -51,11 +51,11 @@ impl Camera {
         }
     }
 
-    pub fn health_check(&mut self) -> bool {
+    pub fn health_check(&mut self) -> (bool, String) {
         let camera = self.camera.as_mut().unwrap();
         match camera.poll_frame() {
-            Ok(_) => true,
-            Err(_) => false,
+            Ok(_) => (true, "".to_string()),
+            Err(e) => (false, e.to_string()),
         }
     }
 
@@ -100,7 +100,6 @@ pub fn inflate_camera_conection(
             requested = Some(RequestedFormat::new::<RgbAFormat>(
                 RequestedFormatType::HighestResolution(res),
             ));
-
         }
     }
 

@@ -75,7 +75,11 @@ impl AsyncMethodHandler for CameraHandler {
 
             "camera_health_check" => {
                 let mut camera = self.camera.lock().unwrap();
-                Ok(camera.health_check().into())
+                let (health_check, message) = camera.health_check();
+                if health_check {
+                    return PlatformResult::Ok("ok".into());
+                }
+                Ok(message.into())
             }
 
             "select_camera_device" => {

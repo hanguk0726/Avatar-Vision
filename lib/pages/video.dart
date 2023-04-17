@@ -60,6 +60,7 @@ class _VideoStateState extends State<VideoState> {
     final rendering = native.rendering;
     final currentCameraDevice = native.currentCameraDevice;
     final cameraHealthCheck = native.cameraHealthCheck;
+    final cameraHealthCheckErrorMessage = native.cameraHealthCheckErrorMessage;
     final renderingWhileEncoding = setting.renderingWhileEncoding;
 
     bool noWritingStateIndicator =
@@ -84,15 +85,28 @@ class _VideoStateState extends State<VideoState> {
                         fontSize: 32))),
           if (!cameraHealthCheck)
             Center(
-              child: message(
-                  "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
-                  false,
-                  false,
-                  icon: Icon(
-                    Icons.error_outline,
-                    color: customOrange,
-                    size: 100.0,
-                  )),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    message(
+                        "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
+                        false,
+                        false,
+                        icon: Icon(
+                          Icons.error_outline,
+                          color: customOrange,
+                          size: 100.0,
+                        )),
+                    Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Text(cameraHealthCheckErrorMessage,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: mainFont,
+                                fontSize: 24)))
+                  ]),
             ),
           Padding(
               padding: const EdgeInsets.only(top: 32, left: 32),

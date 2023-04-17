@@ -22,6 +22,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   bool rendering = false; // whether the video is being rendered
   bool cameraHealthCheck =
       true; // whether the camera is ok (connection, resource etc.)
+  String cameraHealthCheckErrorMessage =
+      ''; // the error message of the camera health check
   String currentAudioDevice = ''; // the current audio device name
   String currentCameraDevice = ''; // the current camera device name
   List<String> audioDevices = []; // the list of audio devices
@@ -260,7 +262,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   Future<void> _cameraHealthCheck() async {
     final res = await cameraChannel.invokeMethod('camera_health_check', {});
-    cameraHealthCheck = res;
+    cameraHealthCheck = res == "ok";
+    cameraHealthCheckErrorMessage = res;
+    
     if (!cameraHealthCheck) {
       stopRendering();
       stopCameraStream();
@@ -302,6 +306,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     await _currentResolution();
     openTextureStream();
     startRendering();
+    _cameraHealthCheck();
   }
 
   void selectAudioDevice(String device) async {
