@@ -31,6 +31,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   List<String> resolutions = []; // the list of resolutions
   String currentResolution = ''; // the current resolution
+  double currentResolutionWidth = 0; // the width of the current resolution
+  double currentResolutionHeight = 0; // the height of the current resolution
 
   static const String rustLibraryName = 'rust';
 
@@ -154,8 +156,14 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void openCameraStream() async {
+    final lastPreferredResolution = Setting().lastPreferredResolution;
+    String requestedResolution = currentResolution;
+    if (lastPreferredResolution.isNotEmpty && currentResolution.isEmpty) {
+      requestedResolution = lastPreferredResolution;
+    }
+    
     final res = await cameraChannel.invokeMethod('open_camera_stream', {
-      'resolution': currentResolution,
+      'resolution': requestedResolution,
     });
     _showResult(res);
   }
@@ -205,6 +213,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         return bWidth.compareTo(aWidth);
       }
     });
+
     notifyListeners();
   }
 
@@ -264,7 +273,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     final res = await cameraChannel.invokeMethod('camera_health_check', {});
     cameraHealthCheck = res == "ok";
     cameraHealthCheckErrorMessage = res;
-    
+
     if (!cameraHealthCheck) {
       stopRendering();
       stopCameraStream();
@@ -277,6 +286,10 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Future<void> _currentResolution() async {
     final res = await cameraChannel.invokeMethod('current_resolution', {});
     currentResolution = res;
+    final resolution = currentResolution.split('x');
+    currentResolutionWidth = double.parse(resolution[0]);
+    currentResolutionHeight = double.parse(resolution[1]);
+    Setting().setLastPreferredResolution(currentResolution);
     notifyListeners();
     return;
   }

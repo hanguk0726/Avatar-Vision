@@ -62,6 +62,8 @@ class _VideoStateState extends State<VideoState> {
     final cameraHealthCheck = native.cameraHealthCheck;
     final cameraHealthCheckErrorMessage = native.cameraHealthCheckErrorMessage;
     final renderingWhileEncoding = setting.renderingWhileEncoding;
+    final width = native.currentResolutionWidth;
+    final height = native.currentResolutionHeight;
 
     bool noWritingStateIndicator =
         writingState.toName() == WritingState.idle.toName() ||
@@ -75,7 +77,7 @@ class _VideoStateState extends State<VideoState> {
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
           Container(), //empty container for the background
-          if (rendering) texture(),
+          if (rendering) texture(width, height),
           if (currentCameraDevice.isEmpty)
             Center(
                 child: Text("No camera devices found",

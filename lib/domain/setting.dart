@@ -12,10 +12,12 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   }
   final fileName = 'diary_app_setting.json';
   bool renderingWhileEncoding = false;
+  String lastPreferredResolution = '';
 
   Map<String, dynamic> _toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['renderingWhileEncoding'] = renderingWhileEncoding;
+    data['lastPreferredResolution'] = lastPreferredResolution;
     return data;
   }
 
@@ -24,6 +26,12 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
     save();
     notifyListeners();
     return renderingWhileEncoding;
+  }
+
+  void setLastPreferredResolution(String resolution) {
+    lastPreferredResolution = resolution;
+    save();
+    notifyListeners();
   }
 
   void save() {
@@ -47,7 +55,8 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
     }
     String jsonString = file.readAsStringSync();
     final Map<String, dynamic> data = jsonDecode(jsonString);
-    renderingWhileEncoding = data['renderingWhileEncoding'] as bool;
+    renderingWhileEncoding = data['renderingWhileEncoding'] as bool? ?? false;
+    lastPreferredResolution = data['lastPreferredResolution'] as String? ?? '';
     return;
   }
 }

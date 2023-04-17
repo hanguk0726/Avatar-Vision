@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../services/native.dart';
 
-Widget texture() {
+Widget texture(double width, double height) {
   return SizedBox(
-    height: 720,
-    width: 1280,
+    width : width,
+    height :height,
     child: Texture(textureId: Native().textureId),
   );
 }
