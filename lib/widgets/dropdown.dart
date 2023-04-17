@@ -28,12 +28,11 @@ Widget dropdown(
     icon: icon,
     iconSize: 24,
     elevation: 16,
-    style: TextStyle(color: textColor),
+    dropdownColor: customOcean,
     underline: Container(
       height: 2,
       color: Colors.grey[300],
     ),
-    dropdownColor: customOrange,
     onChanged: (String? newValue) {
       if (newValue!.isNotEmpty) {
         onChanged(newValue);
@@ -45,6 +44,7 @@ Widget dropdown(
         value: value,
         child: Text(
           value,
+          style: TextStyle(color: textColor),
         ),
       );
     }).toList(),

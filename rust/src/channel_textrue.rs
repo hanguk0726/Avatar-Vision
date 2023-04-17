@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
-    thread,
+    thread, collections::HashMap,
 };
 
 use async_trait::async_trait;
@@ -31,7 +31,11 @@ impl AsyncMethodHandler for TextureHandler {
                     call,
                     thread::current().id()
                 );
-
+                let map: HashMap<String, String> = call.args.try_into().unwrap();
+                let resolution = map.get("resolution").unwrap().as_str();
+                let resolution = resolution.split("x").collect::<Vec<&str>>();
+                let width = resolution[0].parse::<u32>().unwrap();
+                let height = resolution[1].parse::<u32>().unwrap();
                 let mut encoding_sender = self.channel_handler.lock().unwrap().encoding.0.clone();
 
                 let render_buffer: Arc<Mutex<(usize, Vec<u8>)>> = Arc::new(Mutex::new((0, vec![])));
@@ -52,7 +56,7 @@ impl AsyncMethodHandler for TextureHandler {
                     let render_buffer2 = render_buffer.clone();
                     index += 1;
                     pool.spawn(async move {
-                        decode(index, buf, render_buffer);
+                        decode(index, buf, render_buffer, width, height);
                     });
 
                     let render = render_buffer2.lock().unwrap();
@@ -100,8 +104,12 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
     });
 }
 
-fn decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>) {
-    let decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true).unwrap();
+fn decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>, width: u32, height: u32) {
+    
+    
+    let decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true, width, height).unwrap();
+    //print width and height and data length
+    println!("width: {}, height: {}, data length: {}", width, height, decoded.len());
     let mut render_buffer = render_buffer.lock().unwrap();
     if index > render_buffer.0 {
         *render_buffer = (index, decoded);

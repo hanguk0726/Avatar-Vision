@@ -23,7 +23,7 @@ class _SavingIndicator extends State<SavingIndicator>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   Color color = customSky;
-  Color textColor = customNavy;
+  Color textColor = customBlack;
 
   @override
   void initState() {
@@ -71,7 +71,7 @@ class _SavingIndicator extends State<SavingIndicator>
                   ),
                   const SizedBox(width: 25),
                   SpinKitFadingFour(
-                    color: customNavy,
+                    color: customBlack,
                     size: 20.0,
                     controller: _controller,
                   )

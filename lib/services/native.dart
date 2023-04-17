@@ -27,6 +27,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   List<String> audioDevices = []; // the list of audio devices
   List<String> cameraDevices = []; // the list of camera devices
 
+  List<String> resolutions = []; // the list of resolutions
+  String currentResolution = ''; // the current resolution
+
   static const String rustLibraryName = 'rust';
 
   final dylib = defaultTargetPlatform == TargetPlatform.android
@@ -92,7 +95,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_rendering_state':
           rendering = call.arguments;
-          observeCameraHealth();
           notifyListeners();
           return null;
         default:
@@ -130,13 +132,16 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void openTextureStream() async {
-    final res = await textureChannel.invokeMethod('open_texture_stream', {});
+    final res = await textureChannel.invokeMethod('open_texture_stream', {
+      'resolution': currentResolution,
+    });
     _showResult(res);
   }
 
   void startRecording() async {
     final res = await recordingChannel.invokeMethod('start_recording', {
-         'title': "test",
+      'title': "test",
+      'resolution': currentResolution,
     });
     _showResult(res);
   }
@@ -147,7 +152,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void openCameraStream() async {
-    final res = await cameraChannel.invokeMethod('open_camera_stream', {});
+    final res = await cameraChannel.invokeMethod('open_camera_stream', {
+      'resolution': currentResolution,
+    });
     _showResult(res);
   }
 
@@ -176,6 +183,27 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   void stopRendering() async {
     final res = await renderingChannel.invokeMethod('stop_rendering', {});
     _showResult(res);
+  }
+
+  void availableResolution() async {
+    final res = await cameraChannel.invokeMethod('available_resolution', {});
+    resolutions = res.cast<String>();
+    resolutions.sort((a, b) {
+      List<String> aResolution = a.split('x');
+      List<String> bResolution = b.split('x');
+
+      int aWidth = int.parse(aResolution[0]);
+      int aHeight = int.parse(aResolution[1]);
+      int bWidth = int.parse(bResolution[0]);
+      int bHeight = int.parse(bResolution[1]);
+
+      if (aWidth == bWidth) {
+        return bHeight.compareTo(aHeight);
+      } else {
+        return bWidth.compareTo(aWidth);
+      }
+    });
+    notifyListeners();
   }
 
   Future<bool> clearAudioBuffer() async {
@@ -233,6 +261,18 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Future<void> _cameraHealthCheck() async {
     final res = await cameraChannel.invokeMethod('camera_health_check', {});
     cameraHealthCheck = res;
+    if (!cameraHealthCheck) {
+      stopRendering();
+      stopCameraStream();
+      queryDevices();
+    }
+    notifyListeners();
+    return;
+  }
+
+  Future<void> _currentResolution() async {
+    final res = await cameraChannel.invokeMethod('current_resolution', {});
+    currentResolution = res;
     notifyListeners();
     return;
   }
@@ -255,11 +295,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
-  void startCamera() {
+  Future<void> startCamera() async {
     stopCameraStream();
     openCameraStream();
-    startRendering();
+    availableResolution();
+    await _currentResolution();
     openTextureStream();
+    startRendering();
   }
 
   void selectAudioDevice(String device) async {
@@ -271,22 +313,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void selectCameraDevice(String device) async {
     await _selectCameraDevice(device);
-    _currentCameraDevice();
+    await _currentCameraDevice();
     startCamera();
-  }
-
-  void observeCameraHealth() async {
-    while (true) {
-      if (!rendering) break;
-      await _cameraHealthCheck();
-      if (!cameraHealthCheck) {
-        stopRendering();
-        stopCameraStream();
-        queryDevices();
-        break;
-      }
-      await Future.delayed(const Duration(milliseconds: 1000));
-    }
   }
 
   void observeAudioBuffer(BehaviorSubject<bool> stream) async {
@@ -301,5 +329,12 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       }
       await Future.delayed(const Duration(milliseconds: 200));
     }
+  }
+
+  void selectResolution(String resolution) async {
+    currentResolution = resolution;
+    stopRendering();
+    stopCameraStream();
+    startCamera();
   }
 }

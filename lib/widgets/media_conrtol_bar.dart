@@ -19,8 +19,9 @@ Widget mediaControlButton({required BuildContext context}) {
       currentCameraDevice.isNotEmpty;
   bool showMediaControlButton =
       currentCameraDevice.isNotEmpty && rendering && !recording;
+      
   if (showMediaControlButton) {
-    return customButton(customSky, customNavy, 'REC', () {
+    return customButton(customSky, customBlack, 'REC', () {
       Native().startRecording();
     });
   }

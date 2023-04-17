@@ -114,7 +114,7 @@ class ToggleButtonState extends State<ToggleButton> {
   }
 
   Color textColor() {
-    return buttonColor() == customSky ? customNavy : Colors.white;
+    return buttonColor() == customSky ? customBlack : Colors.white;
   }
 
   @override

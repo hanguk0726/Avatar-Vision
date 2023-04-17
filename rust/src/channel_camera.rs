@@ -13,10 +13,10 @@ use irondash_message_channel::{
     PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use log::debug;
+use log::{debug, error, info};
 use nokhwa::{
     query,
-    utils::{ApiBackend, CameraIndex},
+    utils::{ApiBackend, CameraIndex, Resolution},
 };
 
 use crate::camera::Camera;
@@ -42,6 +42,8 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
+                let map: HashMap<String, String> = call.args.try_into().unwrap();
+                let resolution = map.get("resolution");
                 let mut camera = self.camera.lock().unwrap();
                 let mut camera_index: Option<CameraIndex> = None;
                 {
@@ -55,7 +57,7 @@ impl AsyncMethodHandler for CameraHandler {
                         detail: Value::Null,
                     });
                 }
-                camera.infate_camera(camera_index.unwrap());
+                camera.infate_camera(camera_index.unwrap(), resolution);
                 camera.open_camera_stream();
 
                 return PlatformResult::Ok("ok".into());
@@ -70,6 +72,7 @@ impl AsyncMethodHandler for CameraHandler {
                 camera.stop_camera_stream();
                 Ok("ok".into())
             }
+
             "camera_health_check" => {
                 let mut camera = self.camera.lock().unwrap();
                 Ok(camera.health_check().into())
@@ -96,6 +99,7 @@ impl AsyncMethodHandler for CameraHandler {
                     detail: Value::Null,
                 })
             }
+            
             "available_cameras" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
@@ -109,6 +113,20 @@ impl AsyncMethodHandler for CameraHandler {
                 Ok(camera_names.into())
             }
 
+            "current_resolution" => {
+                debug!(
+                    "Received request {:?} on thread {:?}",
+                    call,
+                    thread::current().id()
+                );
+                let camera = self.camera.lock().unwrap();
+
+                let mut resolution = camera.resolution_settings.get_current_resolution();
+                let resolution = resolution.as_mut().to_string();
+
+                Ok(Value::String(resolution))
+            }
+
             "current_camera_device" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
@@ -117,11 +135,25 @@ impl AsyncMethodHandler for CameraHandler {
                 );
 
                 let camera = self.camera.lock().unwrap();
+
                 let camera_info = &mut camera.current_camera_info.lock().unwrap();
                 match camera_info.as_ref() {
                     Some(camera_info) => Ok(camera_info.human_name().into()),
                     None => Ok("".into()),
                 }
+            }
+            "available_resolution" => {
+                debug!(
+                    "Received request {:?} on thread {:?}",
+                    call,
+                    thread::current().id()
+                );
+                let camera = self.camera.lock().unwrap();
+                let list = &mut camera.resolution_settings.get_available_resolutions();
+                let list = list.to_owned();
+
+                debug!("available_resolution: {:?}", list);
+                Ok(list.into())
             }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),

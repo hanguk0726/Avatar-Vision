@@ -1,11 +1,13 @@
 use log::error;
-use nokhwa::utils::{mjpeg_to_rgb, FrameFormat};
+use nokhwa::utils::{mjpeg_to_rgb, nv12_to_rgb, FrameFormat, Resolution};
 use openh264::formats::YUVSource;
 
 pub fn decode_to_rgb(
     data: &[u8],
     frame_format: &FrameFormat,
     rgba: bool,
+    width: u32,
+    height: u32,
 ) -> Result<Vec<u8>, anyhow::Error> {
     match frame_format {
         FrameFormat::MJPEG => mjpeg_to_rgb(data, rgba)
@@ -18,8 +20,16 @@ pub fn decode_to_rgb(
                 [pxv, pxv, pxv]
             })
             .collect()),
-        // FrameFormat::RAWRGB => Ok(data.to_vec()),
-        // FrameFormat::NV12 => nv12_to_rgb(resolution, data, false),
+        FrameFormat::RAWRGB => Ok(rgb_to_rgba(data)),
+        FrameFormat::NV12 => nv12_to_rgb(
+            Resolution {
+                width_x: (width),
+                height_y: (height),
+            },
+            data,
+            rgba,
+        )
+        .map_err(|why| anyhow::anyhow!("Error converting NV12 to RGB: {:?}", why)),
         _ => {
             // let data = data.decode_image::<RgbAFormat>().unwrap();
             // Ok(data.to_vec())
@@ -27,6 +37,14 @@ pub fn decode_to_rgb(
             Ok(vec![])
         }
     }
+}
+
+fn rgb_to_rgba(data: &[u8]) -> Vec<u8> {
+    let mut rgba = Vec::with_capacity(data.len() * 2);
+    for chunk in data.chunks_exact(3) {
+        rgba.extend_from_slice(&[chunk[0], chunk[1], chunk[2], 255]);
+    }
+    rgba
 }
 
 fn yuyv422_to_rgb_(data: &[u8], rgba: bool) -> Vec<u8> {

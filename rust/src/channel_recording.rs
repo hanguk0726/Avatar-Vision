@@ -1,7 +1,8 @@
 use std::{
+    collections::HashMap,
     mem::ManuallyDrop,
     sync::{Arc, Mutex},
-    thread, collections::HashMap,
+    thread,
 };
 
 use async_trait::async_trait;
@@ -44,8 +45,8 @@ impl RecordingHandler {
         }
     }
 
-    fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) {
-        let processed = encode_to_h264(yuv_iter, len);
+    fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize, width: usize, height: usize) {
+        let processed = encode_to_h264(yuv_iter, len , width, height);
 
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
@@ -86,7 +87,7 @@ impl RecordingHandler {
         }
     }
 
-    fn save(&self, frames: usize, title: &str) -> Result<(), std::io::Error> {
+    fn save(&self, frames: usize, title: &str, width: u32, height: u32) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
 
         let encoded = Arc::clone(&self.encoded);
@@ -99,7 +100,7 @@ impl RecordingHandler {
         let audio = audio.lock().unwrap();
         let audio = audio.to_owned();
 
-        to_mp4(&encoded[..], title, frame_rate, audio).unwrap();
+        to_mp4(&encoded[..], title, frame_rate, audio, width, height).unwrap();
         debug!("*********** saved! ***********");
         Ok(())
     }
@@ -121,6 +122,11 @@ impl AsyncMethodHandler for RecordingHandler {
                 );
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let title = map.get("title").unwrap().as_str();
+                let resolution = map.get("resolution").unwrap().as_str();
+                let resolution = resolution.split("x").collect::<Vec<&str>>();
+                let width = resolution[0].parse::<usize>().unwrap();
+                let height = resolution[1].parse::<usize>().unwrap();
+
                 let update_writing_state = |state: WritingState| async move {
                     {
                         self.recording_info.lock().unwrap().set_writing_state(state);
@@ -134,7 +140,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let started = std::time::Instant::now();
                 let mut count = 0;
 
-                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 };//TODO spilit this into a mode so that user can choose
+                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 }; //TODO spilit this into a mode so that user can choose
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
@@ -153,8 +159,6 @@ impl AsyncMethodHandler for RecordingHandler {
                 while let Ok(rgba) = encoding_receiver.recv().await {
                     let queue = queue.clone();
                     pool.spawn(async move {
-                        let width = 1280;
-                        let height = 720;
                         let yuv = rgba_to_yuv(&rgba[..], width, height);
                         queue.push(count, yuv).unwrap();
                     });
@@ -168,7 +172,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                self.encode(iter, count);
+                self.encode(iter, count, width, height);
 
                 debug!(
                     "encoded {} frames, time elapsed {}",
@@ -180,7 +184,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                if let Err(e) = self.save(count, title) {
+                if let Err(e) = self.save(count, title, width as u32, height as u32) {
                     error!("Failed to save video {:?}", e);
                 }
 

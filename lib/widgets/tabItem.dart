@@ -97,9 +97,11 @@ Widget _settings(BuildContext context) {
   final native = Provider.of<Native>(context);
   final setting = Provider.of<Setting>(context);
   final currentCameraDevice = native.currentCameraDevice;
+  final currentResolution = native.currentResolution;
   final currentAudioDevice = native.currentAudioDevice;
-  final audioDevices = native.audioDevices;
   final cameraDevices = native.cameraDevices;
+  final resolutions = native.resolutions;
+  final audioDevices = native.audioDevices;
   Color backgroundColor = customSky;
   onChangedAudioDevice(value) {
     Native().selectAudioDevice(value);
@@ -166,6 +168,18 @@ Widget _settings(BuildContext context) {
                               const Icon(Icons.no_photography, color: color),
                           textColor: color),
                       spacer,
+                      if (currentCameraDevice.isNotEmpty &&
+                          currentResolution.isNotEmpty)
+                        dropdown(
+                            value: currentResolution,
+                            items: resolutions,
+                            onChanged: (resolution) {
+                              Native().selectResolution(resolution);
+                            },
+                            icon: const Icon(Icons.photo, color: color),
+                            textOnEmpty: "No resoltion available",
+                            iconOnEmpty: const Icon(Icons.do_not_disturb, color: color),
+                            textColor: color),
                       spacer,
                       Tooltip(
                           message:

@@ -1,6 +1,6 @@
 use std::{
     mem::ManuallyDrop,
-    sync::{atomic::AtomicBool, Arc},
+    sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
 
@@ -62,6 +62,7 @@ impl AsyncMethodHandler for RenderingHandler {
                     call,
                     thread::current().id()
                 );
+
 
                 self.rendering
                     .store(true, std::sync::atomic::Ordering::Relaxed);

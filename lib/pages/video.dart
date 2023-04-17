@@ -51,6 +51,7 @@ class _VideoStateState extends State<VideoState> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
@@ -66,11 +67,11 @@ class _VideoStateState extends State<VideoState> {
         writingState.toName() == WritingState.idle.toName() ||
             (writingState.toName() == WritingState.collecting.toName() &&
                 rendering);
-                
+
     return Consumer<Native>(builder: (context, provider, child) {
       return Scaffold(
         key: _scaffoldKey,
-        backgroundColor: customNavy,
+        backgroundColor: customBlack,
         drawerScrimColor: Colors.transparent,
         body: Stack(children: [
           Container(), //empty container for the background

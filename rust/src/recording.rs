@@ -97,17 +97,22 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     Encoder::with_config(config)
 }
 
-pub fn encode_to_h264(mut yuv_iter: OrdQueueIter<Vec<u8>>, len: usize) -> Vec<u8> {
+pub fn encode_to_h264(
+    mut yuv_iter: OrdQueueIter<Vec<u8>>,
+    len: usize,
+    width: usize,
+    height: usize,
+) -> Vec<u8> {
     let started = std::time::Instant::now();
     let mut buf_h264 = Vec::new();
-    let mut encoder = encoder(1280, 720).unwrap();
+    let mut encoder = encoder(width as u32, height as u32).unwrap();
     debug!("encoding to h264...");
     for _ in 0..len {
         // let time_each = std::time::Instant::now();
         let yuv = YUVBuf {
             yuv: yuv_iter.next().unwrap(),
-            width: 1280,
-            height: 720,
+            width,
+            height,
         };
         let bitstream = encoder.encode(&yuv).unwrap();
 
@@ -130,10 +135,12 @@ pub fn to_mp4<P: AsRef<Path>>(
     file: P,
     frame_rate: u32,
     audio: Pcm,
+    width: u32,
+    height: u32,
 ) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
-    mp4muxer.init_video(1280, 720, false, "diary");
+    mp4muxer.init_video(width as i32, height as i32, false, "diary",);
     mp4muxer.init_audio(
         audio.bit_rate.try_into().unwrap(),
         audio.sample_rate,
