@@ -51,7 +51,6 @@ class _VideoStateState extends State<VideoState> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
@@ -97,22 +96,24 @@ class _VideoStateState extends State<VideoState> {
             ),
           Padding(
               padding: const EdgeInsets.only(top: 32, left: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Tabs(
-                    buttonLabels: const [
-                      TabItem.mainCam,
-                      TabItem.pastEntries,
-                      TabItem.submut,
-                      TabItem.settings,
-                    ],
-                    onTabSelected: (tabItem_) => tabItem.add(tabItem_),
-                  ),
-                  TabItemWidget(tabItem: tabItem)
-                ],
-              )),
+              child: recording
+                  ? recordingIndicator()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Tabs(
+                          buttonLabels: const [
+                            TabItem.mainCam,
+                            TabItem.pastEntries,
+                            TabItem.submut,
+                            TabItem.settings,
+                          ],
+                          onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                        ),
+                        TabItemWidget(tabItem: tabItem)
+                      ],
+                    )),
           Positioned(
               bottom: 32,
               right: 32,

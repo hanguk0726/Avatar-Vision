@@ -1,7 +1,8 @@
 use std::{
+    collections::HashMap,
     mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
-    thread, collections::HashMap,
+    thread,
 };
 
 use async_trait::async_trait;
@@ -24,7 +25,6 @@ pub struct TextureHandler {
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
-            
             "open_texture_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
@@ -104,12 +104,21 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
     });
 }
 
-fn decode(index: usize, buf: Buffer, render_buffer: Arc<Mutex<(usize, Vec<u8>)>>, width: u32, height: u32) {
-    
-    
-    let decoded = decode_to_rgb(buf.buffer(), &buf.source_frame_format(), true, width, height).unwrap();
-    //print width and height and data length
-    println!("width: {}, height: {}, data length: {}", width, height, decoded.len());
+fn decode(
+    index: usize,
+    buf: Buffer,
+    render_buffer: Arc<Mutex<(usize, Vec<u8>)>>,
+    width: u32,
+    height: u32,
+) {
+    let decoded = decode_to_rgb(
+        buf.buffer(),
+        &buf.source_frame_format(),
+        true,
+        width,
+        height,
+    )
+    .unwrap();
     let mut render_buffer = render_buffer.lock().unwrap();
     if index > render_buffer.0 {
         *render_buffer = (index, decoded);

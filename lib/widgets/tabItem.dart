@@ -45,25 +45,19 @@ class TabItemWidgetState extends State<TabItemWidget> {
 Widget _buildTabItem(TabItem? tabItem, BuildContext context) {
   switch (tabItem) {
     case TabItem.mainCam:
-      return _mainCam(context);
+      return _mainCam();
     case TabItem.settings:
       return _settings(context);
     default:
-      return _mainCam(context);
+      return _mainCam();
   }
 }
 
-Widget _mainCam(BuildContext context) {
-  return _recordingIndicator(context);
+Widget _mainCam() {
+  return const SizedBox();
 }
 
-Widget _recordingIndicator(BuildContext context) {
-  final native = Provider.of<Native>(context);
-  final recording = native.recording;
-  if (!recording) {
-    return const SizedBox();
-  }
-
+Widget recordingIndicator() {
   Color customRed = const Color.fromARGB(255, 255, 56, 63);
   return FittedBox(
     child: Row(
@@ -178,7 +172,8 @@ Widget _settings(BuildContext context) {
                             },
                             icon: const Icon(Icons.photo, color: color),
                             textOnEmpty: "No resoltion available",
-                            iconOnEmpty: const Icon(Icons.do_not_disturb, color: color),
+                            iconOnEmpty:
+                                const Icon(Icons.do_not_disturb, color: color),
                             textColor: color),
                       spacer,
                       Tooltip(
