@@ -5,7 +5,6 @@ import 'package:video_diary/widgets/setting_widget.dart';
 
 import '../domain/assets.dart';
 
-
 class TabItemWidget extends StatefulWidget {
   final BehaviorSubject<TabItem> tabItem;
 
@@ -23,18 +22,33 @@ class TabItemWidgetState extends State<TabItemWidget>
   late Size _windowSize;
   double tabItemWidetWidth = 500.0;
   double tabItemWidetHeight = 500.0;
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeMetrics() {
+  double windowPadding = 32.0;
+  void setWindowSize() {
     setState(() {
       _windowSize = WidgetsBinding.instance.window.physicalSize /
           WidgetsBinding.instance.window.devicePixelRatio;
     });
+    tabItemWidetHeight = _windowSize.height - 100.0;
+    //if tabItemWidetWidth or height bigger than window size, set to window size
+    if (_windowSize.width < tabItemWidetWidth) {
+      tabItemWidetWidth = (_windowSize.width - (2 * windowPadding));
+    }
+    if (_windowSize.height < tabItemWidetHeight) {
+      tabItemWidetHeight = (_windowSize.height - (2 * windowPadding));
+    }
+    debugPrint('window size: $_windowSize');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    setWindowSize();
+  }
+
+  @override
+  void didChangeMetrics() {
+    setWindowSize();
   }
 
   @override
@@ -52,25 +66,29 @@ class TabItemWidgetState extends State<TabItemWidget>
         final tabItem = snapshot.data;
         return Padding(
           padding: const EdgeInsets.all(8.0),
-          child: _buildTabItem(tabItem, context, tabItemWidetWidth, tabItemWidetHeight ),
+          child: _buildTabItem(
+              tabItem, context, tabItemWidetWidth, tabItemWidetHeight),
         );
       },
     );
   }
 }
 
-Widget _buildTabItem(TabItem? tabItem, BuildContext context, double width, double height) {
+Widget _buildTabItem(
+    TabItem? tabItem, BuildContext context, double width, double height) {
   switch (tabItem) {
     case TabItem.mainCam:
       return _mainCam();
     case TabItem.pastEntries:
-      return pastEntries();
+    return pastEntries(width, height);
     case TabItem.settings:
       return settings(context, width);
     default:
       return _mainCam();
   }
 }
+
+ 
 
 Widget _mainCam() {
   return const SizedBox();

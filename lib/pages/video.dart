@@ -10,6 +10,7 @@ import 'package:video_diary/widgets/message.dart';
 
 import '../domain/error.dart';
 import '../domain/writing_state.dart';
+import '../tools/custom_scroll_behavior.dart';
 import '../widgets/button.dart';
 import '../widgets/indicator.dart';
 import '../widgets/tab.dart';
@@ -27,6 +28,7 @@ class Video extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Video Diary',
+      scrollBehavior: CustomScrollBehavior(),
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

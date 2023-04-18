@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/tabItem.dart';
 
-Widget pastEntries() {
+Widget pastEntries(double width, double height) {
   List<String> fileList = [
     // delcare mock video diary entries
 
@@ -44,9 +44,10 @@ Widget pastEntries() {
   ];
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
+
   return SizedBox(
-      width: 500,
-      height: 500, //FIXME
+      width: width,
+      height: height,
       child: ClipRRect(
           child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -54,27 +55,24 @@ Widget pastEntries() {
                   decoration: BoxDecoration(
                     color: backgroundColor.withOpacity(0.2),
                   ),
-                  child: SingleChildScrollView(
-                      child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      const SizedBox(height: 8),
-                      for (var i = 0; i < fileList.length; i++)
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 32.0, right: 32.0),
-                          child: Row(
-                            children: [
-                              Text(fileList[i],
-                                  style: TextStyle(
-                                      color: textColor,
-                                      fontFamily: mainFont,
-                                      fontSize: 16)),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: fileList.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(left: 32.0, right: 32.0),
+                        child: Row(
+                          children: [
+                            Text(fileList[index],
+                                style: TextStyle(
+                                    color: textColor,
+                                    fontFamily: mainFont,
+                                    fontSize: 16)),
+                            const SizedBox(width: 8),
+                          ],
                         ),
-                    ],
-                  ))))));
+                      );
+                    },
+                  )))));
 }

@@ -10,7 +10,6 @@ void main() async {
 
   await Native().init();
   await Setting().load();
-
   runApp(
     MultiProvider(
       providers: [
