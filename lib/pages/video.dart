@@ -6,7 +6,9 @@ import 'package:video_diary/domain/setting.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dropdown.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
+import 'package:video_diary/widgets/message.dart';
 
+import '../domain/error.dart';
 import '../domain/writing_state.dart';
 import '../widgets/button.dart';
 import '../widgets/indicator.dart';
@@ -64,91 +66,95 @@ class _VideoStateState extends State<VideoState> {
     final renderingWhileEncoding = setting.renderingWhileEncoding;
     final width = native.currentResolutionWidth;
     final height = native.currentResolutionHeight;
+    final recordingHealthCheck = native.recordingHealthCheck;
 
-    bool noWritingStateIndicator =
-        writingState.toName() == WritingState.idle.toName() ||
-            (writingState.toName() == WritingState.collecting.toName() &&
-                rendering);
+    bool noWritingStateIndicator = writingState == WritingState.idle ||
+        (writingState == WritingState.collecting && rendering);
 
-    return Consumer<Native>(builder: (context, provider, child) {
-      return Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: customBlack,
-        drawerScrimColor: Colors.transparent,
-        body: Stack(children: [
-          Container(), //empty container for the background
-          if (rendering) texture(width, height),
-          if (currentCameraDevice.isEmpty)
-            Center(
-                child: Text("No camera devices found",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: mainFont,
-                        fontSize: 32))),
-          if (!cameraHealthCheck)
-            Center(
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+    List<CustomError> errors = [
+      CustomError(
+        occurred: !cameraHealthCheck,
+        message:
+            "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
+        subMessage: cameraHealthCheckErrorMessage,
+      ),
+      CustomError(
+        occurred: !recordingHealthCheck,
+        message:
+            "The directory for saving the video does not have permission for writing.\nPlease check the directory permission.",
+        subMessage: "path: ${native.filePathPrefix}",
+      ),
+    ];
+
+    Widget showMessageOnError(List<CustomError> errors) {
+      if (errors.any((error) => error.occurred)) {
+        return messageOnError(
+            error: errors.firstWhere((error) => error.occurred));
+      } else {
+        return const SizedBox();
+      }
+    }
+
+    Widget writingStateMessage() {
+      if (noWritingStateIndicator) {
+        return const SizedBox();
+      } else if (renderingWhileEncoding) {
+        return Positioned(
+            top: 32,
+            right: 32,
+            child: SavingIndicator(
+              recording: recording,
+              writingState: writingState,
+            ));
+      } else {
+        return messageWidget(writingState.toName(), true, true);
+      }
+    }
+
+    Widget messageNoCameraFound() {
+      return Center(
+          child: Text("No camera devices found",
+              style: TextStyle(
+                  color: Colors.white, fontFamily: mainFont, fontSize: 32)));
+    }
+
+    Widget menuTaps() {
+      return Padding(
+          padding: const EdgeInsets.only(top: 32, left: 32),
+          child: recording
+              ? recordingIndicator()
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    message(
-                        "The camera device has encountered an error.\nPlease pull out the usb and reconnect it.",
-                        false,
-                        false,
-                        icon: Icon(
-                          Icons.error_outline,
-                          color: customOrange,
-                          size: 100.0,
-                        )),
-                    Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Text(cameraHealthCheckErrorMessage,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontFamily: mainFont,
-                                fontSize: 24)))
-                  ]),
-            ),
-          Padding(
-              padding: const EdgeInsets.only(top: 32, left: 32),
-              child: recording
-                  ? recordingIndicator()
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Tabs(
-                          buttonLabels: const [
-                            TabItem.mainCam,
-                            TabItem.pastEntries,
-                            TabItem.submut,
-                            TabItem.settings,
-                          ],
-                          onTabSelected: (tabItem_) => tabItem.add(tabItem_),
-                        ),
-                        TabItemWidget(tabItem: tabItem)
+                    Tabs(
+                      buttonLabels: const [
+                        TabItem.mainCam,
+                        TabItem.pastEntries,
+                        TabItem.submut,
+                        TabItem.settings,
                       ],
-                    )),
-          Positioned(
-              bottom: 32,
-              right: 32,
-              child: mediaControlButton(context: context)),
+                      onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                    ),
+                    TabItemWidget(tabItem: tabItem)
+                  ],
+                ));
+    }
 
-          if (noWritingStateIndicator)
-            const SizedBox()
-          else if (renderingWhileEncoding)
-            Positioned(
-                top: 32,
-                right: 32,
-                child: SavingIndicator(
-                  recording: recording,
-                  writingState: writingState,
-                ))
-          else
-            message(writingState.toName(), true, true)
-        ]),
-      );
-    });
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: customBlack,
+      drawerScrimColor: Colors.transparent,
+      body: Stack(children: [
+        Container(), //empty container for the background
+        if (rendering) texture(width, height),
+        if (currentCameraDevice.isEmpty) messageNoCameraFound(),
+        showMessageOnError(errors),
+        menuTaps(),
+        Positioned(
+            bottom: 32, right: 32, child: mediaControlButton(context: context)),
+        writingStateMessage(),
+      ]),
+    );
   }
 }

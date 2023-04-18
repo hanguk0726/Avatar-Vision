@@ -88,8 +88,8 @@ Widget recordingIndicator() {
 Widget _settings(BuildContext context) {
   const color = Colors.white;
   const spacer = SizedBox(height: 24);
-  final native = Provider.of<Native>(context);
-  final setting = Provider.of<Setting>(context);
+  final native = context.watch<Native>();
+  final setting = context.watch<Setting>();
   final currentCameraDevice = native.currentCameraDevice;
   final currentResolution = native.currentResolution;
   final currentAudioDevice = native.currentAudioDevice;

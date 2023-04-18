@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     mem::ManuallyDrop,
     sync::{Arc, Mutex},
-    thread,
+    thread, fs,
 };
 
 use async_trait::async_trait;
@@ -87,7 +87,7 @@ impl RecordingHandler {
         }
     }
 
-    fn save(&self, frames: usize, title: &str, width: u32, height: u32) -> Result<(), std::io::Error> {
+    fn save(&self, frames: usize, file_path: &str, width: u32, height: u32) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
 
         let encoded = Arc::clone(&self.encoded);
@@ -100,7 +100,7 @@ impl RecordingHandler {
         let audio = audio.lock().unwrap();
         let audio = audio.to_owned();
 
-        to_mp4(&encoded[..], title, frame_rate, audio, width, height).unwrap();
+        to_mp4(&encoded[..], file_path, frame_rate, audio, width, height).unwrap();
         debug!("*********** saved! ***********");
         Ok(())
     }
@@ -121,7 +121,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     thread::current().id()
                 );
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
-                let title = map.get("title").unwrap().as_str();
+                let file_path = map.get("file_path").unwrap().as_str();
+                debug!("file_path: {:?}", file_path);
                 let resolution = map.get("resolution").unwrap().as_str();
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<usize>().unwrap();
@@ -184,7 +185,8 @@ impl AsyncMethodHandler for RecordingHandler {
                 {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                if let Err(e) = self.save(count, title, width as u32, height as u32) {
+
+                if let Err(e) = self.save(count, file_path, width as u32, height as u32) {
                     error!("Failed to save video {:?}", e);
                 }
 

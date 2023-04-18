@@ -7,7 +7,7 @@ import '../domain/writing_state.dart';
 import '../services/native.dart';
 
 Widget mediaControlButton({required BuildContext context}) {
-  final native = Provider.of<Native>(context);
+  final native = context.watch<Native>();
 
   final writingState = native.writingState;
   final recording = native.recording;

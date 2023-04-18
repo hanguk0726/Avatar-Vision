@@ -81,26 +81,3 @@ class _SavingIndicator extends State<SavingIndicator>
   }
 }
 
-Widget message(String text, bool ellipsis, bool indicator, {Widget? icon}) {
-  Color color = Colors.white;
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      if (icon != null) ...[
-        icon,
-        const SizedBox(width: 50),
-      ],
-      Text(
-        ellipsis ? "$text..." : text,
-        style: TextStyle(color: color, fontSize: 40, fontFamily: mainFont),
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(width: 50),
-      if (indicator)
-        SpinKitFadingCube(
-          color: color,
-          size: 40.0,
-        ),
-    ],
-  );
-}

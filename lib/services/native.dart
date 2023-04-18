@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../domain/setting.dart';
@@ -34,6 +36,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   double currentResolutionWidth = 0; // the width of the current resolution
   double currentResolutionHeight = 0; // the height of the current resolution
 
+  bool recordingHealthCheck =
+      true; // whether the recording is ok (os permission for writing file etc.)
+
   static const String rustLibraryName = 'rust';
 
   final dylib = defaultTargetPlatform == TargetPlatform.android
@@ -52,6 +57,38 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   late final NativeMethodChannel recordingChannel;
   late final NativeMethodChannel audioChannel;
 
+  String filePathPrefix = '';
+  String fileName = 'test';
+  Future<void> checkFileDirectory() async {
+    // On Windows, get or create the appdata folder
+    if (Platform.isWindows) {
+      final appDataDir = Directory.current;
+      final targetDirectory = Directory('${appDataDir.path}\\data');
+      filePathPrefix = targetDirectory.path;
+      if (await targetDirectory.exists()) {
+        debugPrint('Directory already exists');
+      } else {
+        await targetDirectory.create(recursive: true);
+        debugPrint('Directory created at: ${targetDirectory.path}');
+      }
+      if (targetDirectory.existsSync()) {
+        var result = targetDirectory.statSync();
+        var isWritable = result.mode & 0x92 != 0; // 0x92 = 10010010 in binary
+        if (isWritable) {
+          debugPrint('$targetDirectory is writable.');
+        } else {
+          debugPrint('$targetDirectory is not writable.');
+          recordingHealthCheck = false;
+          notifyListeners();
+        }
+      } else {
+        debugPrint('$targetDirectory does not exist.');
+      }
+    } else {
+      debugPrint('This function is only implemented for Windows');
+    }
+  }
+
   Future<void> init() async {
     await _init();
     nativeContext = _nativeContext();
@@ -68,7 +105,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         'rendering_channel_background_thread',
         context: nativeContext);
     setChannelHandlers();
-
+    await checkFileDirectory();
     await queryDevices();
   }
 
@@ -144,7 +181,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void startRecording() async {
     final res = await recordingChannel.invokeMethod('start_recording', {
-      'title': "test",
+      'file_path': "$filePathPrefix\\$fileName",
       'resolution': currentResolution,
     });
     _showResult(res);
@@ -161,7 +198,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     if (lastPreferredResolution.isNotEmpty && currentResolution.isEmpty) {
       requestedResolution = lastPreferredResolution;
     }
-    
+
     final res = await cameraChannel.invokeMethod('open_camera_stream', {
       'resolution': requestedResolution,
     });

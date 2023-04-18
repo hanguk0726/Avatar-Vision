@@ -132,7 +132,7 @@ pub fn encode_to_h264(
 
 pub fn to_mp4<P: AsRef<Path>>(
     buf_h264: &[u8],
-    file: P,
+    file_path: P,
     frame_rate: u32,
     audio: Pcm,
     width: u32,
@@ -163,6 +163,6 @@ pub fn to_mp4<P: AsRef<Path>>(
     let mut video_bytes = Vec::new();
     video_buffer.read_to_end(&mut video_bytes).unwrap();
     debug!("{} bytes", video_bytes.len());
-    let file = file.as_ref().with_extension("mp4");
-    std::fs::write(file, &video_bytes)
+    let file_path = file_path.as_ref().with_extension("mp4");
+    std::fs::write(file_path, &video_bytes)
 }
