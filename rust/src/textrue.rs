@@ -74,14 +74,14 @@ impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
     }
 }
 
-#[allow(dead_code)]
-fn test_texture() -> BoxedPixelData {
-    let rng = fastrand::Rng::new();
-    let width = 1280i32;
-    let height = 720i32;
-    debug!("Rendering pixel buffer");
-    let bytes: Vec<u8> = repeat_with(|| rng.u8(..))
-        .take((width * height * 4) as usize)
-        .collect();
-    SimplePixelData::new_boxed(width, height, bytes)
-}
+// #[allow(dead_code)]
+// fn test_texture() -> BoxedPixelData {
+//     let rng = fastrand::Rng::new();
+//     let width = 1280i32;
+//     let height = 720i32;
+//     debug!("Rendering pixel buffer");
+//     let bytes: Vec<u8> = repeat_with(|| rng.u8(..))
+//         .take((width * height * 4) as usize)
+//         .collect();
+//     SimplePixelData::new_boxed(width, height, bytes)
+// }
