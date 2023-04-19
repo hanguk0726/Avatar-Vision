@@ -4,19 +4,16 @@ import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/domain/setting.dart';
 import 'package:video_diary/services/native.dart';
-import 'package:video_diary/widgets/dropdown.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 
 import '../domain/error.dart';
 import '../domain/writing_state.dart';
 import '../tools/custom_scroll_behavior.dart';
-import '../widgets/button.dart';
 import '../widgets/indicator.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
-import '../widgets/waveform.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -133,7 +130,7 @@ class _VideoStateState extends State<VideoState> {
                       buttonLabels: const [
                         TabItem.mainCam,
                         TabItem.pastEntries,
-                        TabItem.submut,
+                        TabItem.submit,
                         TabItem.settings,
                       ],
                       onTabSelected: (tabItem_) => tabItem.add(tabItem_),

@@ -80,15 +80,16 @@ Widget _buildTabItem(
     case TabItem.mainCam:
       return _mainCam();
     case TabItem.pastEntries:
-    return pastEntries(width, height);
+      return PastEntries(
+        width: width,
+        height: height,
+      );
     case TabItem.settings:
       return settings(context, width);
     default:
       return _mainCam();
   }
 }
-
- 
 
 Widget _mainCam() {
   return const SizedBox();
@@ -125,7 +126,7 @@ Widget recordingIndicator() {
 enum TabItem {
   mainCam('MAIN CAM'),
   pastEntries('PAST ENTRIES'),
-  submut('SUBMIT'),
+  submit('SUBMIT'),
   settings('SETTINGS');
 
   final String name;

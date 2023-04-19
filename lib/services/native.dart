@@ -59,6 +59,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   String filePathPrefix = '';
   String fileName = 'test';
+  List<String> files = [];
   Future<void> checkFileDirectory() async {
     // On Windows, get or create the appdata folder
     if (Platform.isWindows) {
@@ -74,6 +75,14 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       if (targetDirectory.existsSync()) {
         var result = targetDirectory.statSync();
         var isWritable = result.mode & 0x92 != 0; // 0x92 = 10010010 in binary
+        List<FileSystemEntity> files = targetDirectory.listSync();
+        for (FileSystemEntity file in files) {
+          if (file is File) {
+            // remove the file extension and the path
+            String fileName = file.path.split('\\').last.split('.mp4').first;
+            this.files.add(fileName);
+          }
+        }
         if (isWritable) {
           debugPrint('$targetDirectory is writable.');
         } else {
