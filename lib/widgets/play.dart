@@ -6,6 +6,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_meedu_videoplayer/meedu_player.dart';
 
+import '../pages/video.dart';
+
 class Play extends StatefulWidget {
   final String filePath;
   final String fileName;
@@ -23,16 +25,16 @@ class Play extends StatefulWidget {
 
 class PlayState extends State<Play> {
   final _controller = MeeduPlayerController(
-    // screenManager: const ScreenManager(forceLandScapeInFullscreen: false),
+    screenManager: const ScreenManager(forceLandScapeInFullscreen: true),
     enabledControls: const EnabledControls(),
   );
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+  
       init();
-    });
   }
 
   @override
@@ -43,7 +45,7 @@ class PlayState extends State<Play> {
 
   void init() async {
     File file = File(widget.filePath);
-
+  _controller.header = header;
     _controller.setDataSource(
         DataSource(
           file: file,
@@ -74,7 +76,7 @@ class PlayState extends State<Play> {
                 color: Colors.white,
               ),
             ),
-          ),
+          )
         ],
       ),
     );
@@ -83,14 +85,16 @@ class PlayState extends State<Play> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: SafeArea(
+          child: Center(
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: MeeduVideoPlayer(
             controller: _controller,
           ),
         ),
-      ),
+      )),
     );
   }
 }

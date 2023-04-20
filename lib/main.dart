@@ -17,7 +17,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => Native()),
         ChangeNotifierProvider(create: (_) => Setting()),
       ],
-      child: const Video(),
+      child: const App(),
     ),
   );
 }

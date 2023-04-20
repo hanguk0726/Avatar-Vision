@@ -17,8 +17,8 @@ import '../widgets/texture.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-class Video extends StatelessWidget {
-  const Video({Key? key}) : super(key: key);
+class App extends StatelessWidget {
+  const App({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -29,21 +29,19 @@ class Video extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const VideoState(title: 'Video Page'),
+      home: const Video(),
     );
   }
 }
 
-class VideoState extends StatefulWidget {
-  final String title;
-
-  const VideoState({Key? key, required this.title}) : super(key: key);
+class Video extends StatefulWidget {
+  const Video({super.key});
 
   @override
-  State<VideoState> createState() => _VideoStateState();
+  State<Video> createState() => _VideoState();
 }
 
-class _VideoStateState extends State<VideoState> {
+class _VideoState extends State<Video> {
   BehaviorSubject<TabItem> tabItem = BehaviorSubject<TabItem>();
 
   @override
