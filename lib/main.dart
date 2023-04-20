@@ -9,7 +9,7 @@ import 'domain/setting.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initMeeduPlayer();
-  await Native().init();
+  await Native().init();  
   await Setting().load();
   runApp(
     MultiProvider(
