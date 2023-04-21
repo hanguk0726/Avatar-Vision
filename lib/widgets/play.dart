@@ -33,8 +33,7 @@ class PlayState extends State<Play> {
   void initState() {
     super.initState();
 
-  
-      init();
+    init();
   }
 
   @override
@@ -45,7 +44,7 @@ class PlayState extends State<Play> {
 
   void init() async {
     File file = File(widget.filePath);
-  _controller.header = header;
+    _controller.header = header;
     _controller.setDataSource(
         DataSource(
           file: file,
@@ -55,30 +54,27 @@ class PlayState extends State<Play> {
   }
 
   Widget get header {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        children: [
-          CupertinoButton(
-            child: const Icon(
-              Icons.arrow_back,
+    return Row(
+      children: [
+        CupertinoButton(
+          child: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            // close the fullscreen
+            Navigator.pop(context);
+          },
+        ),
+        Expanded(
+          child: Text(
+            widget.fileName,
+            style: const TextStyle(
               color: Colors.white,
             ),
-            onPressed: () {
-              // close the fullscreen
-              Navigator.pop(context);
-            },
           ),
-          Expanded(
-            child: Text(
-              widget.fileName,
-              style: const TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          )
-        ],
-      ),
+        )
+      ],
     );
   }
 

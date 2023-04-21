@@ -78,6 +78,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         List<FileSystemEntity> files = targetDirectory.listSync();
         for (FileSystemEntity file in files) {
           if (file is File) {
+            if (!file.path.endsWith('.mp4')) continue;
             // remove the file extension and the path
             String fileName = file.path.split('\\').last.split('.mp4').first;
             this.files.add(fileName);

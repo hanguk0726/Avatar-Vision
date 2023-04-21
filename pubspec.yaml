@@ -43,7 +43,9 @@ dependencies:
   rxdart: ^0.27.7
   path_provider: ^2.0.5
   flutter_meedu_videoplayer:  ^4.2.0
-
+  window_manager: ^0.3.2
+  visibility_detector: ^0.4.0+2
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

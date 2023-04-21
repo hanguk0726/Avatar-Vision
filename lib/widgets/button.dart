@@ -14,15 +14,17 @@ Widget customButton(
       ),
       child: Container(
           height: height,
+          padding: const EdgeInsets.only(left:12.0, right: 12.0),
           color: color.withOpacity(0.5),
-          child: TextButton(
-            onPressed: () => onClick(),
-            child: Text(text,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: textColor,
-                    fontSize: 24,
-                    fontFamily: mainFont,
-                    fontWeight: FontWeight.bold)),
-          )));
+          child: GestureDetector(
+              onTap: () => onClick(),
+              child: Center(
+                child: Text(text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontFamily: mainFont,
+                        fontWeight: FontWeight.bold)),
+              ))));
 }

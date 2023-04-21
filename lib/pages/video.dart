@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/domain/setting.dart';
+import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 
 import '../domain/error.dart';
+import '../domain/event.dart';
 import '../domain/writing_state.dart';
 import '../tools/custom_scroll_behavior.dart';
 import '../widgets/indicator.dart';
@@ -22,14 +24,24 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Video Diary',
-      scrollBehavior: CustomScrollBehavior(),
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return RawKeyboardListener(
+      focusNode: FocusNode(),
+      autofocus: true,
+      onKey: (event) {
+        var e = rawKeyEventToEvent(event);
+        if (e != null) {
+          EventBus().fire(e);
+        }
+      },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Video Diary',
+        scrollBehavior: CustomScrollBehavior(),
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: const Video(),
       ),
-      home: const Video(),
     );
   }
 }
@@ -83,61 +95,6 @@ class _VideoState extends State<Video> {
       ),
     ];
 
-    Widget showMessageOnError(List<CustomError> errors) {
-      if (errors.any((error) => error.occurred)) {
-        return messageOnError(
-            error: errors.firstWhere((error) => error.occurred));
-      } else {
-        return const SizedBox();
-      }
-    }
-
-    Widget writingStateMessage() {
-      if (noWritingStateIndicator) {
-        return const SizedBox();
-      } else if (renderingWhileEncoding) {
-        return Positioned(
-            top: 32,
-            right: 32,
-            child: SavingIndicator(
-              recording: recording,
-              writingState: writingState,
-            ));
-      } else {
-        return messageWidget(writingState.toName(), true, true);
-      }
-    }
-
-    Widget messageNoCameraFound() {
-      return Center(
-          child: Text("No camera devices found",
-              style: TextStyle(
-                  color: Colors.white, fontFamily: mainFont, fontSize: 32)));
-    }
-
-    Widget menuTaps() {
-      return Padding(
-          padding: const EdgeInsets.only(top: 32, left: 32),
-          child: recording
-              ? recordingIndicator()
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Tabs(
-                      buttonLabels: const [
-                        TabItem.mainCam,
-                        TabItem.pastEntries,
-                        TabItem.submit,
-                        TabItem.settings,
-                      ],
-                      onTabSelected: (tabItem_) => tabItem.add(tabItem_),
-                    ),
-                    TabItemWidget(tabItem: tabItem)
-                  ],
-                ));
-    }
-
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: customBlack,
@@ -147,11 +104,78 @@ class _VideoState extends State<Video> {
         if (rendering) texture(width, height),
         if (currentCameraDevice.isEmpty) messageNoCameraFound(),
         showMessageOnError(errors),
-        menuTaps(),
-        Positioned(
-            bottom: 32, right: 32, child: mediaControlButton(context: context)),
-        writingStateMessage(),
+        menuTaps(recording: recording),
+        _mediaControlButton(),
+        writingStateMessage(
+            writingState: writingState,
+            recording: recording,
+            renderingWhileEncoding: renderingWhileEncoding,
+            noWritingStateIndicator: noWritingStateIndicator),
       ]),
     );
+  }
+
+  Widget _mediaControlButton() {
+    return Positioned(
+        bottom: 32, right: 32, child: mediaControlButton(context: context));
+  }
+
+  Widget showMessageOnError(List<CustomError> errors) {
+    if (errors.any((error) => error.occurred)) {
+      return messageOnError(
+          error: errors.firstWhere((error) => error.occurred));
+    } else {
+      return const SizedBox();
+    }
+  }
+
+  Widget writingStateMessage(
+      {required WritingState writingState,
+      required bool recording,
+      required bool renderingWhileEncoding,
+      required bool noWritingStateIndicator}) {
+    if (noWritingStateIndicator) {
+      return const SizedBox();
+    } else if (renderingWhileEncoding) {
+      return Positioned(
+          top: 32,
+          right: 32,
+          child: SavingIndicator(
+            recording: recording,
+            writingState: writingState,
+          ));
+    } else {
+      return messageWidget(writingState.toName(), true, true);
+    }
+  }
+
+  Widget messageNoCameraFound() {
+    return Center(
+        child: Text("No camera devices found",
+            style: TextStyle(
+                color: Colors.white, fontFamily: mainFont, fontSize: 32)));
+  }
+
+  Widget menuTaps({required bool recording}) {
+    return Padding(
+        padding: const EdgeInsets.only(top: 32, left: 32),
+        child: recording
+            ? recordingIndicator()
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tabs(
+                    buttonLabels: const [
+                      TabItem.mainCam,
+                      TabItem.pastEntries,
+                      TabItem.submit,
+                      TabItem.settings,
+                    ],
+                    onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                  ),
+                  TabItemWidget(tabItem: tabItem)
+                ],
+              ));
   }
 }
