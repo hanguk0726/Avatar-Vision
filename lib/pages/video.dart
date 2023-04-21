@@ -99,19 +99,24 @@ class _VideoState extends State<Video> {
       key: _scaffoldKey,
       backgroundColor: customBlack,
       drawerScrimColor: Colors.transparent,
-      body: Stack(children: [
-        Container(), //empty container for the background
-        if (rendering) texture(width, height),
-        if (currentCameraDevice.isEmpty) messageNoCameraFound(),
-        showMessageOnError(errors),
-        menuTaps(recording: recording),
-        _mediaControlButton(),
-        writingStateMessage(
-            writingState: writingState,
-            recording: recording,
-            renderingWhileEncoding: renderingWhileEncoding,
-            noWritingStateIndicator: noWritingStateIndicator),
-      ]),
+      body: Center(
+          child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(children: [
+          Container(), //empty container for the background
+          if (rendering) texture(width, height),
+          if (currentCameraDevice.isEmpty) messageNoCameraFound(),
+          showMessageOnError(errors),
+          menuTaps(recording: recording),
+          _mediaControlButton(),
+          writingStateMessage(
+              writingState: writingState,
+              recording: recording,
+              renderingWhileEncoding: renderingWhileEncoding,
+              noWritingStateIndicator: noWritingStateIndicator),
+        ]),
+      )),
     );
   }
 

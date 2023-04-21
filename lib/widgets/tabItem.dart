@@ -75,17 +75,17 @@ class TabItemWidgetState extends State<TabItemWidget>
 }
 
 Widget _buildTabItem(
-    TabItem? tabItem, BuildContext context, double width, double height) {
+    TabItem? tabItem, BuildContext context, double tabItemWidetWidth, double tabItemWidetHeight) {
   switch (tabItem) {
     case TabItem.mainCam:
       return _mainCam();
     case TabItem.pastEntries:
       return PastEntries(
-        width: width,
-        height: height,
+        width: tabItemWidetWidth,
+        height: tabItemWidetHeight,
       );
     case TabItem.settings:
-      return settings(context, width);
+      return settings(context, tabItemWidetWidth);
     default:
       return _mainCam();
   }

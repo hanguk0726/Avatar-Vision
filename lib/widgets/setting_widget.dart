@@ -5,23 +5,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/widgets/tabItem.dart';
 import 'package:video_diary/widgets/waveform.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
 import '../domain/setting.dart';
 import '../services/native.dart';
 import 'dropdown.dart';
 
-Widget settings(BuildContext context, double width) {
+Widget settings(BuildContext context, double tabItemWidetWidth) {
   const color = Colors.white;
   const spacer = SizedBox(height: 24);
   final native = context.watch<Native>();
   final setting = context.watch<Setting>();
+  final screenWidth = native.currentResolutionWidth;
+  final screenHeight = native.currentResolutionHeight;
   final currentCameraDevice = native.currentCameraDevice;
   final currentResolution = native.currentResolution;
   final currentAudioDevice = native.currentAudioDevice;
   final cameraDevices = native.cameraDevices;
   final resolutions = native.resolutions;
   final audioDevices = native.audioDevices;
+
   Color backgroundColor = customOcean;
   onChangedAudioDevice(value) {
     Native().selectAudioDevice(value);
@@ -32,7 +36,7 @@ Widget settings(BuildContext context, double width) {
   }
 
   return SizedBox(
-      width: width,
+      width: tabItemWidetWidth,
       child: ClipRRect(
           child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -111,9 +115,11 @@ Widget settings(BuildContext context, double width) {
                                 const EdgeInsets.only(left: 16.0, right: 16.0),
                             child: Row(
                               children: [
-                                const Text("Render while recording",
-                                    style:
-                                        TextStyle(color: color, fontSize: 16)),
+                                Text("Render while recording",
+                                    style: TextStyle(
+                                        color: color,
+                                        fontSize: 16,
+                                        fontFamily: mainFont)),
                                 const Spacer(),
                                 Switch(
                                   value: setting.renderingWhileEncoding,
@@ -125,6 +131,50 @@ Widget settings(BuildContext context, double width) {
                               ],
                             ),
                           )),
+                      spacer,
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                        child: Row(
+                          children: [
+                            Text("Fit to screen",
+                                style: TextStyle(
+                                    color: color,
+                                    fontSize: 16,
+                                    fontFamily: mainFont)),
+                            const Spacer(),
+                            FutureBuilder<Size>(
+                              future: windowManager.getSize(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  final appWindowSize = snapshot.data!;
+                                  final fitToScreen = isWithinTolerance(
+                                      Size(screenWidth, screenHeight),
+                                      appWindowSize,
+                                      10);
+                                  return Switch(
+                                    value: fitToScreen,
+                                    activeColor: customSky,
+                                    onChanged: (value) {
+                                      if (value) {
+                                        windowManager.setSize(
+                                            Size(screenWidth, screenHeight));
+                                      }
+                                    },
+                                  );
+                                } else {
+                                  return CircularProgressIndicator(
+                                      color: customSky);
+                                }
+                              },
+                            )
+                          ],
+                        ),
+                      ),
                     ],
                   )))));
+}
+
+bool isWithinTolerance(Size size1, Size size2, double tolerance) {
+  return (size1.width - size2.width).abs() < tolerance &&
+      (size1.height - size2.height).abs() < tolerance;
 }
