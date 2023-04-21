@@ -132,42 +132,48 @@ Widget settings(BuildContext context, double tabItemWidetWidth) {
                             ),
                           )),
                       spacer,
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                        child: Row(
-                          children: [
-                            Text("Fit to screen",
-                                style: TextStyle(
-                                    color: color,
-                                    fontSize: 16,
-                                    fontFamily: mainFont)),
-                            const Spacer(),
-                            FutureBuilder<Size>(
-                              future: windowManager.getSize(),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData) {
-                                  final appWindowSize = snapshot.data!;
-                                  final fitToScreen = isWithinTolerance(
-                                      Size(screenWidth, screenHeight),
-                                      appWindowSize,
-                                      10);
-                                  return Switch(
-                                    value: fitToScreen,
-                                    activeColor: customSky,
-                                    onChanged: (value) {
-                                      if (value) {
-                                        windowManager.setSize(
-                                            Size(screenWidth, screenHeight));
-                                      }
-                                    },
-                                  );
-                                } else {
-                                  return CircularProgressIndicator(
-                                      color: customSky);
-                                }
-                              },
-                            )
-                          ],
+                      Tooltip(
+                        message:
+                            'This is enabled automatically when window size is fit to screen',
+                        preferBelow: true,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.only(left: 16.0, right: 16.0),
+                          child: Row(
+                            children: [
+                              Text("Fit to screen",
+                                  style: TextStyle(
+                                      color: color,
+                                      fontSize: 16,
+                                      fontFamily: mainFont)),
+                              const Spacer(),
+                              FutureBuilder<Size>(
+                                future: windowManager.getSize(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    final appWindowSize = snapshot.data!;
+                                    final fitToScreen = isWithinTolerance(
+                                        Size(screenWidth, screenHeight),
+                                        appWindowSize,
+                                        10);
+                                    return Switch(
+                                      value: fitToScreen,
+                                      activeColor: customSky,
+                                      onChanged: (value) {
+                                        if (value) {
+                                          windowManager.setSize(
+                                              Size(screenWidth, screenHeight));
+                                        }
+                                      },
+                                    );
+                                  } else {
+                                    return CircularProgressIndicator(
+                                        color: customSky);
+                                  }
+                                },
+                              )
+                            ],
+                          ),
                         ),
                       ),
                     ],

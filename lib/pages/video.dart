@@ -179,7 +179,8 @@ class _VideoState extends State<Video> {
                     ],
                     onTabSelected: (tabItem_) => tabItem.add(tabItem_),
                   ),
-                  TabItemWidget(tabItem: tabItem)
+                    TabItemWidget(tabItem: tabItem) ,
+               
                 ],
               ));
   }

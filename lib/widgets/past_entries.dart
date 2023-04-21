@@ -17,7 +17,7 @@ class PastEntries extends StatefulWidget {
   final double width;
   final double height;
 
-  const PastEntries({required this.width, required this.height});
+  const PastEntries({super.key, required this.width, required this.height});
   @override
   PastEntriesState createState() => PastEntriesState();
 }

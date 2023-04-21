@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/widgets/past_entries.dart';
 import 'package:video_diary/widgets/setting_widget.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
 
@@ -19,31 +20,22 @@ class TabItemWidget extends StatefulWidget {
 
 class TabItemWidgetState extends State<TabItemWidget>
     with WidgetsBindingObserver {
-  late Size _windowSize;
-  double tabItemWidetWidth = 500.0;
-  double tabItemWidetHeight = 500.0;
+  double maxTabItemWidetWidth = 500.0;
+  double maxTabItemWidetHeight = 500.0;
   double windowPadding = 32.0;
-  void setWindowSize() {
+  void setWindowSize() async {
+    Size appWindowSize = await windowManager.getSize();
     setState(() {
-      _windowSize = WidgetsBinding.instance.window.physicalSize /
-          WidgetsBinding.instance.window.devicePixelRatio;
+      maxTabItemWidetWidth = ((appWindowSize.width / 2) - (2 * windowPadding)).clamp(0, double.infinity);
+      maxTabItemWidetHeight =
+          ((appWindowSize.height - 100) - (2 * windowPadding)).clamp(0, double.infinity);
     });
-    tabItemWidetHeight = _windowSize.height - 100.0;
-    //if tabItemWidetWidth or height bigger than window size, set to window size
-    if (_windowSize.width < tabItemWidetWidth) {
-      tabItemWidetWidth = (_windowSize.width - (2 * windowPadding));
-    }
-    if (_windowSize.height < tabItemWidetHeight) {
-      tabItemWidetHeight = (_windowSize.height - (2 * windowPadding));
-    }
-    debugPrint('window size: $_windowSize');
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    setWindowSize();
   }
 
   @override
@@ -59,6 +51,7 @@ class TabItemWidgetState extends State<TabItemWidget>
 
   @override
   Widget build(BuildContext context) {
+    setWindowSize();
     return StreamBuilder<TabItem>(
       stream: widget.tabItem,
       initialData: TabItem.mainCam,
@@ -67,15 +60,15 @@ class TabItemWidgetState extends State<TabItemWidget>
         return Padding(
           padding: const EdgeInsets.all(8.0),
           child: _buildTabItem(
-              tabItem, context, tabItemWidetWidth, tabItemWidetHeight),
+              tabItem, context, maxTabItemWidetWidth, maxTabItemWidetHeight),
         );
       },
     );
   }
 }
 
-Widget _buildTabItem(
-    TabItem? tabItem, BuildContext context, double tabItemWidetWidth, double tabItemWidetHeight) {
+Widget _buildTabItem(TabItem? tabItem, BuildContext context,
+    double tabItemWidetWidth, double tabItemWidetHeight) {
   switch (tabItem) {
     case TabItem.mainCam:
       return _mainCam();
