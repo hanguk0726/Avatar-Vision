@@ -23,7 +23,11 @@ void main() async {
 
 Future<void> setUp() async {
   await windowManager.ensureInitialized();
-  WindowOptions windowOptions = const WindowOptions(size: Size(1280, 720));
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1280, 720),
+    minimumSize: Size(1280, 720),
+    title: "Video Diary",
+  );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();

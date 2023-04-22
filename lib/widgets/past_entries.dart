@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/play.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
 import '../services/event_bus.dart';
@@ -19,16 +18,33 @@ class PastEntries extends StatefulWidget {
   PastEntriesState createState() => PastEntriesState();
 }
 
-class PastEntriesState extends State<PastEntries> {
+class PastEntriesState extends State<PastEntries> with WindowListener {
   int selectedIndex = 0;
 
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
   bool _isVisible = false;
+  double widnowHeight = 0.0;
   late StreamSubscription<Event> _eventSubscription;
+
+  Future<void> setUp() async {
+    widnowHeight = await windowManager.getSize().then((value) => value.height);
+    setState(() {
+      // do nothing
+    });
+  }
+
+  @override
+  void onWindowResize() {
+    super.onWindowResize();
+    setUp();
+  }
+
   @override
   void initState() {
+    windowManager.addListener(this);
     super.initState();
+    setUp();
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (!_isVisible) {
         return;
@@ -61,6 +77,7 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   void dispose() {
+    windowManager.removeListener(this);
     _eventSubscription.cancel();
     super.dispose();
   }
@@ -114,38 +131,43 @@ class PastEntriesState extends State<PastEntries> {
                   decoration: BoxDecoration(
                     color: backgroundColor.withOpacity(0.2),
                   ),
-                  child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16, top: 16),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const ClampingScrollPhysics(),
-                        itemCount: files.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = index;
-                                });
-                              },
-                              onDoubleTap: () {
-                                setState(() {
-                                  selectedIndex = index;
-                                });
-                                play();
-                              },
-                              child: Container(
-                                  color: selectedIndex == index
-                                      ? customSky.withOpacity(0.3)
-                                      : Colors.transparent,
-                                  child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 32,
-                                        right: 32,
-                                      ),
-                                      child: pastEntry(files[index],
-                                          selectedIndex == index))));
-                        },
-                      )))),
+                  constraints: BoxConstraints(
+                      maxHeight: widnowHeight == 0
+                          ? 0
+                          : (widnowHeight - 150).clamp(0, double.infinity)),
+                  child: SizedBox.expand(
+                      child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16, top: 16),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const ClampingScrollPhysics(),
+                            itemCount: files.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedIndex = index;
+                                    });
+                                  },
+                                  onDoubleTap: () {
+                                    setState(() {
+                                      selectedIndex = index;
+                                    });
+                                    play();
+                                  },
+                                  child: Container(
+                                      color: selectedIndex == index
+                                          ? customSky.withOpacity(0.3)
+                                          : Colors.transparent,
+                                      child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 32,
+                                            right: 32,
+                                          ),
+                                          child: pastEntry(files[index],
+                                              selectedIndex == index))));
+                            },
+                          ))))),
         ));
   }
 }

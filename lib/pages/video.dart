@@ -37,6 +37,7 @@ class App extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Video Diary',
         scrollBehavior: CustomScrollBehavior(),
+
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
@@ -163,25 +164,26 @@ class _VideoState extends State<Video> {
 
   Widget menuTaps({required bool recording}) {
     return Padding(
-        padding: const EdgeInsets.only(top: 32, left: 32),
-        child: recording
-            ? recordingIndicator()
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Tabs(
-                    buttonLabels: const [
-                      TabItem.mainCam,
-                      TabItem.pastEntries,
-                      TabItem.submit,
-                      TabItem.settings,
-                    ],
-                    onTabSelected: (tabItem_) => tabItem.add(tabItem_),
-                  ),
-                    TabItemWidget(tabItem: tabItem) ,
-               
-                ],
-              ));
+      padding: const EdgeInsets.only(top: 32, left: 32),
+      child: recording
+          ? recordingIndicator()
+          : SingleChildScrollView(
+              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Tabs(
+                  buttonLabels: const [
+                    TabItem.mainCam,
+                    TabItem.pastEntries,
+                    TabItem.submit,
+                    TabItem.settings,
+                  ],
+                  onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                ),
+                TabItemWidget(tabItem: tabItem),
+              ],
+            )),
+    );
   }
 }

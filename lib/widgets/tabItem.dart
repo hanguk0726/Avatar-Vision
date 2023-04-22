@@ -18,8 +18,9 @@ class TabItemWidget extends StatefulWidget {
   TabItemWidgetState createState() => TabItemWidgetState();
 }
 
-class TabItemWidgetState extends State<TabItemWidget> {
+class TabItemWidgetState extends State<TabItemWidget>{
   double windowPadding = 32.0;
+
 
   @override
   Widget build(BuildContext context) {

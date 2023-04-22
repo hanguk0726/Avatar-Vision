@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../domain/setting.dart';
@@ -97,6 +96,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     } else {
       debugPrint('This function is only implemented for Windows');
     }
+
   }
 
   Future<void> init() async {
