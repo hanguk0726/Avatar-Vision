@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
-import 'package:video_diary/domain/setting.dart';
+import 'package:video_diary/services/setting.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
@@ -10,6 +10,7 @@ import 'package:video_diary/widgets/message.dart';
 
 import '../domain/error.dart';
 import '../domain/event.dart';
+import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
 import '../tools/custom_scroll_behavior.dart';
 import '../widgets/indicator.dart';
@@ -176,7 +177,6 @@ class _VideoState extends State<Video> {
                   buttonLabels: const [
                     TabItem.mainCam,
                     TabItem.pastEntries,
-                    TabItem.submit,
                     TabItem.settings,
                   ],
                   onTabSelected: (tabItem_) => tabItem.add(tabItem_),

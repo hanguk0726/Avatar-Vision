@@ -13,10 +13,10 @@ packages:
     dependency: transitive
     description:
       name: auto_orientation
-      sha256: "838f55e20ec2c717d5f7a8228cd8d21b89a24ca151f7bcdbe4fcbda828b27614"
+      sha256: "445c50c376e09681d82e9dc24d27050daa0d08f48a5c7a142cc31d24a91e9801"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.1"
+    version: "2.3.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -114,10 +114,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_meedu_videoplayer
-      sha256: b517c4082137f0b6958848793e792a49f4f90cc35771b080fe31d44aea1f0f53
+      sha256: fc53568a4a896d69dbc10d9b460e560cf79dedf2a5a551c8b6957c4ba5f9481f
       url: "https://pub.dev"
     source: hosted
-    version: "4.2.0"
+    version: "4.2.1"
   flutter_spinkit:
     dependency: "direct main"
     description:
@@ -228,10 +228,10 @@ packages:
     dependency: transitive
     description:
       name: media_kit
-      sha256: "4c2b3bb600c063ad194934ea7439bce3135cc6b4f9555222c3dc12ca1aa1d85c"
+      sha256: "8bac35e276aef07ae116190ca09f086e535b5e7e701056a61608b2b46bfb7481"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.5+1"
+    version: "0.0.5+2"
   media_kit_libs_linux:
     dependency: transitive
     description:
@@ -268,10 +268,10 @@ packages:
     dependency: transitive
     description:
       name: media_kit_video
-      sha256: "3860b1e8b2779a5702ecea7e6e3d8b16a79407ad478234008550cca660ac52ad"
+      sha256: "8f8777f616726ce3cccb1a90a6daa8c9e7f685b69606d5ad70ab3d0335b94023"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.6"
+    version: "0.0.7"
   meedu:
     dependency: transitive
     description:
@@ -561,10 +561,10 @@ packages:
     dependency: transitive
     description:
       name: synchronized
-      sha256: "33b31b6beb98100bf9add464a36a8dd03eb10c7a8cf15aeec535e9b054aaf04b"
+      sha256: "5fcbd27688af6082f5abd611af56ee575342c30e87541d0245f7ff99faa02c60"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.1"
+    version: "3.1.0"
   term_glyph:
     dependency: transitive
     description:

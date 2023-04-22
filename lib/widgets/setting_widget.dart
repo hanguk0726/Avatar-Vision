@@ -8,7 +8,7 @@ import 'package:video_diary/widgets/waveform.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
-import '../domain/setting.dart';
+import '../services/setting.dart';
 import '../services/native.dart';
 import 'dropdown.dart';
 

@@ -5,6 +5,7 @@ import 'package:video_diary/widgets/setting_widget.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
+import '../domain/tab_item.dart';
 
 class TabItemWidget extends StatefulWidget {
   final BehaviorSubject<TabItem> tabItem;
@@ -99,13 +100,3 @@ Widget recordingIndicator() {
   );
 }
 
-enum TabItem {
-  mainCam('MAIN CAM'),
-  pastEntries('PAST ENTRIES'),
-  submit('SUBMIT'),
-  settings('SETTINGS');
-
-  final String name;
-
-  const TabItem(this.name);
-}

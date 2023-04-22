@@ -8,6 +8,7 @@ import 'package:video_diary/widgets/tabItem.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../domain/event.dart';
+import '../domain/tab_item.dart';
 import '../services/event_bus.dart';
 import '../tools/custom_button_clipper.dart';
 

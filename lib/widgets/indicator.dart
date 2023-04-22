@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:video_diary/domain/setting.dart';
+import 'package:video_diary/services/setting.dart';
 
 import '../domain/assets.dart';
 import '../domain/writing_state.dart';

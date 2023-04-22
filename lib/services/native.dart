@@ -7,7 +7,7 @@ import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../domain/setting.dart';
+import 'setting.dart';
 import '../domain/writing_state.dart';
 
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
