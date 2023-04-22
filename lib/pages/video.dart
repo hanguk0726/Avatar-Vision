@@ -25,6 +25,7 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // final ThemeData theme = ThemeData();
     return RawKeyboardListener(
       focusNode: FocusNode(),
       autofocus: true,
@@ -38,10 +39,9 @@ class App extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Video Diary',
         scrollBehavior: CustomScrollBehavior(),
-
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
+        // theme: theme.copyWith(
+        //   colorScheme: theme.colorScheme.copyWith(secondary: Colors.blue),
+        // ),
         home: const Video(),
       ),
     );

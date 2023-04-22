@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_meedu_videoplayer/init_meedu_player.dart';
 import 'package:provider/provider.dart';
-import 'package:video_diary/domain/metadata.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/services/db.dart';
 import 'package:video_diary/services/native.dart';
@@ -29,7 +27,6 @@ Future<void> setUp() async {
   await Setting().load();
   await DatabaseService().init();
   await test();
-  await initMeeduPlayer();
   await setUpLast();
 }
 

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_meedu_videoplayer/meedu_player.dart';
+// import 'package:flutter_meedu_videoplayer/meedu_player.dart';
 
 import '../pages/video.dart';
 
@@ -24,10 +24,10 @@ class Play extends StatefulWidget {
 }
 
 class PlayState extends State<Play> {
-  final _controller = MeeduPlayerController(
-    screenManager: const ScreenManager(forceLandScapeInFullscreen: true),
-    enabledControls: const EnabledControls(),
-  );
+  // final _controller = MeeduPlayerController(
+  //   screenManager: const ScreenManager(forceLandScapeInFullscreen: true),
+  //   enabledControls: const EnabledControls(),
+  // );
 
   @override
   void initState() {
@@ -38,19 +38,19 @@ class PlayState extends State<Play> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    // _controller.dispose();
     super.dispose();
   }
 
   void init() async {
     File file = File(widget.filePath);
-    _controller.header = header;
-    _controller.setDataSource(
-        DataSource(
-          file: file,
-          type: DataSourceType.file,
-        ),
-        autoplay: true);
+    // _controller.header = header;
+    // _controller.setDataSource(
+    //     DataSource(
+    //       file: file,
+    //       type: DataSourceType.file,
+    //     ),
+    //     autoplay: true);
   }
 
   Widget get header {
@@ -86,9 +86,10 @@ class PlayState extends State<Play> {
           child: Center(
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: MeeduVideoPlayer(
-            controller: _controller,
-          ),
+          child: Container(),
+          // child: MeeduVideoPlayer(
+          //   controller: _controller,
+          // ),
         ),
       )),
     );
