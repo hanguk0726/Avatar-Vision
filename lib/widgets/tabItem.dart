@@ -18,67 +18,49 @@ class TabItemWidget extends StatefulWidget {
   TabItemWidgetState createState() => TabItemWidgetState();
 }
 
-class TabItemWidgetState extends State<TabItemWidget>
-    with WidgetsBindingObserver {
-  double maxTabItemWidetWidth = 500.0;
-  double maxTabItemWidetHeight = 500.0;
+class TabItemWidgetState extends State<TabItemWidget> {
   double windowPadding = 32.0;
-  void setWindowSize() async {
-    Size appWindowSize = await windowManager.getSize();
-    setState(() {
-      maxTabItemWidetWidth = ((appWindowSize.width / 2) - (2 * windowPadding)).clamp(0, double.infinity);
-      maxTabItemWidetHeight =
-          ((appWindowSize.height - 100) - (2 * windowPadding)).clamp(0, double.infinity);
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeMetrics() {
-    setWindowSize();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    setWindowSize();
-    return StreamBuilder<TabItem>(
-      stream: widget.tabItem,
-      initialData: TabItem.mainCam,
-      builder: (context, snapshot) {
-        final tabItem = snapshot.data;
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: _buildTabItem(
-              tabItem, context, maxTabItemWidetWidth, maxTabItemWidetHeight),
-        );
-      },
-    );
+    return LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+      final halfWidth = constraints.maxWidth / 2;
+      final width =
+          (halfWidth - (2 * windowPadding)).clamp(0.0, constraints.maxWidth);
+      final height = ((constraints.maxHeight - 100) - (2 * windowPadding))
+          .clamp(0.0, constraints.maxHeight);
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: width,
+          maxHeight: height,
+        ),
+        child: StreamBuilder<TabItem>(
+          stream: widget.tabItem,
+          initialData: TabItem.mainCam,
+          builder: (context, snapshot) {
+            final tabItem = snapshot.data;
+            return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: _buildTabItem(tabItem, context));
+          },
+        ),
+      );
+    });
   }
 }
 
-Widget _buildTabItem(TabItem? tabItem, BuildContext context,
-    double tabItemWidetWidth, double tabItemWidetHeight) {
+Widget _buildTabItem(
+  TabItem? tabItem,
+  BuildContext context,
+) {
   switch (tabItem) {
     case TabItem.mainCam:
       return _mainCam();
     case TabItem.pastEntries:
-      return PastEntries(
-        width: tabItemWidetWidth,
-        height: tabItemWidetHeight,
-      );
+      return const PastEntries();
     case TabItem.settings:
-      return settings(context, tabItemWidetWidth);
+      return settings(context);
     default:
       return _mainCam();
   }

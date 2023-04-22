@@ -14,10 +14,7 @@ import '../services/event_bus.dart';
 import '../services/native.dart';
 
 class PastEntries extends StatefulWidget {
-  final double width;
-  final double height;
-
-  const PastEntries({super.key, required this.width, required this.height});
+  const PastEntries({super.key});
   @override
   PastEntriesState createState() => PastEntriesState();
 }
@@ -110,47 +107,45 @@ class PastEntriesState extends State<PastEntries> {
             });
           }
         },
-        child: SizedBox(
-            width: widget.width,
-            height: widget.height,
-            child: ClipRRect(
-                child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                    child: Container(
-                        decoration: BoxDecoration(
-                          color: backgroundColor.withOpacity(0.2),
-                        ),
-                        child: Padding(
-                            padding: const EdgeInsets.only(bottom: 16, top: 16),
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const ClampingScrollPhysics(),
-                              itemCount: files.length,
-                              itemBuilder: (context, index) {
-                                return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedIndex = index;
-                                      });
-                                    },
-                                    onDoubleTap: () {
-                                      setState(() {
-                                        selectedIndex = index;
-                                      });
-                                      play();
-                                    },
-                                    child: Container(
-                                        color: selectedIndex == index
-                                            ? customSky.withOpacity(0.3)
-                                            : Colors.transparent,
-                                        child: Padding(
-                                            padding: const EdgeInsets.only(
-                                              left: 32,
-                                              right: 32,
-                                            ),
-                                            child: pastEntry(files[index],
-                                                selectedIndex == index))));
+        child: ClipRRect(
+          child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+              child: Container(
+                  decoration: BoxDecoration(
+                    color: backgroundColor.withOpacity(0.2),
+                  ),
+                  child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16, top: 16),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = index;
+                                });
                               },
-                            )))))));
+                              onDoubleTap: () {
+                                setState(() {
+                                  selectedIndex = index;
+                                });
+                                play();
+                              },
+                              child: Container(
+                                  color: selectedIndex == index
+                                      ? customSky.withOpacity(0.3)
+                                      : Colors.transparent,
+                                  child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 32,
+                                        right: 32,
+                                      ),
+                                      child: pastEntry(files[index],
+                                          selectedIndex == index))));
+                        },
+                      )))),
+        ));
   }
 }
