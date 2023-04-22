@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_meedu_videoplayer/init_meedu_player.dart';
-// import 'package:flutter_meedu_videoplayer/init_meedu_player.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/domain/metadata.dart';
 import 'package:video_diary/pages/video.dart';
@@ -25,7 +24,16 @@ void main() async {
 }
 
 Future<void> setUp() async {
+  await Native().init(); // Native init process must not be delayed by other init (ex: UI init process)
+  await Setting().load();
   // await DatabaseService().init();
+  await initMeeduPlayer();
+  // await test();
+  await setUpLast();
+}
+
+
+Future<void> setUpLast() async {
   await windowManager.ensureInitialized();
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1280, 720),
@@ -36,10 +44,6 @@ Future<void> setUp() async {
     await windowManager.show();
     await windowManager.focus();
   });
- await initMeeduPlayer();
-  await Native().init();
-  await Setting().load();
-  // await test();
 }
 
 Future<void> test() async {
