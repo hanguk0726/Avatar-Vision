@@ -45,9 +45,10 @@ dependencies:
   window_manager: ^0.3.2
   visibility_detector: ^0.4.0+2
   flutter_meedu_videoplayer:  ^4.2.1
-  sembast: ^3.4.4
   path: ^1.8.3
-  
+  objectbox: ^2.0.0
+  objectbox_flutter_libs: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -58,6 +59,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  build_runner: ^2.4.1
+  objectbox_generator: any
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

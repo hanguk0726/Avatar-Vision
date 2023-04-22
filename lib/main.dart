@@ -28,8 +28,8 @@ Future<void> setUp() async {
       .init(); // Native init process must not be delayed by other init (ex: UI init process)
   await Setting().load();
   await DatabaseService().init();
+  await test();
   await initMeeduPlayer();
-  // await test();
   await setUpLast();
 }
 
@@ -47,13 +47,14 @@ Future<void> setUpLast() async {
 }
 
 Future<void> test() async {
-  var metadata = Metadata(
-    videoTitle: "My Video Title",
-    timestamp: DateTime.now().millisecondsSinceEpoch,
-    note: "My notes",
-    tags: "tag1, tag2",
-    thumbnail: "thumbnail.jpg",
-  );
-
-  // DatabaseService().store.box<Metadata>().put(metadata);
+  // var metadata = Metadata(
+  //   videoTitle: "My Video Title",
+  //   timestamp: DateTime.now().millisecondsSinceEpoch,
+  //   note: "My notes",
+  //   tags: "tag1, tag2",
+  //   thumbnail: "thumbnail.jpg",
+  // );
+  // final box = DatabaseService().store.box<Metadata>();
+  // final id = box.put(metadata);
+  // print("db id: ${box.getAll().first.note}");
 }

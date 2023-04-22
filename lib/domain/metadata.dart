@@ -1,9 +1,12 @@
 
-class Metadata {
-  int id = 0;
+import 'package:objectbox/objectbox.dart';
 
+@Entity()
+class Metadata {
+  @Id()
+  int id = 0;
   String videoTitle;
-  
+
   int timestamp;
 
   String? note;
@@ -19,4 +22,5 @@ class Metadata {
     this.tags,
     this.thumbnail,
   });
+
 }
