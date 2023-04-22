@@ -297,7 +297,7 @@ packages:
     source: hosted
     version: "1.0.0"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "8829d8a55c13fc0e37127c29fedf290c102f4e40ae94ada574091fe0ff96c917"
@@ -456,6 +456,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.6"
+  sembast:
+    dependency: "direct main"
+    description:
+      name: sembast
+      sha256: a784dbcf313ff38a7f57249694c64a6bcf79f704dbec127958459a7737716830
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.4"
   shared_preferences:
     dependency: transitive
     description:

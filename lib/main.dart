@@ -24,14 +24,14 @@ void main() async {
 }
 
 Future<void> setUp() async {
-  await Native().init(); // Native init process must not be delayed by other init (ex: UI init process)
+  await Native()
+      .init(); // Native init process must not be delayed by other init (ex: UI init process)
   await Setting().load();
-  // await DatabaseService().init();
+  await DatabaseService().init();
   await initMeeduPlayer();
   // await test();
   await setUpLast();
 }
-
 
 Future<void> setUpLast() async {
   await windowManager.ensureInitialized();
