@@ -64,7 +64,6 @@ class PlayState extends State<Play> {
             fit: BoxFit.fill,
           ),
           header(),
-          fullscreen(),
           mediaControllBar(),
         ],
       ),
@@ -130,91 +129,81 @@ class PlayState extends State<Play> {
                 ))));
   }
 
-  Widget fullscreen() {
-    return Positioned(
-      right: 32,
-      bottom: 32,
-      child: boxWidget(
-          color: customSky,
-          backgroundColor: customOcean,
-          child: CupertinoButton(
-            child: Icon(
-                isFullscreen
-                    ? Icons.fullscreen_exit_sharp
-                    : Icons.fullscreen_sharp,
-                color: customSky,
-                size: 32),
-            onPressed: () async {
-              FullScreenWindow.setFullScreen(!isFullscreen);
-              isFullscreen = !isFullscreen;
-              setState(() {});
-              // At the moment, the windowManager has a bug in its fullscreen feature, which is problematic for the video player.
-              // https://github.com/leanflutter/window_manager/issues/228
-            },
-          )),
-    );
-  }
-
   Widget mediaControllBar() {
     if (controller == null) {
       return const SizedBox();
     }
+    double size = 32;
     Color color = customSky;
-    var forward = IconButton(
-      icon: Icon(
-        Icons.forward_10_sharp,
-        color: color,
-      ),
+
+    var fullscreen = CupertinoButton(
+      child: Icon(
+          isFullscreen ? Icons.fullscreen_exit_sharp : Icons.fullscreen_sharp,
+          color: customSky,
+          size: 32),
+      onPressed: () async {
+        FullScreenWindow.setFullScreen(!isFullscreen);
+        isFullscreen = !isFullscreen;
+        setState(() {});
+        // At the moment, the windowManager has a bug in its fullscreen feature, which is problematic for the video player.
+        // https://github.com/leanflutter/window_manager/issues/228
+      },
+    );
+
+    var forward = CupertinoButton(
+      child: Icon(Icons.forward_10_sharp, color: color, size: size),
       onPressed: () {},
     );
-    var back = IconButton(
-      icon: Icon(
-        Icons.replay_10_sharp,
-        color: color,
-      ),
+
+    var back = CupertinoButton(
+      child: Icon(Icons.replay_10_sharp, color: color, size: size),
       onPressed: () {
         // Back 10 seconds logic
       },
     );
 
-    var play = IconButton(
-      icon: Icon(
-        Icons.play_arrow_sharp,
-        color: color,
-      ),
+    var play = CupertinoButton(
+      child: Icon(Icons.play_arrow_sharp, color: color, size: size),
       onPressed: () {
         controller!.player.play();
         setState(() {});
       },
     );
-    var pause = IconButton(
-      icon: Icon(
-        Icons.pause_sharp,
-        color: color,
-      ),
+
+    var pause = CupertinoButton(
+      child: Icon(Icons.pause_sharp, color: color, size: size),
       onPressed: () {
         controller!.player.pause();
         setState(() {});
       },
     );
-
+    var volume = CupertinoButton(
+      child: Icon(Icons.volume_up_sharp, color: customSky, size: 32),
+      onPressed: () {},
+    );
+    var padding = const SizedBox(width: 32);
     return Positioned(
-        bottom: 32,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 400
-          ),
-          child: boxWidget(
-              color: customSky,
-              backgroundColor: customOcean,
+      bottom: 32,
+      child: boxWidget(
+          color: customSky,
+          backgroundColor: customOcean,
+          child: SizedBox(
+              width: 1200,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  volume,
+                  const Spacer(),
                   back,
+                  padding,
                   controller!.player.state.playing ? pause : play,
+                  padding,
                   forward,
+                  const Spacer(),
+                  fullscreen,
                 ],
-              )),
-        ));
+              ))),
+    );
   }
 }
