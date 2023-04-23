@@ -42,20 +42,20 @@ class App extends StatelessWidget {
         // theme: theme.copyWith(
         //   colorScheme: theme.colorScheme.copyWith(secondary: Colors.blue),
         // ),
-        home: const Video(),
+        home: const VideoPage(),
       ),
     );
   }
 }
 
-class Video extends StatefulWidget {
-  const Video({super.key});
+class VideoPage extends StatefulWidget {
+  const VideoPage({super.key});
 
   @override
-  State<Video> createState() => _VideoState();
+  State<VideoPage> createState() => _VideoPageState();
 }
 
-class _VideoState extends State<Video> {
+class _VideoPageState extends State<VideoPage> {
   BehaviorSubject<TabItem> tabItem = BehaviorSubject<TabItem>();
 
   @override

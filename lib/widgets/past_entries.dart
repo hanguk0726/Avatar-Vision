@@ -18,33 +18,19 @@ class PastEntries extends StatefulWidget {
   PastEntriesState createState() => PastEntriesState();
 }
 
-class PastEntriesState extends State<PastEntries> with WindowListener {
+class PastEntriesState extends State<PastEntries>  {
   int selectedIndex = 0;
 
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
   bool _isVisible = false;
-  double widnowHeight = 0.0;
+  double   widnowHeight = Native().currentResolutionHeight;
   late StreamSubscription<Event> _eventSubscription;
 
-  Future<void> setUp() async {
-    widnowHeight = await windowManager.getSize().then((value) => value.height);
-    setState(() {
-      // do nothing
-    });
-  }
-
-  @override
-  void onWindowResize() {
-    super.onWindowResize();
-    setUp();
-  }
 
   @override
   void initState() {
-    windowManager.addListener(this);
     super.initState();
-    setUp();
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (!_isVisible) {
         return;
@@ -77,7 +63,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
     _eventSubscription.cancel();
     super.dispose();
   }

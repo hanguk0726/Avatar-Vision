@@ -47,7 +47,11 @@ dependencies:
   path: ^1.8.3
   objectbox: ^2.0.0
   objectbox_flutter_libs: any
-
+  media_kit: ^0.0.5                              # Primary package.
+  media_kit_video: ^0.0.7                        # For video rendering.
+  media_kit_native_event_loop: ^1.0.3            # Support for higher number of concurrent instances & better performance.
+  media_kit_libs_windows_video: ^1.0.2           # Windows package for video native libraries
+  fullscreen_window: ^1.0.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

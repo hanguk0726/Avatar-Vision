@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/services/db.dart';
@@ -26,6 +27,7 @@ Future<void> setUp() async {
       .init(); // Native init process must not be delayed by other init (ex: UI init process)
   await Setting().load();
   await DatabaseService().init();
+  MediaKit.ensureInitialized();
   await test();
   await setUpLast();
 }
