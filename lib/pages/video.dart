@@ -39,9 +39,6 @@ class App extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Video Diary',
         scrollBehavior: CustomScrollBehavior(),
-        // theme: theme.copyWith(
-        //   colorScheme: theme.colorScheme.copyWith(secondary: Colors.blue),
-        // ),
         home: const VideoPage(),
       ),
     );

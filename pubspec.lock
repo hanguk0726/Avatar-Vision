@@ -629,6 +629,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.99"
+  slider_controller:
+    dependency: "direct main"
+    description:
+      name: slider_controller
+      sha256: "069c4696b5428d444ffb4a279f0a75fff41c173b2133e75e85020d09667bf702"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.5"
   source_gen:
     dependency: transitive
     description:

@@ -7,8 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/window.dart';
+
+import '../domain/event.dart';
+import '../services/event_bus.dart';
 
 class Play extends StatefulWidget {
   final String filePath;
@@ -26,14 +30,33 @@ class Play extends StatefulWidget {
 }
 
 class PlayState extends State<Play> {
+  late StreamSubscription<Event> _eventSubscription;
   final Player player = Player();
   VideoController? controller;
   bool isFullscreen = false;
+  double volume = 100;
+  bool muted = false;
 
   @override
   void initState() {
     super.initState();
-    init();
+    initVideo();
+    initSubscription();
+  }
+
+  void initSubscription() {
+    _eventSubscription = EventBus().onEvent.listen((event) {
+      switch (event) {
+        case Event.keyboardControlArrowUp:
+          setVolume(volume + 10);
+          break;
+        case Event.keyboardControlArrowDown:
+          setVolume(volume - 10);
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   @override
@@ -42,10 +65,11 @@ class PlayState extends State<Play> {
       await controller?.dispose();
       await player.dispose();
     });
+    _eventSubscription.cancel();
     super.dispose();
   }
 
-  void init() async {
+  void initVideo() async {
     Future.microtask(() async {
       controller = await VideoController.create(player);
       await player.open(Media(widget.filePath));
@@ -129,6 +153,23 @@ class PlayState extends State<Play> {
                 ))));
   }
 
+  void setVolume(double value) {
+    if (value > 100) {
+      value = 100;
+    }
+    if (value < 0) {
+      value = 0;
+    }
+    volume = value;
+    controller!.player.setVolume(value);
+    if (volume == 0) {
+      muted = true;
+    } else {
+      muted = false;
+    }
+    setState(() {});
+  }
+
   Widget mediaControllBar() {
     if (controller == null) {
       return const SizedBox();
@@ -163,9 +204,41 @@ class PlayState extends State<Play> {
         setState(() {});
       },
     );
-    var volume = CupertinoButton(
-      child: Icon(Icons.volume_up_sharp, color: customSky, size: 32),
-      onPressed: () {},
+    var volumeWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CupertinoButton(
+          child: Icon(muted ? Icons.volume_off_sharp : Icons.volume_up_sharp,
+              color: customSky, size: 32),
+          onPressed: () {
+            if (muted) {
+              controller!.player.setVolume(volume);
+              muted = false;
+            } else {
+              controller!.player.setVolume(0);
+              muted = true;
+            }
+            setState(() {});
+          },
+        ),
+        SizedBox(
+          width: 96,
+          child: SliderController(
+            value: volume,
+            sliderDecoration: SliderDecoration(
+                isThumbVisible: false,
+                activeColor: customSky,
+                inactiveColor: customOcean,
+                borderRadius: 0,
+                height: 16,
+                thumbHeight: 0),
+            onChanged: (value) {
+              setVolume(value);
+            },
+          ),
+        ),
+        const SizedBox(width: 32),
+      ],
     );
 
     var fullscreen = CupertinoButton(
@@ -191,10 +264,14 @@ class PlayState extends State<Play> {
           alignment: Alignment.bottomCenter,
           child: Row(
             children: [
-              boxWidget(
-                  color: customSky,
-                  backgroundColor: customOcean,
-                  child: volume),
+              Flexible(
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: boxWidget(
+                        color: customSky,
+                        backgroundColor: customOcean,
+                        child: volumeWidget,
+                      ))),
               const Spacer(),
               boxWidget(
                   color: customSky,
@@ -213,10 +290,13 @@ class PlayState extends State<Play> {
                         ],
                       ))),
               const Spacer(),
-              boxWidget(
-                  color: customSky,
-                  backgroundColor: customOcean,
-                  child: fullscreen)
+              Flexible(
+                  child: Align(
+                      alignment: Alignment.centerRight,
+                      child: boxWidget(
+                          color: customSky,
+                          backgroundColor: customOcean,
+                          child: fullscreen)))
             ],
           )),
     );

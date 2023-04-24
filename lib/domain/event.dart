@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 enum Event {
@@ -6,9 +7,13 @@ enum Event {
   keyboardControlArrowLeft,
   keyboardControlArrowRight,
   keyboardControlEnter,
+  keyboardControlSpacebar,
+  keyboardControlM,
+  keyboardControlF,
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
+  debugPrint(event.logicalKey.keyLabel);
   if (event is RawKeyDownEvent) {
     switch (event.logicalKey.keyLabel) {
       case 'Arrow Up':
@@ -21,6 +26,12 @@ Event? rawKeyEventToEvent(RawKeyEvent event) {
         return Event.keyboardControlArrowRight;
       case 'Enter':
         return Event.keyboardControlEnter;
+      case ' ':
+        return Event.keyboardControlSpacebar;
+      case 'm':
+        return Event.keyboardControlM;
+      case 'f':
+        return Event.keyboardControlF;
       default:
         return null;
     }
