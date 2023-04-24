@@ -7,9 +7,11 @@ enum Event {
   keyboardControlArrowLeft,
   keyboardControlArrowRight,
   keyboardControlEnter,
-  keyboardControlSpacebar,
+  keyboardControlSpace,
   keyboardControlM,
   keyboardControlF,
+  keyboardControlBackspace,
+  keyboardControlDelete,
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
@@ -26,12 +28,16 @@ Event? rawKeyEventToEvent(RawKeyEvent event) {
         return Event.keyboardControlArrowRight;
       case 'Enter':
         return Event.keyboardControlEnter;
-      case ' ':
-        return Event.keyboardControlSpacebar;
-      case 'm':
+      case ' ': // this empty value is actually a space
+        return Event.keyboardControlSpace;
+      case 'M':
         return Event.keyboardControlM;
-      case 'f':
+      case 'F':
         return Event.keyboardControlF;
+      case 'Backspace':
+        return Event.keyboardControlBackspace;
+      case 'Delete':
+        return Event.keyboardControlDelete;
       default:
         return null;
     }

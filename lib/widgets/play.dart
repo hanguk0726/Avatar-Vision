@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
@@ -36,15 +37,25 @@ class PlayState extends State<Play> {
   bool isFullscreen = false;
   double volume = 100;
   bool muted = false;
-
+  Duration playtime = const Duration(seconds: 0);
+  Duration position = const Duration(seconds: 0);
   @override
   void initState() {
     super.initState();
     initVideo();
-    initSubscription();
+    initKeyboradEvent();
+    player.streams.volume.listen((e) => setState(() {
+          volume = e;
+        }));
+    player.streams.duration.listen((e) => setState(() {
+          playtime = e;
+        }));
+    player.streams.position.listen((e) => setState(() {
+          position = e;
+        }));
   }
 
-  void initSubscription() {
+  void initKeyboradEvent() {
     _eventSubscription = EventBus().onEvent.listen((event) {
       switch (event) {
         case Event.keyboardControlArrowUp:
@@ -53,6 +64,43 @@ class PlayState extends State<Play> {
         case Event.keyboardControlArrowDown:
           setVolume(volume - 10);
           break;
+
+        case Event.keyboardControlArrowLeft:
+          controller!.player.seek(
+              controller!.player.state.position - const Duration(seconds: 10));
+          break;
+        case Event.keyboardControlArrowRight:
+          controller!.player.seek(
+              controller!.player.state.position + const Duration(seconds: 10));
+          break;
+        case Event.keyboardControlM:
+          if (muted) {
+            controller!.player.setVolume(100);
+            muted = false;
+          } else {
+            controller!.player.setVolume(0);
+            muted = true;
+          }
+          setState(() {});
+          break;
+        case Event.keyboardControlF:
+          FullScreenWindow.setFullScreen(!isFullscreen);
+          isFullscreen = !isFullscreen;
+          setState(() {});
+          break;
+
+        case Event.keyboardControlSpace:
+          if (controller!.player.state.playing) {
+            controller!.player.pause();
+          } else {
+            controller!.player.play();
+          }
+          setState(() {});
+          break;
+        case Event.keyboardControlBackspace:
+          Navigator.pop(context);
+          break;
+
         default:
           break;
       }
@@ -93,23 +141,6 @@ class PlayState extends State<Play> {
       ),
     );
   }
-
-  // Widget overlay() {
-  //   return FutureBuilder<Size>(
-  //       future: windowManager.getSize(),
-  //       builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
-  //         if (snapshot.hasData) {
-  //           return Container(
-  //             color:  Colors.grey.withOpacity(0.1),
-  //             width: snapshot.data!.width,
-  //             height: snapshot.data!.height,
-  //             child: fullscreen(),
-  //           );
-  //         } else {
-  //           return const SizedBox();
-  //         }
-  //       });
-  // }
 
   Widget header() {
     return Positioned(
@@ -170,6 +201,24 @@ class PlayState extends State<Play> {
     setState(() {});
   }
 
+  Widget playProgressbar() {
+    return ProgressBar(
+      progress: position,
+      buffered: playtime,
+      total: playtime,
+      barCapShape: BarCapShape.square,
+      timeLabelLocation: TimeLabelLocation.none,
+      progressBarColor: customOrange,
+      baseBarColor: Colors.transparent,
+      bufferedBarColor: customOcean.withOpacity(0.5),
+      thumbColor: Colors.transparent,
+      thumbGlowColor: Colors.transparent,
+      onSeek: (duration) {
+        controller!.player.seek(duration);
+      },
+    );
+  }
+
   Widget mediaControllBar() {
     if (controller == null) {
       return const SizedBox();
@@ -179,13 +228,17 @@ class PlayState extends State<Play> {
 
     var forward = CupertinoButton(
       child: Icon(Icons.forward_10_sharp, color: color, size: size),
-      onPressed: () {},
+      onPressed: () {
+        controller!.player.seek(
+            controller!.player.state.position + const Duration(seconds: 10));
+      },
     );
 
     var back = CupertinoButton(
       child: Icon(Icons.replay_10_sharp, color: color, size: size),
       onPressed: () {
-        // Back 10 seconds logic
+        controller!.player.seek(
+            controller!.player.state.position - const Duration(seconds: 10));
       },
     );
 
@@ -209,10 +262,10 @@ class PlayState extends State<Play> {
       children: [
         CupertinoButton(
           child: Icon(muted ? Icons.volume_off_sharp : Icons.volume_up_sharp,
-              color: customSky, size: 32),
+              color: customSky, size: size),
           onPressed: () {
             if (muted) {
-              controller!.player.setVolume(volume);
+              controller!.player.setVolume(100);
               muted = false;
             } else {
               controller!.player.setVolume(0);
@@ -230,7 +283,7 @@ class PlayState extends State<Play> {
                 activeColor: customSky,
                 inactiveColor: customOcean,
                 borderRadius: 0,
-                height: 16,
+                height: 8,
                 thumbHeight: 0),
             onChanged: (value) {
               setVolume(value);
@@ -245,7 +298,7 @@ class PlayState extends State<Play> {
       child: Icon(
           isFullscreen ? Icons.fullscreen_exit_sharp : Icons.fullscreen_sharp,
           color: customSky,
-          size: 32),
+          size: size),
       onPressed: () async {
         FullScreenWindow.setFullScreen(!isFullscreen);
         isFullscreen = !isFullscreen;
@@ -255,48 +308,57 @@ class PlayState extends State<Play> {
       },
     );
 
-    var padding = const SizedBox(width: 32);
+    var padding = const SizedBox(
+      width: 32,
+      height: 32,
+    );
     return Positioned(
       bottom: 32,
       left: 32,
       right: 32,
       child: Align(
           alignment: Alignment.bottomCenter,
-          child: Row(
+          child: Column(
             children: [
-              Flexible(
-                  child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: boxWidget(
-                        color: customSky,
-                        backgroundColor: customOcean,
-                        child: volumeWidget,
-                      ))),
-              const Spacer(),
-              boxWidget(
-                  color: customSky,
-                  backgroundColor: customOcean,
-                  child: SizedBox(
-                      width: 400,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          back,
-                          padding,
-                          controller!.player.state.playing ? pause : play,
-                          padding,
-                          forward,
-                        ],
-                      ))),
-              const Spacer(),
-              Flexible(
-                  child: Align(
-                      alignment: Alignment.centerRight,
-                      child: boxWidget(
-                          color: customSky,
-                          backgroundColor: customOcean,
-                          child: fullscreen)))
+              playProgressbar(),
+              padding,
+              Row(
+                children: [
+                  Flexible(
+                      child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: boxWidget(
+                            color: customSky,
+                            backgroundColor: customOcean,
+                            child: volumeWidget,
+                          ))),
+                  const Spacer(),
+                  boxWidget(
+                      color: customSky,
+                      backgroundColor: customOcean,
+                      child: SizedBox(
+                          width: 400,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              back,
+                              padding,
+                              controller!.player.state.playing ? pause : play,
+                              padding,
+                              forward,
+                            ],
+                          ))),
+                  const Spacer(),
+                  Flexible(
+                      child: Align(
+                          alignment: Alignment.centerRight,
+                          child: boxWidget(
+                              color: customSky,
+                              backgroundColor: customOcean,
+                              child: fullscreen)))
+                ],
+              )
             ],
           )),
     );
