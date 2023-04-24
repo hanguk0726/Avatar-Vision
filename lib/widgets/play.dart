@@ -39,6 +39,11 @@ class PlayState extends State<Play> {
   bool muted = false;
   Duration playtime = const Duration(seconds: 0);
   Duration position = const Duration(seconds: 0);
+  Duration animatedOpacity = const Duration(milliseconds: 300);
+  bool showOverlay = true;
+  bool showMousePointer = true;
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
@@ -114,7 +119,18 @@ class PlayState extends State<Play> {
       await player.dispose();
     });
     _eventSubscription.cancel();
+    _timer?.cancel();
     super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer(const Duration(seconds: 2), () {
+      setState(() {
+        showMousePointer = false;
+        showOverlay = false;
+      });
+    });
   }
 
   void initVideo() async {
@@ -127,61 +143,84 @@ class PlayState extends State<Play> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Video(
-            controller: controller,
-            fit: BoxFit.fill,
+    return MouseRegion(
+        onHover: (event) {
+          _startTimer();
+          if (!showMousePointer || !showOverlay) {
+            setState(() {
+              showMousePointer = true;
+              showOverlay = true;
+            });
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (controller!.player.state.playing) {
+                    controller!.player.pause();
+                  } else {
+                    controller!.player.play();
+                  }
+                  setState(() {});
+                },
+                child: Video(
+                  controller: controller,
+                  fit: BoxFit.fill,
+                ),
+              ),
+              header(),
+              mediaControllBar(),
+            ],
           ),
-          header(),
-          mediaControllBar(),
-        ],
-      ),
-    );
+        ));
   }
 
   Widget header() {
     return Positioned(
         left: 32,
         top: 32,
-        child: boxWidget(
-            color: customSky,
-            backgroundColor: customOcean,
-            child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CupertinoButton(
-                      child: const Icon(
-                        Icons.arrow_back_sharp,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        if (isFullscreen) {
-                          FullScreenWindow.setFullScreen(false);
-                          isFullscreen = false;
-                          setState(() {});
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                    Flexible(
-                        child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              widget.fileName,
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: mainFont,
-                                  fontSize: 18),
-                            ))),
-                    const SizedBox(width: 32),
-                  ],
-                ))));
+        child: AnimatedOpacity(
+            duration: animatedOpacity,
+            opacity: showOverlay ? 1.0 : 0.0,
+            child: boxWidget(
+                color: customSky,
+                backgroundColor: customOcean,
+                child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CupertinoButton(
+                          child: const Icon(
+                            Icons.arrow_back_sharp,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            if (isFullscreen) {
+                              FullScreenWindow.setFullScreen(false);
+                              isFullscreen = false;
+                              setState(() {});
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                        ),
+                        Flexible(
+                            child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  widget.fileName,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: mainFont,
+                                      fontSize: 18),
+                                ))),
+                        const SizedBox(width: 32),
+                      ],
+                    )))));
   }
 
   void setVolume(double value) {
@@ -318,49 +357,54 @@ class PlayState extends State<Play> {
       right: 32,
       child: Align(
           alignment: Alignment.bottomCenter,
-          child: Column(
-            children: [
-              playProgressbar(),
-              padding,
-              Row(
+          child: AnimatedOpacity(
+              duration: animatedOpacity,
+              opacity: showOverlay ? 1.0 : 0.0,
+              child: Column(
                 children: [
-                  Flexible(
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: boxWidget(
-                            color: customSky,
-                            backgroundColor: customOcean,
-                            child: volumeWidget,
-                          ))),
-                  const Spacer(),
-                  boxWidget(
-                      color: customSky,
-                      backgroundColor: customOcean,
-                      child: SizedBox(
-                          width: 400,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              back,
-                              padding,
-                              controller!.player.state.playing ? pause : play,
-                              padding,
-                              forward,
-                            ],
-                          ))),
-                  const Spacer(),
-                  Flexible(
-                      child: Align(
-                          alignment: Alignment.centerRight,
-                          child: boxWidget(
-                              color: customSky,
-                              backgroundColor: customOcean,
-                              child: fullscreen)))
+                  playProgressbar(),
+                  padding,
+                  Row(
+                    children: [
+                      Flexible(
+                          child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: boxWidget(
+                                color: customSky,
+                                backgroundColor: customOcean,
+                                child: volumeWidget,
+                              ))),
+                      const Spacer(),
+                      boxWidget(
+                          color: customSky,
+                          backgroundColor: customOcean,
+                          child: SizedBox(
+                              width: 400,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  back,
+                                  padding,
+                                  controller!.player.state.playing
+                                      ? pause
+                                      : play,
+                                  padding,
+                                  forward,
+                                ],
+                              ))),
+                      const Spacer(),
+                      Flexible(
+                          child: Align(
+                              alignment: Alignment.centerRight,
+                              child: boxWidget(
+                                  color: customSky,
+                                  backgroundColor: customOcean,
+                                  child: fullscreen)))
+                    ],
+                  )
                 ],
-              )
-            ],
-          )),
+              ))),
     );
   }
 }
