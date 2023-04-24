@@ -5,6 +5,9 @@ import 'dart:async';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_custom_cursor/cursor_manager.dart';
+import 'package:flutter_custom_cursor/flutter_custom_cursor.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -43,7 +46,6 @@ class PlayState extends State<Play> {
   bool showOverlay = true;
   bool showMousePointer = true;
   Timer? _timer;
-
   @override
   void initState() {
     super.initState();
@@ -125,7 +127,11 @@ class PlayState extends State<Play> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer(const Duration(seconds: 2), () {
+    setState(() {
+      showMousePointer = true;
+      showOverlay = true;
+    });
+    _timer = Timer(const Duration(seconds: 1), () {
       setState(() {
         showMousePointer = false;
         showOverlay = false;
@@ -144,14 +150,9 @@ class PlayState extends State<Play> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+        // cursor: cursorName == null ? SystemMouseCursors.basic : FlutterCustomMemoryImageCursor(key: cursorName),
         onHover: (event) {
           _startTimer();
-          if (!showMousePointer || !showOverlay) {
-            setState(() {
-              showMousePointer = true;
-              showOverlay = true;
-            });
-          }
         },
         child: Scaffold(
           backgroundColor: Colors.black,

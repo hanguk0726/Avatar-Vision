@@ -25,7 +25,7 @@ openh264 = "0.4.0"
 cpal = "0.15.2"
 anyhow = "1.0.40"
 hound = "3.5.0"
-minimp4 = { git = "https://github.com/darkskygit/minimp4.rs" }   
+minimp4 = { git = "https://github.com/darkskygit/minimp4.rs" }   # it's supposed to be version 0.1.1, but it hasn't been published to crates.io yet.
 num_cpus = "1.15.0"
 log = "0.4"
 simple_logger = "4.0.0"
