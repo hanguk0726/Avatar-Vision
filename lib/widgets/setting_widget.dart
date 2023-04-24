@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import '../domain/assets.dart';
 import '../services/setting.dart';
 import '../services/native.dart';
+import '../tools/compare.dart';
 import 'dropdown.dart';
 
 Widget settings(BuildContext context) {
@@ -176,7 +177,3 @@ Widget settings(BuildContext context) {
               ))));
 }
 
-bool isWithinTolerance(Size size1, Size size2, double tolerance) {
-  return (size1.width - size2.width).abs() < tolerance &&
-      (size1.height - size2.height).abs() < tolerance;
-}

@@ -5,15 +5,13 @@ import 'dart:async';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_custom_cursor/cursor_manager.dart';
-import 'package:flutter_custom_cursor/flutter_custom_cursor.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/window.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
 import '../services/event_bus.dart';
@@ -41,11 +39,10 @@ class PlayState extends State<Play> {
   double volume = 100;
   bool muted = false;
   Duration playtime = const Duration(seconds: 0);
-  Duration position = const Duration(seconds: 0);
   Duration animatedOpacity = const Duration(milliseconds: 300);
-  bool showOverlay = true;
-  bool showMousePointer = true;
+  bool showOverlayAndMouseCursor = true;
   Timer? _timer;
+
   @override
   void initState() {
     super.initState();
@@ -57,9 +54,7 @@ class PlayState extends State<Play> {
     player.streams.duration.listen((e) => setState(() {
           playtime = e;
         }));
-    player.streams.position.listen((e) => setState(() {
-          position = e;
-        }));
+    startOverlayTimer();
   }
 
   void initKeyboradEvent() {
@@ -125,20 +120,6 @@ class PlayState extends State<Play> {
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() {
-      showMousePointer = true;
-      showOverlay = true;
-    });
-    _timer = Timer(const Duration(seconds: 1), () {
-      setState(() {
-        showMousePointer = false;
-        showOverlay = false;
-      });
-    });
-  }
-
   void initVideo() async {
     Future.microtask(() async {
       controller = await VideoController.create(player);
@@ -147,36 +128,56 @@ class PlayState extends State<Play> {
     });
   }
 
+  void startOverlayTimer() {
+    setState(() {
+      showOverlayAndMouseCursor = true;
+    });
+    _timer?.cancel();
+    _timer = Timer(const Duration(milliseconds: 2000), () {
+      setState(() {
+        showOverlayAndMouseCursor = false;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-        // cursor: cursorName == null ? SystemMouseCursors.basic : FlutterCustomMemoryImageCursor(key: cursorName),
-        onHover: (event) {
-          _startTimer();
-        },
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: Stack(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  if (controller!.player.state.playing) {
-                    controller!.player.pause();
-                  } else {
-                    controller!.player.play();
-                  }
-                  setState(() {});
-                },
-                child: Video(
-                  controller: controller,
-                  fit: BoxFit.fill,
-                ),
+      // cursor has some issue.
+      // https://github.com/flutter/flutter/issues/76622
+      cursor: showOverlayAndMouseCursor
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.none, 
+      onHover: (event) {
+        if (event.delta.dx.abs() > 1 || event.delta.dy.abs() > 1) {
+          startOverlayTimer();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            GestureDetector(
+              onTap: () {
+                if (controller!.player.state.playing) {
+                  controller!.player.pause();
+                } else {
+                  controller!.player.play();
+                }
+                setState(() {});
+                startOverlayTimer();
+              },
+              child: Video(
+                controller: controller,
+                fit: BoxFit.fill,
               ),
-              header(),
-              mediaControllBar(),
-            ],
-          ),
-        ));
+            ),
+            header(),
+            mediaControllBar(),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget header() {
@@ -185,7 +186,7 @@ class PlayState extends State<Play> {
         top: 32,
         child: AnimatedOpacity(
             duration: animatedOpacity,
-            opacity: showOverlay ? 1.0 : 0.0,
+            opacity: showOverlayAndMouseCursor ? 1.0 : 0.0,
             child: boxWidget(
                 color: customSky,
                 backgroundColor: customOcean,
@@ -242,19 +243,30 @@ class PlayState extends State<Play> {
   }
 
   Widget playProgressbar() {
-    return ProgressBar(
-      progress: position,
-      buffered: playtime,
-      total: playtime,
-      barCapShape: BarCapShape.square,
-      timeLabelLocation: TimeLabelLocation.none,
-      progressBarColor: customOrange,
-      baseBarColor: Colors.transparent,
-      bufferedBarColor: customOcean.withOpacity(0.5),
-      thumbColor: Colors.transparent,
-      thumbGlowColor: Colors.transparent,
-      onSeek: (duration) {
-        controller!.player.seek(duration);
+    return StreamBuilder<Duration>(
+      stream: controller!.player.streams.position,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox();
+        }
+
+        final position = snapshot.data!;
+
+        return ProgressBar(
+          progress: position,
+          buffered: playtime,
+          total: playtime,
+          barCapShape: BarCapShape.square,
+          timeLabelLocation: TimeLabelLocation.none,
+          progressBarColor: customOrange,
+          baseBarColor: Colors.transparent,
+          bufferedBarColor: customOcean.withOpacity(0.5),
+          thumbColor: Colors.transparent,
+          thumbGlowColor: Colors.transparent,
+          onSeek: (duration) {
+            controller!.player.seek(duration);
+          },
+        );
       },
     );
   }
@@ -360,7 +372,7 @@ class PlayState extends State<Play> {
           alignment: Alignment.bottomCenter,
           child: AnimatedOpacity(
               duration: animatedOpacity,
-              opacity: showOverlay ? 1.0 : 0.0,
+              opacity: showOverlayAndMouseCursor ? 1.0 : 0.0,
               child: Column(
                 children: [
                   playProgressbar(),
