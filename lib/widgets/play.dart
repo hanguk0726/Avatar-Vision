@@ -102,7 +102,13 @@ class PlayState extends State<Play> {
         case Event.keyboardControlBackspace:
           Navigator.pop(context);
           break;
-
+        case Event.keyboardControlEscape:
+          if (isFullscreen) {
+            FullScreenWindow.setFullScreen(false);
+            isFullscreen = false;
+            setState(() {});
+          }
+          break;
         default:
           break;
       }
@@ -147,7 +153,7 @@ class PlayState extends State<Play> {
       // https://github.com/flutter/flutter/issues/76622
       cursor: showOverlayAndMouseCursor
           ? SystemMouseCursors.basic
-          : SystemMouseCursors.none, 
+          : SystemMouseCursors.none,
       onHover: (event) {
         if (event.delta.dx.abs() > 1 || event.delta.dy.abs() > 1) {
           startOverlayTimer();
@@ -232,14 +238,37 @@ class PlayState extends State<Play> {
     if (value < 0) {
       value = 0;
     }
-    volume = value;
-    controller!.player.setVolume(value);
-    if (volume == 0) {
-      muted = true;
-    } else {
-      muted = false;
-    }
-    setState(() {});
+    setState(() {
+      controller!.player.setVolume(value);
+      volume = value;
+      if (volume == 0) {
+        muted = true;
+      } else {
+        muted = false;
+      }
+    });
+  }
+
+  Widget time() {
+    return StreamBuilder<Duration>(
+      stream: controller!.player.streams.position,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox();
+        }
+
+        final position = snapshot.data!;
+
+        return Text(
+          '${position.inHours}:${position.inMinutes.remainder(60).toString().padLeft(2, '0')}:${position.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+          style: TextStyle(
+            color: customSky,
+            fontFamily: mainFont,
+            fontSize: 18,
+          ),
+        );
+      },
+    );
   }
 
   Widget playProgressbar() {
@@ -327,7 +356,7 @@ class PlayState extends State<Play> {
           },
         ),
         SizedBox(
-          width: 96,
+          width: 80,
           child: SliderController(
             value: volume,
             sliderDecoration: SliderDecoration(
@@ -337,12 +366,16 @@ class PlayState extends State<Play> {
                 borderRadius: 0,
                 height: 8,
                 thumbHeight: 0),
+            onChangeStart: (value) {
+              setVolume(
+                  value); //sometime the slider will not update the value without 'onChangeStart'
+            },
             onChanged: (value) {
               setVolume(value);
             },
           ),
         ),
-        const SizedBox(width: 32),
+        const SizedBox(width: 24),
       ],
     );
 
@@ -359,7 +392,14 @@ class PlayState extends State<Play> {
         // https://github.com/leanflutter/window_manager/issues/228
       },
     );
-
+    var playtimeWidget = Text(
+      '${playtime.inHours}:${playtime.inMinutes.remainder(60).toString().padLeft(2, '0')}:${playtime.inSeconds.remainder(60).toString().padLeft(2, '0')}',
+      style: TextStyle(
+        color: customSky,
+        fontFamily: mainFont,
+        fontSize: 18,
+      ),
+    );
     var padding = const SizedBox(
       width: 32,
       height: 32,
@@ -392,11 +432,13 @@ class PlayState extends State<Play> {
                           color: customSky,
                           backgroundColor: customOcean,
                           child: SizedBox(
-                              width: 400,
+                              width: 500,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  time(),
+                                  padding,
                                   back,
                                   padding,
                                   controller!.player.state.playing
@@ -404,6 +446,8 @@ class PlayState extends State<Play> {
                                       : play,
                                   padding,
                                   forward,
+                                  padding,
+                                  playtimeWidget
                                 ],
                               ))),
                       const Spacer(),

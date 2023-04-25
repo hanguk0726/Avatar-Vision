@@ -12,6 +12,7 @@ enum Event {
   keyboardControlF,
   keyboardControlBackspace,
   keyboardControlDelete,
+  keyboardControlEscape,
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
@@ -38,6 +39,8 @@ Event? rawKeyEventToEvent(RawKeyEvent event) {
         return Event.keyboardControlBackspace;
       case 'Delete':
         return Event.keyboardControlDelete;
+      case 'Escape':
+        return Event.keyboardControlEscape;
       default:
         return null;
     }

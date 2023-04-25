@@ -18,15 +18,14 @@ class PastEntries extends StatefulWidget {
   PastEntriesState createState() => PastEntriesState();
 }
 
-class PastEntriesState extends State<PastEntries>  {
+class PastEntriesState extends State<PastEntries> {
   int selectedIndex = 0;
 
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
   bool _isVisible = false;
-  double   widnowHeight = Native().currentResolutionHeight;
+  double widnowHeight = Native().currentResolutionHeight;
   late StreamSubscription<Event> _eventSubscription;
-
 
   @override
   void initState() {
