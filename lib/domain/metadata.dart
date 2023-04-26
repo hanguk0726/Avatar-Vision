@@ -1,10 +1,10 @@
-
 import 'package:objectbox/objectbox.dart';
 
 @Entity()
 class Metadata {
-  @Id()
-  int id = 0;
+  int id = 0; // required for ObjectBox to work
+  @Index()
+  @Unique()
   String videoTitle;
 
   int timestamp;
@@ -22,5 +22,4 @@ class Metadata {
     this.tags,
     this.thumbnail,
   });
-
 }

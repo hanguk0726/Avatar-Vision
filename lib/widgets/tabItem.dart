@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:video_diary/services/native.dart';
+import 'package:video_diary/widgets/key_listener.dart';
 import 'package:video_diary/widgets/past_entries.dart';
 import 'package:video_diary/widgets/setting_widget.dart';
 import 'package:window_manager/window_manager.dart';
@@ -19,36 +21,25 @@ class TabItemWidget extends StatefulWidget {
   TabItemWidgetState createState() => TabItemWidgetState();
 }
 
-class TabItemWidgetState extends State<TabItemWidget>{
-  double windowPadding = 32.0;
-
+class TabItemWidgetState extends State<TabItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-      final halfWidth = constraints.maxWidth / 2;
-      final width =
-          (halfWidth - (2 * windowPadding)).clamp(0.0, constraints.maxWidth);
-      final height = ((constraints.maxHeight - 100) - (2 * windowPadding))
-          .clamp(0.0, constraints.maxHeight);
-      return ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: width,
-          maxHeight: height,
-        ),
-        child: StreamBuilder<TabItem>(
-          stream: widget.tabItem,
-          initialData: TabItem.mainCam,
-          builder: (context, snapshot) {
-            final tabItem = snapshot.data;
-            return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: _buildTabItem(tabItem, context));
-          },
-        ),
-      );
-    });
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: 550,
+      ),
+      child: StreamBuilder<TabItem>(
+        stream: widget.tabItem,
+        initialData: TabItem.mainCam,
+        builder: (context, snapshot) {
+          final tabItem = snapshot.data;
+          return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _buildTabItem(tabItem, context));
+        },
+      ),
+    );
   }
 }
 
@@ -99,4 +90,3 @@ Widget recordingIndicator() {
     ),
   );
 }
-

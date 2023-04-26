@@ -1,14 +1,19 @@
 import 'dart:async';
+
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
-import 'package:video_diary/widgets/play.dart';
+import 'package:video_diary/services/db.dart';
+import 'package:video_diary/pages/play.dart';
+import 'package:video_diary/widgets/key_listener.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
+import '../domain/result.dart';
 import '../services/event_bus.dart';
 import '../services/native.dart';
 
@@ -19,23 +24,32 @@ class PastEntries extends StatefulWidget {
 }
 
 class PastEntriesState extends State<PastEntries> {
-  int selectedIndex = 0;
+  final selectedIndexSubject = BehaviorSubject<int>.seeded(0);
 
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
   bool _isVisible = false;
-  double widnowHeight = Native().currentResolutionHeight;
-  late StreamSubscription<Event> _eventSubscription;
+  late StreamSubscription<KeyEventPair> _eventSubscription;
+  late StreamSubscription<int> _selectedIndexSubscription;
 
+  int get selectedIndex => selectedIndexSubject.value;
+  set selectedIndex(int value) => selectedIndexSubject.add(value);
+  String eventKey = 'pastEntries';
   @override
   void initState() {
     super.initState();
+    Native native = context.read<Native>();
+    _selectedIndexSubscription = selectedIndexSubject.listen((index) {
+      String fileName = native.files[selectedIndex];
+      EventBus().fire(MetadataEvent(fileName), eventKey);
+    });
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (!_isVisible) {
+      if (!_isVisible || eventKey != event.key) {
         return;
       }
-      switch (event) {
-        case Event.keyboardControlArrowUp:
+
+      switch (event.event) {
+        case KeyboardEvent.keyboardControlArrowUp:
           if (selectedIndex > 0) {
             setState(() {
               selectedIndex--;
@@ -43,7 +57,7 @@ class PastEntriesState extends State<PastEntries> {
             return;
           }
           break;
-        case Event.keyboardControlArrowDown:
+        case KeyboardEvent.keyboardControlArrowDown:
           if (selectedIndex < Native().files.length - 1) {
             setState(() {
               selectedIndex++;
@@ -51,9 +65,10 @@ class PastEntriesState extends State<PastEntries> {
             return;
           }
           break;
-        case Event.keyboardControlEnter:
+        case KeyboardEvent.keyboardControlEnter:
           play();
           return;
+
         default:
           break;
       }
@@ -63,6 +78,7 @@ class PastEntriesState extends State<PastEntries> {
   @override
   void dispose() {
     _eventSubscription.cancel();
+    _selectedIndexSubscription.cancel();
     super.dispose();
   }
 
@@ -115,19 +131,24 @@ class PastEntriesState extends State<PastEntries> {
                   decoration: BoxDecoration(
                     color: backgroundColor.withOpacity(0.2),
                   ),
-                  constraints: BoxConstraints(
-                      maxHeight: widnowHeight == 0
-                          ? 0
-                          : (widnowHeight - 150).clamp(0, double.infinity)),
+                  constraints: const BoxConstraints(
+                    maxHeight: 550,
+                  ),
                   child: SizedBox.expand(
                       child: Padding(
                           padding: const EdgeInsets.only(bottom: 16, top: 16),
-                          child: ListView.builder(
+                          child: keyListener(eventKey, ListView.builder(
                             shrinkWrap: true,
                             physics: const ClampingScrollPhysics(),
                             itemCount: files.length,
                             itemBuilder: (context, index) {
                               return GestureDetector(
+                                  // # Reference note
+                                  // When GestureDetector has a onDoubleTap, it will add a short delay to wait for the potential second tap before deciding what to do. This is because tapping and double tapping are treated as exclusive actions. Unfortunatey, GestureDetector does not have a parameter to change this behaviour.
+                                  // There are some other issues where this problem is also discussed, though I can't find them right now.
+                                  // https://github.com/flutter/flutter/issues/121926
+                                  // so keyboard is faster.
+
                                   onTap: () {
                                     setState(() {
                                       selectedIndex = index;
@@ -151,7 +172,7 @@ class PastEntriesState extends State<PastEntries> {
                                           child: pastEntry(files[index],
                                               selectedIndex == index))));
                             },
-                          ))))),
+                          )))))),
         ));
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -7,43 +9,23 @@ import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
+import 'package:video_diary/widgets/metadata_widget.dart';
 
 import '../domain/error.dart';
 import '../domain/event.dart';
+import '../domain/metadata.dart';
+import '../domain/result.dart';
 import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
+import '../services/db.dart';
 import '../tools/custom_scroll_behavior.dart';
 import '../widgets/indicator.dart';
+import '../widgets/key_listener.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-class App extends StatelessWidget {
-  const App({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // final ThemeData theme = ThemeData();
-    return RawKeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: true,
-      onKey: (event) {
-        var e = rawKeyEventToEvent(event);
-        if (e != null) {
-          EventBus().fire(e);
-        }
-      },
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Video Diary',
-        scrollBehavior: CustomScrollBehavior(),
-        home: const VideoPage(),
-      ),
-    );
-  }
-}
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -54,10 +36,42 @@ class VideoPage extends StatefulWidget {
 
 class _VideoPageState extends State<VideoPage> {
   BehaviorSubject<TabItem> tabItem = BehaviorSubject<TabItem>();
+  Metadata? selectedMetadata;
+  String metadataQueryErrorMessage = '';
+  late StreamSubscription<KeyEventPair> _eventSubscription;
+  String eventKey = 'video';
+  @override
+  void initState() {
+    super.initState();
+    _eventSubscription = EventBus().onEvent.listen((event) {
+      if (event.key != "pastEntries") {
+        return;
+      }
+      if (event.event is MetadataEvent) {
+        MetadataEvent casted = event.event as MetadataEvent;
+        // add data
+        String videoTitle = casted.videoTitle;
+        final queryResult = DatabaseService().getMetadata(videoTitle);
+        if (queryResult is Success) {
+          setState(() {
+            selectedMetadata = (queryResult as Success<Metadata>).value;
+            metadataQueryErrorMessage = '';
+          });
+        } else {
+          setState(() {
+            selectedMetadata = null;
+            metadataQueryErrorMessage = (queryResult as Error).message;
+          });
+          return;
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
     tabItem.close();
+    _eventSubscription.cancel();
     super.dispose();
   }
 
@@ -109,6 +123,7 @@ class _VideoPageState extends State<VideoPage> {
           showMessageOnError(errors),
           menuTaps(recording: recording),
           _mediaControlButton(),
+          pastEntryMetadata(),
           writingStateMessage(
               writingState: writingState,
               recording: recording,
@@ -133,12 +148,25 @@ class _VideoPageState extends State<VideoPage> {
     }
   }
 
+  Widget pastEntryMetadata() {
+    if (selectedMetadata == null) {
+      return const SizedBox();
+    } else {
+      return Positioned(
+          top: 32,
+          right: 32,
+          child: MetadataWidget(
+            metadata: selectedMetadata!,
+          ));
+    }
+  }
+
   Widget writingStateMessage(
       {required WritingState writingState,
       required bool recording,
       required bool renderingWhileEncoding,
       required bool noWritingStateIndicator}) {
-    if (noWritingStateIndicator) {
+    if (noWritingStateIndicator || selectedMetadata != null) {
       return const SizedBox();
     } else if (renderingWhileEncoding) {
       return Positioned(
@@ -162,25 +190,25 @@ class _VideoPageState extends State<VideoPage> {
 
   Widget menuTaps({required bool recording}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 32, left: 32),
-      child: recording
-          ? recordingIndicator()
-          : SingleChildScrollView(
-              child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Tabs(
-                  buttonLabels: const [
-                    TabItem.mainCam,
-                    TabItem.pastEntries,
-                    TabItem.settings,
+        padding: const EdgeInsets.only(top: 32, left: 32),
+        child: recording
+            ? recordingIndicator()
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Tabs(
+                      buttonLabels: const [
+                        TabItem.mainCam,
+                        TabItem.pastEntries,
+                        TabItem.settings,
+                      ],
+                      onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                    ),
+                    TabItemWidget(tabItem: tabItem),
                   ],
-                  onTabSelected: (tabItem_) => tabItem.add(tabItem_),
                 ),
-                TabItemWidget(tabItem: tabItem),
-              ],
-            )),
-    );
+              ));
   }
 }

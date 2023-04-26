@@ -20,38 +20,39 @@ export 'package:objectbox/objectbox.dart'; // so that callers only have to impor
 
 final _entities = <ModelEntity>[
   ModelEntity(
-      id: const IdUid(1, 4236702242712755114),
+      id: const IdUid(1, 403957900830012942),
       name: 'Metadata',
-      lastPropertyId: const IdUid(6, 3096958669465351318),
+      lastPropertyId: const IdUid(6, 2847845973711074343),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 8527942155786030013),
+            id: const IdUid(1, 1700872531042947758),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(2, 7700924326747634927),
+            id: const IdUid(2, 3540835376430048582),
             name: 'videoTitle',
             type: 9,
-            flags: 0),
+            flags: 2080,
+            indexId: const IdUid(1, 786738118606110385)),
         ModelProperty(
-            id: const IdUid(3, 1741192935491622546),
+            id: const IdUid(3, 5962443849967818597),
             name: 'timestamp',
             type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 709721628378879088),
+            id: const IdUid(4, 549483505540694786),
             name: 'note',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(5, 5437543913027091370),
+            id: const IdUid(5, 6086831854859562419),
             name: 'tags',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(6, 3096958669465351318),
+            id: const IdUid(6, 2847845973711074343),
             name: 'thumbnail',
             type: 9,
             flags: 0)
@@ -80,8 +81,8 @@ Future<Store> openStore(
 ModelDefinition getObjectBoxModel() {
   final model = ModelInfo(
       entities: _entities,
-      lastEntityId: const IdUid(1, 4236702242712755114),
-      lastIndexId: const IdUid(0, 0),
+      lastEntityId: const IdUid(1, 403957900830012942),
+      lastIndexId: const IdUid(1, 786738118606110385),
       lastRelationId: const IdUid(0, 0),
       lastSequenceId: const IdUid(0, 0),
       retiredEntityUids: const [],

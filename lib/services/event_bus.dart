@@ -9,15 +9,21 @@ class EventBus {
 
   factory EventBus() => _singleton;
 
-  final _eventController = StreamController<Event>.broadcast();
+  final _eventController = StreamController<KeyEventPair>.broadcast();
 
-  Stream<Event> get onEvent => _eventController.stream;
+  Stream<KeyEventPair> get onEvent => _eventController.stream;
 
-  void fire(Event event) {
-    _eventController.sink.add(event);
+  void fire(Event event, String key) {
+    _eventController.sink.add(KeyEventPair(event, key));
   }
 
   void destroy() {
     _eventController.close();
   }
+}
+
+class KeyEventPair {
+  final Event event;
+  final String key;
+  KeyEventPair(this.event, this.key);
 }

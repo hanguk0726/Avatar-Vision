@@ -1,46 +1,84 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
-enum Event {
-  keyboardControlArrowUp,
-  keyboardControlArrowDown,
-  keyboardControlArrowLeft,
-  keyboardControlArrowRight,
-  keyboardControlEnter,
-  keyboardControlSpace,
-  keyboardControlM,
-  keyboardControlF,
-  keyboardControlBackspace,
-  keyboardControlDelete,
-  keyboardControlEscape,
+// This could be refactored when Flutter supports sealed classes.
+abstract class Event<T> {
+  const Event._();
+
+  factory Event.keyboard(KeyboardEventType type) = KeyboardEvent<T>;
+  factory Event.metadata(String videoTitle) = MetadataEvent<T>;
+}
+
+enum KeyboardEventType {
+  arrowUp,
+  arrowDown,
+  arrowLeft,
+  arrowRight,
+  enter,
+  space,
+  m,
+  f,
+  backspace,
+  delete,
+  escape,
+}
+
+class KeyboardEvent<T> extends Event<T> {
+  final KeyboardEventType type;
+
+  const KeyboardEvent(this.type) : super._();
+  static const keyboardControlArrowUp =
+      KeyboardEvent(KeyboardEventType.arrowUp);
+  static const keyboardControlArrowDown =
+      KeyboardEvent(KeyboardEventType.arrowDown);
+  static const keyboardControlArrowLeft =
+      KeyboardEvent(KeyboardEventType.arrowLeft);
+  static const keyboardControlArrowRight =
+      KeyboardEvent(KeyboardEventType.arrowRight);
+  static const keyboardControlEnter = KeyboardEvent(KeyboardEventType.enter);
+  static const keyboardControlSpace = KeyboardEvent(KeyboardEventType.space);
+  static const keyboardControlM = KeyboardEvent(KeyboardEventType.m);
+  static const keyboardControlF = KeyboardEvent(KeyboardEventType.f);
+  static const keyboardControlBackspace =
+      KeyboardEvent(KeyboardEventType.backspace);
+  static const keyboardControlDelete = KeyboardEvent(KeyboardEventType.delete);
+  static const keyboardControlEscape = KeyboardEvent(KeyboardEventType.escape);
+}
+
+class MetadataEvent<T> extends Event<T> {
+  final String videoTitle;
+
+  const MetadataEvent(this.videoTitle) : super._();
+
+  
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
-  debugPrint(event.logicalKey.keyLabel);
+  
   if (event is RawKeyDownEvent) {
     switch (event.logicalKey.keyLabel) {
       case 'Arrow Up':
-        return Event.keyboardControlArrowUp;
+        return KeyboardEvent.keyboardControlArrowUp;
       case 'Arrow Down':
-        return Event.keyboardControlArrowDown;
+        return KeyboardEvent.keyboardControlArrowDown;
       case 'Arrow Left':
-        return Event.keyboardControlArrowLeft;
+        return KeyboardEvent.keyboardControlArrowLeft;
       case 'Arrow Right':
-        return Event.keyboardControlArrowRight;
+        return KeyboardEvent.keyboardControlArrowRight;
       case 'Enter':
-        return Event.keyboardControlEnter;
+        return KeyboardEvent.keyboardControlEnter;
       case ' ': // this empty value is actually a space
-        return Event.keyboardControlSpace;
+        return KeyboardEvent.keyboardControlSpace;
       case 'M':
-        return Event.keyboardControlM;
+        return KeyboardEvent.keyboardControlM;
       case 'F':
-        return Event.keyboardControlF;
+        return KeyboardEvent.keyboardControlF;
       case 'Backspace':
-        return Event.keyboardControlBackspace;
+        return KeyboardEvent.keyboardControlBackspace;
       case 'Delete':
-        return Event.keyboardControlDelete;
+        return KeyboardEvent.keyboardControlDelete;
       case 'Escape':
-        return Event.keyboardControlEscape;
+        return KeyboardEvent.keyboardControlEscape;
       default:
         return null;
     }

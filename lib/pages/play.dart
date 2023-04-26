@@ -1,5 +1,3 @@
-//declare stateful widget name Play
-
 import 'dart:async';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
@@ -10,8 +8,9 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
-import 'package:video_diary/widgets/window.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:video_diary/widgets/box_widget.dart';
+import 'package:video_diary/widgets/key_listener.dart';
+import 'package:video_diary/widgets/metadata_widget.dart';
 
 import '../domain/event.dart';
 import '../services/event_bus.dart';
@@ -32,7 +31,7 @@ class Play extends StatefulWidget {
 }
 
 class PlayState extends State<Play> {
-  late StreamSubscription<Event> _eventSubscription;
+  late StreamSubscription<KeyEventPair> _eventSubscription;
   final Player player = Player();
   VideoController? controller;
   bool isFullscreen = false;
@@ -42,7 +41,7 @@ class PlayState extends State<Play> {
   Duration animatedOpacity = const Duration(milliseconds: 300);
   bool showOverlayAndMouseCursor = true;
   Timer? _timer;
-
+  final String eventKey = 'play';
   @override
   void initState() {
     super.initState();
@@ -59,23 +58,33 @@ class PlayState extends State<Play> {
 
   void initKeyboradEvent() {
     _eventSubscription = EventBus().onEvent.listen((event) {
-      switch (event) {
-        case Event.keyboardControlArrowUp:
+      if (event.key != eventKey)  {
+        return;
+      }
+      switch (event.event) {
+        case KeyboardEvent.keyboardControlArrowUp:
           setVolume(volume + 10);
           break;
-        case Event.keyboardControlArrowDown:
+        case KeyboardEvent.keyboardControlArrowDown:
           setVolume(volume - 10);
           break;
 
-        case Event.keyboardControlArrowLeft:
-          controller!.player.seek(
-              controller!.player.state.position - const Duration(seconds: 10));
+        case KeyboardEvent.keyboardControlArrowLeft:
+          {
+            if (controller!.player.state.position >
+                const Duration(seconds: 10)) {
+              controller!.player.seek(controller!.player.state.position -
+                  const Duration(seconds: 10));
+            } else {
+              controller!.player.seek(const Duration(seconds: 0));
+            }
+          }
           break;
-        case Event.keyboardControlArrowRight:
+        case KeyboardEvent.keyboardControlArrowRight:
           controller!.player.seek(
               controller!.player.state.position + const Duration(seconds: 10));
           break;
-        case Event.keyboardControlM:
+        case KeyboardEvent.keyboardControlM:
           if (muted) {
             controller!.player.setVolume(100);
             muted = false;
@@ -85,13 +94,13 @@ class PlayState extends State<Play> {
           }
           setState(() {});
           break;
-        case Event.keyboardControlF:
+        case KeyboardEvent.keyboardControlF:
           FullScreenWindow.setFullScreen(!isFullscreen);
           isFullscreen = !isFullscreen;
           setState(() {});
           break;
 
-        case Event.keyboardControlSpace:
+        case KeyboardEvent.keyboardControlSpace:
           if (controller!.player.state.playing) {
             controller!.player.pause();
           } else {
@@ -99,10 +108,10 @@ class PlayState extends State<Play> {
           }
           setState(() {});
           break;
-        case Event.keyboardControlBackspace:
+        case KeyboardEvent.keyboardControlBackspace:
           Navigator.pop(context);
           break;
-        case Event.keyboardControlEscape:
+        case KeyboardEvent.keyboardControlEscape:
           if (isFullscreen) {
             FullScreenWindow.setFullScreen(false);
             isFullscreen = false;
@@ -155,13 +164,13 @@ class PlayState extends State<Play> {
           ? SystemMouseCursors.basic
           : SystemMouseCursors.none,
       onHover: (event) {
-        if (event.delta.dx.abs() > 1 || event.delta.dy.abs() > 1) {
+        if (event.delta.dx.abs() > 2 || event.delta.dy.abs() > 2) {
           startOverlayTimer();
         }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(
+        body: keyListener(eventKey,  Stack(
           children: [
             GestureDetector(
               onTap: () {
@@ -182,7 +191,7 @@ class PlayState extends State<Play> {
             mediaControllBar(),
           ],
         ),
-      ),
+      ),)
     );
   }
 

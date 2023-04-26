@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/widgets/key_listener.dart';
 import 'package:video_diary/widgets/tabItem.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -29,16 +30,17 @@ class Tabs extends StatefulWidget {
 class TabsState extends State<Tabs> {
   int selectedIndex = 0;
   bool _isVisible = false;
-  late StreamSubscription<Event> _eventSubscription;
+  late StreamSubscription<KeyEventPair> _eventSubscription;
+  final String eventKey = 'tab';
   @override
   void initState() {
     super.initState();
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (!_isVisible) {
+      if (!_isVisible || event.key != eventKey) {
         return;
       }
-      switch (event) {
-        case Event.keyboardControlArrowLeft:
+      switch (event.event) {
+        case KeyboardEvent.keyboardControlArrowLeft:
           if (selectedIndex > 0) {
             setState(() {
               selectedIndex--;
@@ -47,7 +49,7 @@ class TabsState extends State<Tabs> {
             return;
           }
           break;
-        case Event.keyboardControlArrowRight:
+        case KeyboardEvent.keyboardControlArrowRight:
           if (selectedIndex < widget.buttonLabels.length - 1) {
             setState(() {
               selectedIndex++;
@@ -81,35 +83,37 @@ class TabsState extends State<Tabs> {
           }
         },
         child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: customSky, width: 2.0),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(10.0),
+            decoration: BoxDecoration(
+              border: Border.all(color: customSky, width: 2.0),
+              borderRadius: const BorderRadius.all(
+                Radius.circular(10.0),
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(6.0),
-            child: FittedBox(
-              child: Row(
-                  children: widget.buttonLabels
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => ToggleButton(
-                          text: entry.value.name,
-                          isActive: selectedIndex == entry.key,
-                          onPressed: () {
-                            setState(() {
-                              selectedIndex = entry.key;
-                              widget.onTabSelected(entry.value);
-                            });
-                          },
-                        ),
-                      )
-                      .toList()),
-            ),
-          ),
-        ));
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: FittedBox(
+                child: keyListener(
+                  eventKey,
+                  Row(
+                      children: widget.buttonLabels
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => ToggleButton(
+                              text: entry.value.name,
+                              isActive: selectedIndex == entry.key,
+                              onPressed: () {
+                                setState(() {
+                                  selectedIndex = entry.key;
+                                  widget.onTabSelected(entry.value);
+                                });
+                              },
+                            ),
+                          )
+                          .toList()),
+                ),
+              ),
+            )));
   }
 }
 
