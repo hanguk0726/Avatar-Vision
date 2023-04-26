@@ -10,6 +10,7 @@ import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/widgets/button.dart';
 
 import '../domain/metadata.dart';
+import '../tools/time.dart';
 
 class MetadataWidget extends StatefulWidget {
   final Metadata metadata;
@@ -63,6 +64,13 @@ class MetadataWidgetState extends State<MetadataWidget> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            Text(
+                              getFormattedTimestamp(model.timestamp),
+                              style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 16,
+                                  fontFamily: mainFont),
+                            ),
                             const SizedBox(height: 32),
                             const Spacer(),
                             StreamBuilder<bool>(

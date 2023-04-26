@@ -53,6 +53,7 @@ dependencies:
   fullscreen_window: ^1.0.4
   slider_controller: ^0.0.5
   audio_video_progress_bar: ^1.0.1
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:
