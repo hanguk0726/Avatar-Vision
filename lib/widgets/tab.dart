@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/key_listener.dart';
 import 'package:video_diary/widgets/tabItem.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 import '../domain/event.dart';
 import '../domain/tab_item.dart';
@@ -29,14 +28,16 @@ class Tabs extends StatefulWidget {
 
 class TabsState extends State<Tabs> {
   int selectedIndex = 0;
-  bool _isVisible = false;
   late StreamSubscription<KeyEventPair> _eventSubscription;
   final String eventKey = 'tab';
+  final String allowedEventKey = 'pastEntries';
+  final FocusNode focusNode = FocusNode();
+  
   @override
   void initState() {
     super.initState();
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (!_isVisible || event.key != eventKey) {
+      if (event.key != eventKey  && event.key != allowedEventKey) {
         return;
       }
       switch (event.event) {
@@ -63,57 +64,51 @@ class TabsState extends State<Tabs> {
           break;
       }
     });
+    focusNode.requestFocus();
   }
 
   @override
   void dispose() {
     _eventSubscription.cancel();
+    focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return VisibilityDetector(
-        key: const Key('tab'),
-        onVisibilityChanged: (visibilityInfo) {
-          if (mounted) {
-            setState(() {
-              _isVisible = visibilityInfo.visibleFraction > 0;
-            });
-          }
-        },
-        child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: customSky, width: 2.0),
-              borderRadius: const BorderRadius.all(
-                Radius.circular(10.0),
-              ),
+    return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: customSky, width: 2.0),
+          borderRadius: const BorderRadius.all(
+            Radius.circular(10.0),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: FittedBox(
+            child: keyListener(
+              eventKey,
+              focusNode,
+              Row(
+                  children: widget.buttonLabels
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => ToggleButton(
+                          text: entry.value.name,
+                          isActive: selectedIndex == entry.key,
+                          onPressed: () {
+                            setState(() {
+                              selectedIndex = entry.key;
+                              widget.onTabSelected(entry.value);
+                            });
+                          },
+                        ),
+                      )
+                      .toList()),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(6.0),
-              child: FittedBox(
-                child: keyListener(
-                  eventKey,
-                  Row(
-                      children: widget.buttonLabels
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => ToggleButton(
-                              text: entry.value.name,
-                              isActive: selectedIndex == entry.key,
-                              onPressed: () {
-                                setState(() {
-                                  selectedIndex = entry.key;
-                                  widget.onTabSelected(entry.value);
-                                });
-                              },
-                            ),
-                          )
-                          .toList()),
-                ),
-              ),
-            )));
+          ),
+        ));
   }
 }
 
@@ -202,7 +197,7 @@ class ToggleButtonState extends State<ToggleButton> {
                       child: Text(
                         widget.text,
                         style: TextStyle(
-                            fontFamily: 'TitilliumWeb',
+                            fontFamily: mainFont,
                             fontWeight: FontWeight.w600,
                             color: textColor(),
                             fontSize: 13),

@@ -35,6 +35,25 @@ class DatabaseService {
     }
   }
 
+  void updateMetadata(String videoTitle, Metadata updatedData) {
+    final query = store
+        .box<Metadata>()
+        .query(Metadata_.videoTitle.equals(videoTitle))
+        .build();
+    final result = query.find();
+    if (result.isEmpty) {
+      print('No metadata found for $videoTitle');
+    } else {
+      final metadata = result.first;
+      // metadata.videoTitle = updatedData.videoTitle; //  transaction with OS
+      // metadata.timestamp = updatedData.timestamp;
+      metadata.note = updatedData.note;
+      metadata.tags = updatedData.tags;
+      metadata.thumbnail = updatedData.thumbnail;
+      store.box<Metadata>().put(metadata);
+    }
+  }
+
   void test() {
     String title =
         "Y2Mate.is - Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film-aqz-KE-bpKQ-1080p-1656220080931";

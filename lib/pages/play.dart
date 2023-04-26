@@ -41,6 +41,8 @@ class PlayState extends State<Play> {
   Duration animatedOpacity = const Duration(milliseconds: 300);
   bool showOverlayAndMouseCursor = true;
   Timer? _timer;
+  
+  final focusNode = FocusNode();
   final String eventKey = 'play';
   @override
   void initState() {
@@ -53,12 +55,13 @@ class PlayState extends State<Play> {
     player.streams.duration.listen((e) => setState(() {
           playtime = e;
         }));
+    focusNode.requestFocus();
     startOverlayTimer();
   }
 
   void initKeyboradEvent() {
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (event.key != eventKey)  {
+      if (event.key != eventKey) {
         return;
       }
       switch (event.event) {
@@ -132,6 +135,7 @@ class PlayState extends State<Play> {
     });
     _eventSubscription.cancel();
     _timer?.cancel();
+    focusNode.dispose();
     super.dispose();
   }
 
@@ -158,41 +162,44 @@ class PlayState extends State<Play> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      // cursor has some issue.
-      // https://github.com/flutter/flutter/issues/76622
-      cursor: showOverlayAndMouseCursor
-          ? SystemMouseCursors.basic
-          : SystemMouseCursors.none,
-      onHover: (event) {
-        if (event.delta.dx.abs() > 2 || event.delta.dy.abs() > 2) {
-          startOverlayTimer();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: keyListener(eventKey,  Stack(
-          children: [
-            GestureDetector(
-              onTap: () {
-                if (controller!.player.state.playing) {
-                  controller!.player.pause();
-                } else {
-                  controller!.player.play();
-                }
-                setState(() {});
-                startOverlayTimer();
-              },
-              child: Video(
-                controller: controller,
-                fit: BoxFit.fill,
-              ),
+        // cursor has some issue.
+        // https://github.com/flutter/flutter/issues/76622
+        cursor: showOverlayAndMouseCursor
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.none,
+        onHover: (event) {
+          if (event.delta.dx.abs() > 2 || event.delta.dy.abs() > 2) {
+            startOverlayTimer();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: keyListener(
+            eventKey,
+            focusNode,
+            Stack(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (controller!.player.state.playing) {
+                      controller!.player.pause();
+                    } else {
+                      controller!.player.play();
+                    }
+                    setState(() {});
+                    startOverlayTimer();
+                  },
+                  child: Video(
+                    controller: controller,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+                header(),
+                mediaControllBar(),
+              ],
             ),
-            header(),
-            mediaControllBar(),
-          ],
-        ),
-      ),)
-    );
+          ),
+        ));
   }
 
   Widget header() {

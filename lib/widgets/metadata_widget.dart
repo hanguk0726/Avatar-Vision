@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/services/db.dart';
 import 'package:video_diary/services/event_bus.dart';
 
 import '../domain/metadata.dart';
@@ -35,47 +36,54 @@ class MetadataWidgetState extends State<MetadataWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return  FocusScope(child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 550,
-        ),
-        child: ClipRRect(
-          child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-              child: Container(
-                  decoration: BoxDecoration(
-                    color: backgroundColor.withOpacity(0.8),
-                    border: Border.all(
-                      color: borderColor.withOpacity(0.8),
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
+    return FocusScope(
+        child: ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: 550,
+      ),
+      child: ClipRRect(
+        child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+            child: Container(
+                decoration: BoxDecoration(
+                  color: backgroundColor.withOpacity(0.8),
+                  border: Border.all(
+                    color: borderColor.withOpacity(0.8),
+                    width: 2,
                   ),
-                  child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Text(
-                            model.videoTitle,
-                            style: TextStyle(
-                                color: textColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: mainFont),
-                          ),
-                          Divider(
-                            color: borderColor,
-                          ),
-                          TextField(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Text(
+                          model.videoTitle,
+                          style: TextStyle(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: mainFont),
+                        ),
+                        Divider(
+                          color: borderColor,
+                        ),
+                        TextField(
                             controller: TextEditingController(text: model.note),
                             onChanged: (value) {
                               model.note = value;
                             },
-                          ),
-                        ],
-                      )))),
-        ),
-      ));
+                            onSubmitted: (value) {
+                              model.flush();
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Enter note here',
+                              border: InputBorder.none,
+                            )),
+                      ],
+                    )))),
+      ),
+    ));
   }
 }
 
@@ -101,4 +109,15 @@ class MetadataModel {
   }
 
   Metadata get original => _data;
+
+  void flush() {
+    DatabaseService().updateMetadata(
+        _data.videoTitle,
+        Metadata(
+            videoTitle: videoTitle,
+            timestamp: timestamp,
+            note: note,
+            tags: tags,
+            thumbnail: thumbnail));
+  }
 }

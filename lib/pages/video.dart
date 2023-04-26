@@ -204,7 +204,14 @@ class _VideoPageState extends State<VideoPage> {
                         TabItem.pastEntries,
                         TabItem.settings,
                       ],
-                      onTabSelected: (tabItem_) => tabItem.add(tabItem_),
+                      onTabSelected: (tabItem_) {
+                        tabItem.add(tabItem_);
+                        if (tabItem_ != TabItem.pastEntries) {
+                          setState(() {
+                            selectedMetadata = null;
+                          });
+                        }
+                      },
                     ),
                     TabItemWidget(tabItem: tabItem),
                   ],

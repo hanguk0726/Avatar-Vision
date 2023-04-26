@@ -42,7 +42,6 @@ dependencies:
   provider: ^6.0.5
   rxdart: ^0.27.7
   window_manager: ^0.3.2
-  visibility_detector: ^0.4.0+2
   path: ^1.8.3
   path_provider: ^2.0.14
   objectbox: ^2.0.0
