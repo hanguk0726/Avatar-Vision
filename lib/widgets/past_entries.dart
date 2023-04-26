@@ -27,8 +27,8 @@ class PastEntriesState extends State<PastEntries> {
   Color backgroundColor = customBlack;
   Color textColor = Colors.white;
   late StreamSubscription<KeyEventPair> _eventSubscription;
-  late StreamSubscription<int> _selectedIndexSubscription;
   final focusNode = FocusNode();
+  late StreamSubscription<int> _selectedIndexSubscription;
   int get selectedIndex => selectedIndexSubject.value;
   set selectedIndex(int value) => selectedIndexSubject.add(value);
   String eventKey = 'pastEntries';

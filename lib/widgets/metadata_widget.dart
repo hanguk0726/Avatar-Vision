@@ -3,9 +3,11 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/db.dart';
 import 'package:video_diary/services/event_bus.dart';
+import 'package:video_diary/widgets/button.dart';
 
 import '../domain/metadata.dart';
 
@@ -23,6 +25,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
   Color backgroundColor = customOcean;
   Color textColor = customSky;
   late MetadataModel model;
+  final isDirtySubject = BehaviorSubject<bool>.seeded(false);
   @override
   void initState() {
     super.initState();
@@ -57,24 +60,57 @@ class MetadataWidgetState extends State<MetadataWidget> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 32),
+                            const Spacer(),
+                            StreamBuilder<bool>(
+                                stream: isDirtySubject.stream,
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (snapshot.data!) {
+                                      return customButton(
+                                          customOrange, Colors.white, "Apply",
+                                          () {
+                                        model.flush();
+                                        isDirtySubject.add(false);
+                                      },
+                                          height: 32.0,
+                                          backgroundColorOpacity: 0.8,
+                                          borderOpacity: 1.0,
+                                          fontSize: 16.0);
+                                    }
+                                  }
+                                  return const SizedBox();
+                                }),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           model.videoTitle,
                           style: TextStyle(
                               color: textColor,
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
                               fontFamily: mainFont),
                         ),
                         Divider(
                           color: borderColor,
                         ),
                         TextField(
+                            cursorColor: Colors.white,
                             controller: TextEditingController(text: model.note),
+                            style: TextStyle(
+                              color: textColor,
+                              fontFamily: mainFont,
+                            ),
                             onChanged: (value) {
                               model.note = value;
+                              isDirtySubject.add(model.isDirty);
                             },
                             onSubmitted: (value) {
                               model.flush();
+                              isDirtySubject.add(false);
                             },
                             decoration: const InputDecoration(
                               hintText: 'Enter note here',
@@ -109,6 +145,14 @@ class MetadataModel {
   }
 
   Metadata get original => _data;
+
+  bool get isDirty {
+    return _data.videoTitle != videoTitle ||
+        _data.timestamp != timestamp ||
+        _data.note != note ||
+        _data.tags != tags ||
+        _data.thumbnail != thumbnail;
+  }
 
   void flush() {
     DatabaseService().updateMetadata(

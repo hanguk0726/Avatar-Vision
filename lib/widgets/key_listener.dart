@@ -8,9 +8,7 @@ Widget keyListener(
   FocusNode focusNode,
   Widget child,
 ) {
-  return FocusScope(
-      skipTraversal: true,
-      child: RawKeyboardListener(
+  return  RawKeyboardListener(
         focusNode: focusNode,
         onKey: (event) {
           debugPrint(
@@ -22,5 +20,5 @@ Widget keyListener(
           }
         },
         child: child,
-      ));
+      );
 }
