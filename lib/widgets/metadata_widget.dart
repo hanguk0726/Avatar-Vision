@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
@@ -27,15 +29,48 @@ class MetadataWidgetState extends State<MetadataWidget> {
   Color textColor = customSky;
   late MetadataModel model;
   final isDirtySubject = BehaviorSubject<bool>.seeded(false);
+  final inputFormatter =
+      RegExp(r'^\d{0,4}[-]\d{0,2}[-]\d{0,2} \d{0,2}[:]\d{0,2}[:]\d{0,2}$');
+  bool isTimestampFomatted = true; // User has to break the regex while editing
+
+  Timer? _timer;
+  final datatimeEditingController = TextEditingController();
+  final noteEditingController = TextEditingController();
+
+  Function onSubmitted = () {};
   @override
   void initState() {
     super.initState();
+
     model = MetadataModel(widget.metadata);
+    onSubmitted = () {
+      model.flush();
+      isDirtySubject.add(false);
+    };
+    datatimeEditingController.text = getFormattedTimestamp(model.timestamp);
+    noteEditingController.text = model.note ?? "";
+  }
+
+  void tick(String value) {
+    _timer?.cancel();
+    isTimestampFomatted = false;
+    _timer = Timer(const Duration(milliseconds: 200), () {
+      setState(() {
+        isTimestampFomatted =
+            inputFormatter.hasMatch(value);
+            print("isTimestampFomatted $isTimestampFomatted value $value");
+        if (isTimestampFomatted) {
+          model.timestamp = toUtcTimestamp(value);
+          isDirtySubject.add(model.isDirty);
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
+    _timer?.cancel();
   }
 
   @override
@@ -64,29 +99,38 @@ class MetadataWidgetState extends State<MetadataWidget> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              getFormattedTimestamp(model.timestamp),
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontSize: 16,
-                                  fontFamily: mainFont),
+                            SizedBox(
+                              width: 170,
+                              height: 32,
+                              child: TextField(
+                                controller: datatimeEditingController,
+                                onChanged: (value) {
+                                  tick(value);
+                                },
+                                style: TextStyle(
+                                    color: textColor,
+                                    fontSize: 16,
+                                    fontFamily: mainFont),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 32),
                             const Spacer(),
                             StreamBuilder<bool>(
                                 stream: isDirtySubject.stream,
                                 builder: (context, snapshot) {
                                   if (snapshot.hasData) {
-                                    if (snapshot.data!) {
+                                    if (snapshot.data! && isTimestampFomatted) {
                                       return customButton(
-                                          customOrange, Colors.white, "Apply",
+                                          customSky, Colors.white, "Apply",
                                           () {
                                         model.flush();
                                         isDirtySubject.add(false);
                                       },
                                           height: 32.0,
-                                          backgroundColorOpacity: 0.8,
-                                          borderOpacity: 1.0,
+                                          backgroundColorOpacity: 0.6,
+                                          borderOpacity: 0.8,
                                           fontSize: 16.0);
                                     }
                                   }
@@ -107,7 +151,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
                         ),
                         TextField(
                             cursorColor: Colors.white,
-                            controller: TextEditingController(text: model.note),
+                            controller: noteEditingController,
                             style: TextStyle(
                               color: textColor,
                               fontFamily: mainFont,
@@ -117,8 +161,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
                               isDirtySubject.add(model.isDirty);
                             },
                             onSubmitted: (value) {
-                              model.flush();
-                              isDirtySubject.add(false);
+                              onSubmitted();
                             },
                             decoration: const InputDecoration(
                               hintText: 'Enter note here',

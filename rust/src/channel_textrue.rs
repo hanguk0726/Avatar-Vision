@@ -36,7 +36,6 @@ impl AsyncMethodHandler for TextureHandler {
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<u32>().unwrap();
                 let height = resolution[1].parse::<u32>().unwrap();
-                let mut encoding_sender = self.channel_handler.lock().unwrap().encoding.0.clone();
 
                 let render_buffer: Arc<Mutex<(usize, Vec<u8>)>> = Arc::new(Mutex::new((0, vec![])));
 
@@ -49,8 +48,6 @@ impl AsyncMethodHandler for TextureHandler {
 
                 let mut index = 0;
                 let pixel_buffer = self.pixel_buffer.clone();
-                let recording = self.recording.clone();
-                let channel_handler = self.channel_handler.clone();
                 while let Ok(buf) = receiver.recv() {
                     let render_buffer = render_buffer.clone();
                     let render_buffer2 = render_buffer.clone();
@@ -63,20 +60,6 @@ impl AsyncMethodHandler for TextureHandler {
 
                     let decoded = render.1.to_owned();
 
-                    if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        encoding_sender
-                            .try_send(decoded.clone())
-                            .unwrap_or_else(|e| {
-                                debug!("encoding channel sending failed: {:?}", e);
-                                false
-                            });
-                    } else {
-                        if encoding_sender.is_closed() {
-                            let mut channel_handler = channel_handler.lock().unwrap();
-                            channel_handler.reset_encoding();
-                            encoding_sender = channel_handler.encoding.0.clone();
-                        }
-                    }
 
                     let mut pixel_buffer = pixel_buffer.lock().unwrap();
                     *pixel_buffer = decoded;

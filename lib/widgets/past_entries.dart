@@ -6,12 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
-import 'package:video_diary/services/db.dart';
 import 'package:video_diary/widgets/key_listener.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
-import '../domain/result.dart';
 import '../services/event_bus.dart';
 import '../services/native.dart';
 
@@ -24,7 +21,8 @@ class PastEntries extends StatefulWidget {
 class PastEntriesState extends State<PastEntries> {
   final selectedIndexSubject = BehaviorSubject<int>.seeded(0);
 
-  Color backgroundColor = customBlack;
+  // Color backgroundColor = customBlack;
+  Color backgroundColor = customOcean;
   Color textColor = Colors.white;
   late StreamSubscription<KeyEventPair> _eventSubscription;
   final focusNode = FocusNode();
@@ -124,7 +122,7 @@ class PastEntriesState extends State<PastEntries> {
             color: backgroundColor.withOpacity(0.2),
           ),
           constraints: const BoxConstraints(
-            minHeight: 550,
+            minHeight: 580,
           ),
           child: Padding(
               padding: const EdgeInsets.only(bottom: 16, top: 16),

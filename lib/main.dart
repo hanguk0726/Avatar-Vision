@@ -3,12 +3,10 @@ import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/services/db.dart';
-import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/tools/custom_scroll_behavior.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'domain/event.dart';
 import 'services/setting.dart';
 
 void main() async {
@@ -31,10 +29,10 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Video Diary',
-        scrollBehavior: CustomScrollBehavior(),
-        home: const VideoPage(),
+      debugShowCheckedModeBanner: false,
+      title: 'Video Diary',
+      scrollBehavior: CustomScrollBehavior(),
+      home: const VideoPage(),
     );
   }
 }

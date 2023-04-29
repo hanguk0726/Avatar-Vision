@@ -64,15 +64,15 @@ impl RecordingInfo {
     }
 
     pub fn start(&mut self) {
-        self.started = std::time::Instant::now();
         self.recording
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+        self.started = std::time::Instant::now();
     }
 
     pub fn stop(&mut self) {
-        self.time_elapsed = self.started.elapsed().as_secs_f64();
         self.recording
-            .store(false, std::sync::atomic::Ordering::Relaxed);
+        .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.time_elapsed = self.started.elapsed().as_secs_f64();
     }
 
     pub fn set_writing_state(&mut self, state: WritingState) {
@@ -90,6 +90,8 @@ impl RecordingInfo {
         let frame_rate = frames as f64 / self.time_elapsed;
         frame_rate as u32
     }
+
+    
 }
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {

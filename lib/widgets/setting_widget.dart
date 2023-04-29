@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_diary/tools/time.dart';
+import 'package:video_diary/widgets/hover_button.dart';
 import 'package:video_diary/widgets/tabItem.dart';
 import 'package:video_diary/widgets/waveform.dart';
 import 'package:window_manager/window_manager.dart';
@@ -11,6 +13,7 @@ import '../domain/assets.dart';
 import '../services/setting.dart';
 import '../services/native.dart';
 import '../tools/compare.dart';
+import 'button.dart';
 import 'dropdown.dart';
 
 Widget settings(BuildContext context) {
@@ -107,13 +110,27 @@ Widget settings(BuildContext context) {
                                 const Icon(Icons.do_not_disturb, color: color),
                             textColor: color),
                       spacer,
+                      dropdown(
+                          value: formatDuration(Setting().timeZoneOffset),
+                          items: timeZoneOffsetList,
+                          onChanged: (offset) {
+                            Setting().timeZoneOffset =
+                                parseTimeZoneOffset(offset);
+                            Setting().save();
+                          },
+                          icon: const Icon(Icons.access_time, color: color),
+                          textOnEmpty: "Error",
+                          iconOnEmpty:
+                              const Icon(Icons.do_not_disturb, color: color),
+                          textColor: color),
+                      spacer,
                       Tooltip(
                           message:
                               'Depending on the cpu specification, This may increase encoding time',
                           preferBelow: true,
                           child: Padding(
                             padding:
-                                const EdgeInsets.only(left: 16.0, right: 16.0),
+                                const EdgeInsets.only(left: 16.0, right: 8.0),
                             child: Row(
                               children: [
                                 Text("Render while recording",
@@ -133,50 +150,37 @@ Widget settings(BuildContext context) {
                             ),
                           )),
                       spacer,
-                      Tooltip(
-                        message:
-                            'This is enabled automatically when window size is fit to screen',
-                        preferBelow: true,
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.only(left: 16.0, right: 16.0),
-                          child: Row(
-                            children: [
-                              Text("Fit to screen",
-                                  style: TextStyle(
-                                      color: color,
-                                      fontSize: 16,
-                                      fontFamily: mainFont)),
-                              const Spacer(),
-                              FutureBuilder<Size>(
-                                future: windowManager.getSize(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    final appWindowSize = snapshot.data!;
-                                    final fitToScreen = isWithinTolerance(
-                                        Size(screenWidth, screenHeight),
-                                        appWindowSize,
-                                        10);
-                                    return Switch(
-                                      value: fitToScreen,
-                                      activeColor: customSky,
-                                      onChanged: (value) {
-                                        if (value) {
-                                          windowManager.setSize(
-                                              Size(screenWidth, screenHeight));
-                                        }
-                                      },
-                                    );
-                                  } else {
-                                    return CircularProgressIndicator(
-                                        color: customSky);
-                                  }
-                                },
-                              )
-                            ],
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0, right: 8.0),
+                        child: Row(
+                          children: [
+                            Text("Fit to screen",
+                                style: TextStyle(
+                                    color: color,
+                                    fontSize: 16,
+                                    fontFamily: mainFont)),
+                            const Spacer(),
+                            Padding(
+                                padding: const EdgeInsets.only(right: 12.0),
+                                child: InkWell(
+                                  onTap: () {
+                                    windowManager.setSize(
+                                        Size(screenWidth, screenHeight));
+                                  },
+                                  child: const Text(
+                                    "Apply",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ))
+                          ],
                         ),
                       ),
+                      const SizedBox(
+                        height: 32,
+                      )
                     ],
                   )))));
 }

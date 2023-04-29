@@ -140,6 +140,7 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let started = std::time::Instant::now();
                 let mut count = 0;
+                let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
 
                 let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 }; //TODO spilit this into a mode so that user can choose
                 let (queue, iter) = new();
@@ -153,10 +154,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
-                self.mark_recording_state_on_ui(call.isolate).await;
-
-                let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
-
+                self.mark_recording_state_on_ui(call.isolate).await;  
                 while let Ok(rgba) = encoding_receiver.recv().await {
                     let queue = queue.clone();
                     pool.spawn(async move {

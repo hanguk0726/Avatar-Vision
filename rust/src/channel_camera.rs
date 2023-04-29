@@ -50,6 +50,7 @@ impl AsyncMethodHandler for CameraHandler {
                     let camera_info = &mut camera.current_camera_info.lock().unwrap();
                     camera_index.replace(camera_info.as_ref().unwrap().index().clone());
                 }
+
                 if camera_index.is_none() {
                     return PlatformResult::Err(PlatformError {
                         code: "method_failed".into(),
@@ -57,11 +58,13 @@ impl AsyncMethodHandler for CameraHandler {
                         detail: Value::Null,
                     });
                 }
+
                 camera.infate_camera(camera_index.unwrap(), resolution);
                 camera.open_camera_stream();
 
                 return PlatformResult::Ok("ok".into());
             }
+
             "stop_camera_stream" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
