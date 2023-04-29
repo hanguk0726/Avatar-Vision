@@ -65,13 +65,14 @@ impl RecordingInfo {
 
     pub fn start(&mut self) {
         self.recording
-        .store(true, std::sync::atomic::Ordering::Relaxed);
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         self.started = std::time::Instant::now();
+        self.time_elapsed = 0.0;
     }
 
     pub fn stop(&mut self) {
         self.recording
-        .store(false, std::sync::atomic::Ordering::Relaxed);
+            .store(false, std::sync::atomic::Ordering::Relaxed);
         self.time_elapsed = self.started.elapsed().as_secs_f64();
     }
 
@@ -88,10 +89,8 @@ impl RecordingInfo {
         debug!("frames: {:?}", frames);
         debug!("time_elapsed: {:?}", self.time_elapsed);
         let frame_rate = frames as f64 / self.time_elapsed;
-        frame_rate as u32
+        frame_rate.round() as u32
     }
-
-    
 }
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
@@ -100,7 +99,8 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 }
 
 pub fn encode_to_h264(
-    mut yuv_iter: OrdQueueIter<Vec<u8>>,
+    // mut yuv_iter: OrdQueueIter<Vec<u8>>,
+    mut yuv_iter: Vec<Vec<u8>>,
     len: usize,
     width: usize,
     height: usize,
@@ -109,23 +109,23 @@ pub fn encode_to_h264(
     let mut buf_h264 = Vec::new();
     let mut encoder = encoder(width as u32, height as u32).unwrap();
     debug!("encoding to h264...");
-    for _ in 0..len {
+    for el in yuv_iter {
         // let time_each = std::time::Instant::now();
-        let yuv = YUVBuf {
-            yuv: yuv_iter.next().unwrap(),
-            width,
-            height,
-        };
-        let bitstream = encoder.encode(&yuv).unwrap();
+            let yuv = YUVBuf {
+                yuv: el,
+                width,
+                height,
+            };
+            let bitstream = encoder.encode(&yuv).unwrap();
 
-        for l in 0..bitstream.num_layers() {
-            let layer = bitstream.layer(l).unwrap();
-            for n in 0..layer.nal_count() {
-                let nal = layer.nal_unit(n).unwrap();
-                buf_h264.extend_from_slice(nal)
+            for l in 0..bitstream.num_layers() {
+                let layer = bitstream.layer(l).unwrap();
+                for n in 0..layer.nal_count() {
+                    let nal = layer.nal_unit(n).unwrap();
+                    buf_h264.extend_from_slice(nal)
+                }
             }
-        }
-        // debug!("encoded to h264: {:?}", time_each.elapsed());
+            // debug!("encoded to h264: {:?}", time_each.elapsed());
     }
 
     debug!("encoded to h264: {:?}", started.elapsed());
@@ -142,7 +142,7 @@ pub fn to_mp4<P: AsRef<Path>>(
 ) -> Result<(), std::io::Error> {
     let mut video_buffer = Cursor::new(Vec::new());
     let mut mp4muxer = Mp4Muxer::new(&mut video_buffer);
-    mp4muxer.init_video(width as i32, height as i32, false, "diary",);
+    mp4muxer.init_video(width as i32, height as i32, false, "diary");
     mp4muxer.init_audio(
         audio.bit_rate.try_into().unwrap(),
         audio.sample_rate,
@@ -157,7 +157,7 @@ pub fn to_mp4<P: AsRef<Path>>(
         &audio.bit_rate
     );
     debug!("frame_rate: {}", frame_rate);
-    mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
+    mp4muxer.write_video_with_audio(buf_h264, frame_rate    , &audio_data[..]);
 
     mp4muxer.close();
 

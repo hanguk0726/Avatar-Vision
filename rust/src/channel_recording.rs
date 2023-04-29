@@ -1,8 +1,10 @@
 use std::{
     collections::HashMap,
+    fs,
     mem::ManuallyDrop,
-    sync::{Arc, Mutex},
-    thread, fs,
+    ops::Not,
+    sync::{atomic::AtomicUsize, Arc, Mutex},
+    thread,
 };
 
 use async_trait::async_trait;
@@ -27,6 +29,8 @@ pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
+    pub frame_count: Arc<AtomicUsize>,
+    pub encoding: Arc<Mutex<Vec<u8>>>,
     invoker: Late<AsyncMethodInvoker>,
 }
 
@@ -35,6 +39,8 @@ impl RecordingHandler {
         audio: Arc<Mutex<Pcm>>,
         recording_info: Arc<Mutex<RecordingInfo>>,
         channel_handler: Arc<Mutex<ChannelHandler>>,
+        frame_count: Arc<AtomicUsize>,
+        encoding: Arc<Mutex<Vec<u8>>>,
     ) -> Self {
         Self {
             encoded: Arc::new(Mutex::new(Vec::new())),
@@ -42,11 +48,14 @@ impl RecordingHandler {
             recording_info,
             channel_handler,
             invoker: Late::new(),
+            frame_count,
+            encoding,
         }
     }
 
-    fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize, width: usize, height: usize) {
-        let processed = encode_to_h264(yuv_iter, len , width, height);
+    // fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize, width: usize, height: usize) {
+    fn encode(&self, yuv_iter: Vec<Vec<u8>>, len: usize, width: usize, height: usize) {
+        let processed = encode_to_h264(yuv_iter, len, width, height);
 
         let encoded = Arc::clone(&self.encoded);
         let mut encoded = encoded.lock().unwrap();
@@ -87,7 +96,13 @@ impl RecordingHandler {
         }
     }
 
-    fn save(&self, frames: usize, file_path: &str, width: u32, height: u32) -> Result<(), std::io::Error> {
+    fn save(
+        &self,
+        frames: usize,
+        file_path: &str,
+        width: u32,
+        height: u32,
+    ) -> Result<(), std::io::Error> {
         debug!("*********** saving... ***********");
 
         let encoded = Arc::clone(&self.encoded);
@@ -138,40 +153,117 @@ impl AsyncMethodHandler for RecordingHandler {
                 update_writing_state(WritingState::Collecting).await;
                 self.audio.lock().unwrap().data.lock().unwrap().clear();
 
-                let started = std::time::Instant::now();
-                let mut count = 0;
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
 
                 let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 }; //TODO spilit this into a mode so that user can choose
-                let (queue, iter) = new();
-                let queue = Arc::new(queue);
-                let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(num_worker)
-                    .build()
-                    .unwrap();
+                                                                            // let (queue, iter) = new();
+                                                                            // let queue = Arc::new(queue);
+                                                                            // let pool = tokio::runtime::Builder::new_multi_thread()
+                                                                            //     .worker_threads(num_worker)
+                                                                            //     .build()
+                                                                            //     .unwrap();
+                let started = std::time::Instant::now();
 
                 {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
-                self.mark_recording_state_on_ui(call.isolate).await;  
-                while let Ok(rgba) = encoding_receiver.recv().await {
-                    let queue = queue.clone();
-                    pool.spawn(async move {
-                        let yuv = rgba_to_yuv(&rgba[..], width, height);
-                        queue.push(count, yuv).unwrap();
-                    });
-                    // debug!("encoded {} frames", count);
-                    count += 1;
-                }
+                self.mark_recording_state_on_ui(call.isolate).await;
+                // while let Ok(rgba) = encoding_receiver.recv().await {
+                //     let queue = queue.clone();
+                //     pool.spawn(async move {
 
+                //         let yuv = rgba_to_yuv(&rgba[..], width, height);
+                //         queue.push(count, yuv).unwrap();
+                //     });
+                //     // debug!("encoded {} frames", count);
+                //     count += 1;
+                // }
+                let mut count = Arc::new(Mutex::new(0usize));
+                let mut empty = Arc::new(Mutex::new(vec![]));
+                let count_thread = Arc::clone(&count);
+                let _recording_info = self.recording_info.clone();
+                let _channel_handler = self.channel_handler.clone();
+                let _encoding = self.encoding.clone();
+                let _empty = Arc::clone(&empty);
+                thread::spawn(move || {
+                    let mut prev_time = std::time::Instant::now();
+                    let desired_frame_time = std::time::Duration::from_micros(41666);
+
+                    loop {
+                        let start_time = std::time::Instant::now();
+                        let time_since_prev_frame = start_time.duration_since(prev_time);
+
+                        // Determine the number of missed frames
+                        let missed_frames = (time_since_prev_frame.as_micros()
+                            / desired_frame_time.as_micros())
+                            as u32;
+                        let mut __e = _empty.lock().unwrap();
+                        {
+                            let rgba = _encoding.lock().unwrap();
+                            __e.push(rgba.clone());
+                            let mut count = count_thread.lock().unwrap();
+                            *count += 1;
+                        }
+
+                        for _ in 0..missed_frames {
+                            let rgba = _encoding.lock().unwrap();
+                            __e.push(rgba.clone());
+                            let mut count = count_thread.lock().unwrap();
+                            *count += 1;
+                        }
+
+                        // Calculate the amount of time to sleep to maintain a consistent frame rate
+                        let remainder = time_since_prev_frame - desired_frame_time * missed_frames;
+
+                        let time_to_sleep = desired_frame_time - remainder;
+                        std::thread::sleep(time_to_sleep);
+
+                        // Record the current time as the previous frame time for the next iteration
+                        prev_time = start_time;
+                        let count = count_thread.lock().unwrap();
+                        debug!("B encoded {:?} frames", count);
+                        let recording_info = _recording_info.lock().unwrap();
+                        if recording_info
+                            .recording
+                            .load(std::sync::atomic::Ordering::Relaxed)
+                            .not()
+                        {
+                            break;
+                        }
+                        debug!(
+                            "consumed time: {:?}, {:?}",
+                            std::time::Instant::now().duration_since(started),
+                            std::time::Instant::now().duration_since(start_time),
+                        );
+                    }
+                });
+                while let Ok(_) = encoding_receiver.recv().await {}
                 update_writing_state(WritingState::Encoding).await;
 
                 #[cfg(debug_assertions)]
                 {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                self.encode(iter, count, width, height);
+                let mut count = Arc::try_unwrap(count).unwrap().into_inner().unwrap();
+                // debug!("ABC");
+                // debug!("ABC2");
+                // let iter = self.channel_handler.lock().unwrap().queue.1.clone();
+                // debug!("ABC3");
+                // let mut iter = iter.lock().unwrap();
+                // debug!("ABC4");
+
+                // while let Some(rgba) = iter.next() {
+                //     debug!("encoded {} frames", count);
+                //     let yuv = rgba_to_yuv(&rgba[..], width, height);
+                //     empty.push(yuv);
+                // }
+                let empty = Arc::try_unwrap(empty).unwrap().into_inner().unwrap();
+                let converted = empty
+                    .into_iter()
+                    .map(|rgba| rgba_to_yuv(&rgba[..], width, height))
+                    .collect::<Vec<Vec<u8>>>();
+                self.encode(converted, count, width, height);
 
                 debug!(
                     "encoded {} frames, time elapsed {}",
@@ -196,7 +288,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_writing_state_on_ui(call.isolate).await;
 
-                pool.shutdown_timeout(std::time::Duration::from_secs(1));
+                // pool.shutdown_timeout(std::time::Duration::from_secs(1));
 
                 info!("encoding finished");
                 Ok("ok".into())

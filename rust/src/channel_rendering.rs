@@ -63,7 +63,6 @@ impl AsyncMethodHandler for RenderingHandler {
                     thread::current().id()
                 );
 
-
                 self.rendering
                     .store(true, std::sync::atomic::Ordering::Relaxed);
                 self.mark_rendering_state_on_ui(call.isolate).await;
@@ -74,8 +73,8 @@ impl AsyncMethodHandler for RenderingHandler {
                 thread::spawn(move || {
                     // avoid blocking the method channel
                     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
-                        // 60fps = 16.666ms  
-                        thread::sleep(std::time::Duration::from_micros(16666));
+                        // 24fps = 41.666ms
+                        thread::sleep(std::time::Duration::from_micros(41666));
                         texture_provider.mark_frame_available();
                     }
                 });

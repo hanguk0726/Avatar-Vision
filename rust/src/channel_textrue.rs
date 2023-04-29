@@ -19,6 +19,7 @@ pub struct TextureHandler {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub recording: Arc<AtomicBool>,
+    pub encoding : Arc<Mutex<Vec<u8>>>,
 }
 
 #[async_trait(?Send)]
@@ -37,7 +38,7 @@ impl AsyncMethodHandler for TextureHandler {
                 let width = resolution[0].parse::<u32>().unwrap();
                 let height = resolution[1].parse::<u32>().unwrap();
 
-                let render_buffer: Arc<Mutex<(usize, Vec<u8>)>> = Arc::new(Mutex::new((0, vec![])));
+                let render_buffer: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
@@ -50,19 +51,12 @@ impl AsyncMethodHandler for TextureHandler {
                 let pixel_buffer = self.pixel_buffer.clone();
                 while let Ok(buf) = receiver.recv() {
                     let render_buffer = render_buffer.clone();
-                    let render_buffer2 = render_buffer.clone();
+                    let pixel_buffer = pixel_buffer.clone();
+                    let encoding = self.encoding.clone();
                     index += 1;
                     pool.spawn(async move {
-                        decode(index, buf, render_buffer, width, height);
+                        decode(index, buf, render_buffer ,pixel_buffer, encoding,width, height);
                     });
-
-                    let render = render_buffer2.lock().unwrap();
-
-                    let decoded = render.1.to_owned();
-
-
-                    let mut pixel_buffer = pixel_buffer.lock().unwrap();
-                    *pixel_buffer = decoded;
                 }
                 Ok("ok".into())
             }
@@ -90,7 +84,9 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
 fn decode(
     index: usize,
     buf: Buffer,
-    render_buffer: Arc<Mutex<(usize, Vec<u8>)>>,
+    render_buffer: Arc<Mutex<usize>>,
+    pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    encoding: Arc<Mutex<Vec<u8>>>,
     width: u32,
     height: u32,
 ) {
@@ -103,7 +99,13 @@ fn decode(
     )
     .unwrap();
     let mut render_buffer = render_buffer.lock().unwrap();
-    if index > render_buffer.0 {
-        *render_buffer = (index, decoded);
+    if index > render_buffer.to_owned()   {
+        let mut pixel_buffer = pixel_buffer.lock().unwrap();
+        let mut encoding = encoding.lock().unwrap();
+        *encoding = decoded.clone();
+        *pixel_buffer = decoded;
+        *render_buffer = index;
+    } else {
+        debug!("drop frame");
     }
 }
