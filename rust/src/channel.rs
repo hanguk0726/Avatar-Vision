@@ -8,11 +8,6 @@ use crate::tools::{self, ordqueue::new};
 pub struct ChannelHandler {
     pub rendering: (Sender<Buffer>, Receiver<Buffer>),
     pub encoding: (AsyncSender<Vec<u8>>, AsyncReceiver<Vec<u8>>),
-    pub test: Arc<Mutex<Vec<u8>>>,
-    pub queue: (
-        Arc<tools::ordqueue::OrdQueue<Vec<u8>>>,
-        Arc<Mutex<tools::ordqueue::OrdQueueIter<Vec<u8>>>>,
-    ),
 }
 
 impl ChannelHandler {
@@ -20,12 +15,9 @@ impl ChannelHandler {
         let (rendering_sender, rendering_receiver): (Sender<Buffer>, Receiver<Buffer>) =
             kanal::bounded(1);
         let (encoding_sender, encoding_receiver) = kanal::bounded_async(1);
-        let (queue, queue_iter) = new();
         Self {
             rendering: (rendering_sender, rendering_receiver),
             encoding: (encoding_sender, encoding_receiver),
-            test: Arc::new(Mutex::new(Vec::new())),
-            queue: (Arc::new(queue), Arc::new(Mutex::new(queue_iter))),
         }
     }
 

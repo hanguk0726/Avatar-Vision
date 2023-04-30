@@ -84,13 +84,6 @@ impl RecordingInfo {
         self.capture_white_sound
             .store(capture_white_sound, std::sync::atomic::Ordering::Relaxed);
     }
-
-    pub fn frame_rate(&self, frames: usize) -> u32 {
-        debug!("frames: {:?}", frames);
-        debug!("time_elapsed: {:?}", self.time_elapsed);
-        let frame_rate = frames as f64 / self.time_elapsed;
-        frame_rate.round() as u32
-    }
 }
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
@@ -99,18 +92,22 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 }
 
 pub fn encode_to_h264(
-    // mut yuv_iter: OrdQueueIter<Vec<u8>>,
-    mut yuv_iter: Vec<Vec<u8>>,
+    mut yuv_iter: OrdQueueIter<Vec<u8>>,
     len: usize,
     width: usize,
     height: usize,
 ) -> Vec<u8> {
-    let started = std::time::Instant::now();
     let mut buf_h264 = Vec::new();
     let mut encoder = encoder(width as u32, height as u32).unwrap();
     debug!("encoding to h264...");
-    for el in yuv_iter {
-        // let time_each = std::time::Instant::now();
+    let started = std::time::Instant::now();
+    let mut timer = std::time::Instant::now();
+    for _ in 0..len {
+        if timer.elapsed().as_secs() > 3 {
+            debug!("encoding...");
+            timer = std::time::Instant::now();
+        }
+        if let Some(el) = yuv_iter.next() {
             let yuv = YUVBuf {
                 yuv: el,
                 width,
@@ -125,10 +122,10 @@ pub fn encode_to_h264(
                     buf_h264.extend_from_slice(nal)
                 }
             }
-            // debug!("encoded to h264: {:?}", time_each.elapsed());
+        }
     }
 
-    debug!("encoded to h264: {:?}", started.elapsed());
+    debug!("encoding h264 done: {:?}", started.elapsed());
     buf_h264
 }
 
@@ -157,7 +154,7 @@ pub fn to_mp4<P: AsRef<Path>>(
         &audio.bit_rate
     );
     debug!("frame_rate: {}", frame_rate);
-    mp4muxer.write_video_with_audio(buf_h264, frame_rate    , &audio_data[..]);
+    mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
 
     mp4muxer.close();
 

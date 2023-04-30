@@ -96,7 +96,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     } else {
       debugPrint('This function is only implemented for Windows');
     }
-
   }
 
   Future<void> init() async {
@@ -120,7 +119,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void setChannelHandlers() {
-    recordingChannel.setMethodCallHandler((call) async {
+    recordingChannel.setMethodCallHandler((call) {
       switch (call.method) {
         case 'mark_writing_state':
           writingState = WritingState.fromName(call.arguments);
@@ -142,7 +141,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       }
     });
 
-    renderingChannel.setMethodCallHandler((call) async {
+    renderingChannel.setMethodCallHandler((call) {
       switch (call.method) {
         case 'mark_rendering_state':
           rendering = call.arguments;
@@ -190,7 +189,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void startRecording() async {
-    final res = await recordingChannel.invokeMethod('start_recording', {
+    _startEncoding();
+    final res = await recordingChannel.invokeMethod('start_recording', {});
+    _showResult(res);
+  }
+
+  void _startEncoding() async {
+    final res = await recordingChannel.invokeMethod('start_encording', {
       'file_path': "$filePathPrefix\\$fileName",
       'resolution': currentResolution,
     });

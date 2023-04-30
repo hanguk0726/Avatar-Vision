@@ -16,10 +16,10 @@ use nokhwa::Buffer;
 
 use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb, recording};
 pub struct TextureHandler {
-    pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    pub render_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub recording: Arc<AtomicBool>,
-    pub encoding : Arc<Mutex<Vec<u8>>>,
+    pub encoding_buffer : Arc<Mutex<Vec<u8>>>,
 }
 
 #[async_trait(?Send)]
@@ -38,7 +38,7 @@ impl AsyncMethodHandler for TextureHandler {
                 let width = resolution[0].parse::<u32>().unwrap();
                 let height = resolution[1].parse::<u32>().unwrap();
 
-                let render_buffer: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+                let render_buffer_index: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
@@ -48,11 +48,11 @@ impl AsyncMethodHandler for TextureHandler {
                     .unwrap();
 
                 let mut index = 0;
-                let pixel_buffer = self.pixel_buffer.clone();
+                let pixel_buffer = self.render_buffer.clone();
                 while let Ok(buf) = receiver.recv() {
-                    let render_buffer = render_buffer.clone();
+                    let render_buffer = render_buffer_index.clone();
                     let pixel_buffer = pixel_buffer.clone();
-                    let encoding = self.encoding.clone();
+                    let encoding = self.encoding_buffer.clone();
                     index += 1;
                     pool.spawn(async move {
                         decode(index, buf, render_buffer ,pixel_buffer, encoding,width, height);
@@ -98,13 +98,13 @@ fn decode(
         height,
     )
     .unwrap();
-    let mut render_buffer = render_buffer.lock().unwrap();
-    if index > render_buffer.to_owned()   {
+    let mut render_buffer_index = render_buffer.lock().unwrap();
+    if index > render_buffer_index.to_owned()   {
         let mut pixel_buffer = pixel_buffer.lock().unwrap();
-        let mut encoding = encoding.lock().unwrap();
-        *encoding = decoded.clone();
+        let mut encoding_buffer = encoding.lock().unwrap();
+        *encoding_buffer = decoded.clone();
         *pixel_buffer = decoded;
-        *render_buffer = index;
+        *render_buffer_index = index;
     } else {
         debug!("drop frame");
     }

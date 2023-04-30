@@ -45,5 +45,4 @@ app.*.map.json
 
 /rust/target/
 
-/data/
-/data/**/*
+data/

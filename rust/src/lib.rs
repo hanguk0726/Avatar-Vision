@@ -53,46 +53,32 @@ pub extern "C" fn rust_init_message_channel_context(data: *mut c_void) -> Functi
 
 fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     assert!(RunLoop::is_main_thread());
-    
-    let recording = Arc::new(AtomicBool::new(false));
-    let frame_count = Arc::new(AtomicUsize::new(0));
-    let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
+
     let resolution_settings = Arc::new(ResolutionSettings::new());
-    let provider = Arc::new(PixelBufferSource::new(
-        resolution_settings.clone(),
-        channel_handler.clone(),
-        recording.clone(),
-        frame_count.clone()
-    ));
-    let pixel_buffer: Arc<Mutex<Vec<u8>>> = provider.pixel_buffer.clone();
+    let provider = Arc::new(PixelBufferSource::new(resolution_settings.clone()));
+    let render_buffer: Arc<Mutex<Vec<u8>>> = provider.pixel_buffer.clone();
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
     init_channels(
-        pixel_buffer.clone(),
+        render_buffer.clone(),
         textrue.into_sendable_texture(),
         resolution_settings,
-        channel_handler,
-        recording,
-        frame_count
     );
 
     texture_id
 }
 
 fn init_channels(
-    pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    render_buffer: Arc<Mutex<Vec<u8>>>,
     texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     resolution_settings: Arc<ResolutionSettings>,
-    channel_handler: Arc<Mutex<ChannelHandler>>,
-    recording: Arc<AtomicBool>,
-    frame_count: Arc<AtomicUsize>,
 ) {
-    // let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
-    // let recording = Arc::new(AtomicBool::new(false));
+    let channel_handler = Arc::new(Mutex::new(ChannelHandler::new()));
+    let recording = Arc::new(AtomicBool::new(false));
     let rendering = Arc::new(AtomicBool::new(false));
     let capture_white_sound = Arc::new(AtomicBool::new(false));
-let encoding  = Arc::new(Mutex::new(Vec::new()));
+    let encoding_buffer = Arc::new(Mutex::new(Vec::new()));
     let recording_info = Arc::new(Mutex::new(RecordingInfo::new(
         recording.clone(),
         capture_white_sound.clone(),
@@ -105,10 +91,10 @@ let encoding  = Arc::new(Mutex::new(Vec::new()));
     }));
 
     channel_textrue::init(TextureHandler {
-        pixel_buffer,
+        render_buffer,
         channel_handler: channel_handler.clone(),
         recording: recording.clone(),
-        encoding: encoding.clone(),
+        encoding_buffer: encoding_buffer.clone(),
     });
 
     channel_camera::init(CameraHandler::new(
@@ -123,8 +109,7 @@ let encoding  = Arc::new(Mutex::new(Vec::new()));
         audio.clone(),
         recording_info.clone(),
         channel_handler,
-        frame_count,
-        encoding
+        encoding_buffer,
     ));
 
     channel_rendering::init(RenderingHandler::new(texture, rendering));
