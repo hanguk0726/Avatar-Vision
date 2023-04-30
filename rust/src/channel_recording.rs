@@ -127,8 +127,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
                 }
                 let mut frame_count = 0;
-                let desired_frame_time = std::time::Duration::from_nanos(41_666_666);
-                let mut accumulator = std::time::Duration::from_nanos(0);
+                let desired_frame_time = std::time::Duration::from_micros(41666);
+                let mut accumulator = std::time::Duration::from_micros(0);
                 let started = std::time::Instant::now();
                 let mut previous_time = started;
 
@@ -164,13 +164,18 @@ impl AsyncMethodHandler for RecordingHandler {
                         if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
                             break 'outer_loop;
                         }
-                        let time_to_sleep = desired_frame_time - accumulator;
-                        accumulator = std::time::Duration::from_nanos(0);
-                        std::thread::sleep(time_to_sleep);
                         debug!(
-                            "accumulator: {:?}, time_to_sleep: {:?}, time elapsed: {:?}",
-                            accumulator, time_to_sleep, elapsed
+                            "accumulator: {:?}, time elapsed: {:?}",
+                            accumulator, elapsed
                         );
+
+                        let time_to_sleep = desired_frame_time;
+                        std::thread::sleep(time_to_sleep);
+                        // debug!(
+                        //     "consumed time: {:?}, frames encoded: {}",
+                        //     time_to_sleep,
+                        //     frame_count
+                        // );
                     }
                 });
 
