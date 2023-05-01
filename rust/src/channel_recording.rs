@@ -5,6 +5,7 @@ use std::{
     ops::Not,
     sync::{atomic::AtomicUsize, Arc, Mutex},
     thread,
+    time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
@@ -127,55 +128,57 @@ impl AsyncMethodHandler for RecordingHandler {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
                 }
                 let mut frame_count = 0;
-                let desired_frame_time = std::time::Duration::from_micros(41666);
-                let mut accumulator = std::time::Duration::from_micros(0);
-                let started = std::time::Instant::now();
-                let mut previous_time = started;
+                let recording_start_time = std::time::Instant::now();
 
                 // capturing textures should be done in a separate thread
                 // to catch up the delay & maintain the frame rate
                 // Compensate for the delay rather than trying to control all of its effects
-                thread::spawn(move || {
-                    'outer_loop: loop {
-                        let start_time = std::time::Instant::now();
-                        accumulator += start_time.duration_since(previous_time);
+                // let fps: f64 = 24.0;
+                // let frame_interval = Duration::from_secs_f64(1.0 / fps);
+                let frame_interval = Duration::from_nanos(41_666_667);
+                let mut adjusted_frame_interval = Duration::from_nanos(41_666_667);
+                // let mut accu_count = 0;
+                let mut accumulated = Duration::from_nanos(0);
+                let mut accumulated_minus = Duration::from_nanos(0);
+                let adjustment = Duration::from_nanos(100_000);
+                let mut last_time = Instant::now();
+                thread::spawn(move || loop {
+                    // thread::sleep(frame_interval);
+                    let start_time = Instant::now();
+                    let elapsed = start_time.duration_since(last_time);
+                    last_time = start_time;
+                    if elapsed > frame_interval {
+                        accumulated += elapsed - frame_interval;
+                        // accu_count += 1;
 
-                        previous_time = start_time;
+                        adjusted_frame_interval -= adjustment;
+                    } else {
+                        accumulated_minus += frame_interval - elapsed;
+                        adjusted_frame_interval += adjustment;
+                    }
+                    spin_sleep::sleep(adjusted_frame_interval);
 
-                        // If the accumulator has accumulated enough time for a frame, process it
-                        while accumulator >= desired_frame_time {
-                            let rgba = encoding_buffer.lock().unwrap();
-                            let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
-                                debug!("encoding channel sending failed: {:?}", e);
-                                false
-                            });
-                            if sent {
-                                frame_count += 1;
-                                accumulator -= desired_frame_time;
-                            } else {
-                                if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
-                                    break 'outer_loop;
-                                }
-                            }
-                        }
-
-                        let elapsed = start_time.duration_since(started);
-
-                        if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
-                            break 'outer_loop;
-                        }
+                    let rgba = encoding_buffer.lock().unwrap();
+                    let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
+                        debug!("encoding channel sending failed: {:?}", e);
+                        false
+                    });
+                    if sent {
+                        frame_count += 1;
                         debug!(
-                            "accumulator: {:?}, time elapsed: {:?}",
-                            accumulator, elapsed
+                            "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                            frame_count, elapsed, adjusted_frame_interval
                         );
-
-                        let time_to_sleep = desired_frame_time;
-                        std::thread::sleep(time_to_sleep);
-                        // debug!(
-                        //     "consumed time: {:?}, frames encoded: {}",
-                        //     time_to_sleep,
-                        //     frame_count
-                        // );
+                    }
+                    debug!(
+                        "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}",
+                        accumulated,
+                        accumulated_minus,
+                        accumulated.saturating_sub(accumulated_minus),
+                        std::time::Instant::now().duration_since(recording_start_time)
+                    );
+                    if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
+                        break;
                     }
                 });
 

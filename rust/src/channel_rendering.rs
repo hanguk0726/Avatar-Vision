@@ -1,7 +1,7 @@
 use std::{
     mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
-    thread,
+    thread, time::Duration,
 };
 
 use async_trait::async_trait;
@@ -74,7 +74,7 @@ impl AsyncMethodHandler for RenderingHandler {
                     // avoid blocking the method channel
                     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
                         // 24fps = 41.666ms
-                        thread::sleep(std::time::Duration::from_micros(41666));
+                        spin_sleep::sleep(Duration::from_nanos(41_666_667));
                         texture_provider.mark_frame_available();
                     }
                 });
