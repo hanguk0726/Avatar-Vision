@@ -74,7 +74,7 @@ impl AsyncMethodHandler for RenderingHandler {
                     // avoid blocking the method channel
                     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
                         // 24fps = 41.666ms
-                        spin_sleep::sleep(Duration::from_nanos(41_666_667));
+                        thread::sleep(Duration::from_nanos(41_666_667));
                         texture_provider.mark_frame_available();
                     }
                 });
