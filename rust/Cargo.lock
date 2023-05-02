@@ -1751,6 +1751,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "openh264",
+ "rayon",
  "simple_logger",
  "spin_sleep",
  "thiserror",

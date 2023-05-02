@@ -90,9 +90,6 @@ class _VideoPageState extends State<VideoPage> {
     final height = native.currentResolutionHeight;
     final recordingHealthCheck = native.recordingHealthCheck;
 
-    bool noWritingStateIndicator = writingState == WritingState.idle ||
-        (writingState == WritingState.collecting && rendering);
-
     List<CustomError> errors = [
       CustomError(
         occurred: !cameraHealthCheck,
@@ -127,8 +124,7 @@ class _VideoPageState extends State<VideoPage> {
           writingStateMessage(
               writingState: writingState,
               recording: recording,
-              renderingWhileEncoding: renderingWhileEncoding,
-              noWritingStateIndicator: noWritingStateIndicator),
+              renderingWhileEncoding: renderingWhileEncoding),
         ]),
       )),
     );
@@ -164,9 +160,8 @@ class _VideoPageState extends State<VideoPage> {
   Widget writingStateMessage(
       {required WritingState writingState,
       required bool recording,
-      required bool renderingWhileEncoding,
-      required bool noWritingStateIndicator}) {
-    if (noWritingStateIndicator || selectedMetadata != null) {
+      required bool renderingWhileEncoding}) {
+    if (writingState != WritingState.saving || selectedMetadata != null) {
       return const SizedBox();
     } else if (renderingWhileEncoding) {
       return Positioned(

@@ -15,6 +15,7 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
+use kanal::{AsyncReceiver, AsyncSender};
 use log::{debug, error, info};
 
 use crate::{
@@ -26,11 +27,14 @@ use crate::{
 };
 
 pub struct RecordingHandler {
-    pub encoded: Arc<Mutex<Vec<u8>>>,
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub encoding_buffer: Arc<Mutex<Vec<u8>>>,
+    uiEvent: (
+        Arc<AsyncSender<(String, String)>>,
+        Arc<AsyncReceiver<(String, String)>>,
+    ),
     invoker: Late<AsyncMethodInvoker>,
 }
 
@@ -41,24 +45,17 @@ impl RecordingHandler {
         channel_handler: Arc<Mutex<ChannelHandler>>,
         encoding_buffer: Arc<Mutex<Vec<u8>>>,
     ) -> Self {
+        let (s, r) = kanal::bounded_async(1);
+        let uiEvent = (Arc::new(s), Arc::new(r));
+
         Self {
-            encoded: Arc::new(Mutex::new(Vec::new())),
             audio,
             recording_info,
             channel_handler,
             encoding_buffer,
+            uiEvent,
             invoker: Late::new(),
         }
-    }
-
-    fn encode(&self, yuv_iter: OrdQueueIter<Vec<u8>>, len: usize, width: usize, height: usize) {
-        let processed = encode_to_h264(yuv_iter, len, width, height);
-
-        let encoded = Arc::clone(&self.encoded);
-        let mut encoded = encoded.lock().unwrap();
-        *encoded = processed;
-
-        debug!("encoded length: {:?}", encoded.len());
     }
 
     fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
@@ -80,21 +77,6 @@ impl RecordingHandler {
 
         self.invoker
             .call_method_sync(target_isolate, "mark_recording_state", recording, |_| {});
-    }
-
-    fn save(&self, file_path: &str, width: u32, height: u32) -> Result<(), std::io::Error> {
-        debug!("*********** saving... ***********");
-
-        let encoded = Arc::clone(&self.encoded);
-        let encoded = encoded.lock().unwrap();
-
-        let audio = Arc::clone(&self.audio);
-        let audio = audio.lock().unwrap();
-        let audio = audio.to_owned();
-
-        to_mp4(&encoded[..], file_path, 24, audio, width, height).unwrap();
-        debug!("*********** saved! ***********");
-        Ok(())
     }
 }
 
@@ -147,7 +129,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         // the main goal is to minimize the value of 'accumulated'.
                         let error = elapsed - frame_interval;
                         accumulated += error;
-                        
+
                         adjusted_frame_interval -= error.clamp(Duration::ZERO, max_adjustment);
 
                         // For a specific frame rate, there is a fixed number of frames that are required.
@@ -212,19 +194,23 @@ impl AsyncMethodHandler for RecordingHandler {
                 );
                 let started = std::time::Instant::now();
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
-                let file_path = map.get("file_path").unwrap().as_str();
+                let file_path = map.get("file_path").unwrap().to_string();
                 debug!("file_path: {:?}", file_path);
                 let resolution = map.get("resolution").unwrap().as_str();
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<usize>().unwrap();
                 let height = resolution[1].parse::<usize>().unwrap();
+                let ui_event_sender = self.uiEvent.0.clone();
+                let update_writing_state =  move |state: WritingState|  {
+                    let sent = ui_event_sender
+                        .try_send(("write_state".to_string(), state.to_str().to_string()))
+                        .unwrap_or_else(|_| false);
+                    if sent {
+                        debug!("uiEvent {} sent", state.to_str());
+                    } else {
+                        error!("uiEvent sending failed");
 
-                let update_writing_state = |state: WritingState| async move {
-                    {
-                        self.recording_info.lock().unwrap().set_writing_state(state);
                     }
-
-                    self.mark_writing_state_on_ui(call.isolate);
                 };
 
                 let mut count = 0;
@@ -232,52 +218,76 @@ impl AsyncMethodHandler for RecordingHandler {
                 if encoding_receiver.is_closed() {
                     self.channel_handler.lock().unwrap().reset_encoding();
                 }
-                let num_worker = if num_cpus::get() >= 16 { 4 } else { 2 }; //TODO spilit this into a mode so that user can choose
+                let num_worker = 2;
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(num_worker)
                     .build()
                     .unwrap();
-                update_writing_state(WritingState::Collecting).await;
+                update_writing_state(WritingState::Collecting);
+                let recording = {
+                    let recording_info = self.recording_info.lock().unwrap();
+                    recording_info.recording.clone()
+                };
+                // update_writing_state(WritingState::Encoding);
 
-                while let Ok(rgba) = encoding_receiver.recv().await {
-                    let queue = queue.clone();
-                    pool.spawn(async move {
-                        let yuv = rgba_to_yuv(&rgba[..], width, height);
-                        queue.push(count, yuv).unwrap();
+                let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
+                let processed2 = processed.clone();
+                let audio = Arc::clone(&self.audio);
+                thread::spawn(move || {
+                    let mut count = 0;
+                    let r = encoding_receiver.to_sync();
+
+                    rayon::scope(|s| {
+                        s.spawn(|_| {
+                            while let Ok(rgba) = r.recv() {
+                                let queue = queue.clone();
+                                pool.spawn(async move {
+                                    let yuv = rgba_to_yuv(&rgba[..], width, height);
+                                    queue.push(count, yuv).unwrap();
+                                });
+                                // debug!("encoded {} frames", count);
+                                count += 1;
+                            }
+                            debug!("terminate receiving frames on recording");
+                        });
+                        s.spawn(|_| {
+                            let mut processed = processed2.lock().unwrap();
+                            encode_to_h264(iter, recording, &mut processed, width, height);
+                            debug!("terminate encoding frames on recording");
+                        });
                     });
-                    // debug!("encoded {} frames", count);
-                    count += 1;
-                }
-                update_writing_state(WritingState::Encoding).await;
-                self.encode(iter, count, width, height);
 
-                debug!(
-                    "encoded {} frames, time elapsed {}",
-                    count,
-                    started.elapsed().as_secs()
-                );
-                update_writing_state(WritingState::Saving).await;
-                #[cfg(debug_assertions)]
-                {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                }
+                    pool.shutdown_timeout(std::time::Duration::from_secs(1));
+                    debug!(
+                        "encoded {} frames, time elapsed {}",
+                        count,
+                        started.elapsed().as_secs()
+                    );
 
-                if let Err(e) = self.save(file_path, width as u32, height as u32) {
-                    error!("Failed to save video {:?}", e);
-                }
+                    debug!("*********** saving... ***********");
 
-                {
-                    self.recording_info
-                        .lock()
-                        .unwrap()
-                        .set_writing_state(WritingState::Idle);
-                }
-                self.mark_writing_state_on_ui(call.isolate);
+                    let audio = audio.lock().unwrap();
+                    let audio = audio.to_owned();
 
-                pool.shutdown_timeout(std::time::Duration::from_secs(1));
-                info!("encording finished");
+                    let processed = processed.lock().unwrap();
+
+                    if let Err(e) = to_mp4(
+                        &processed[..],
+                        file_path,
+                        24,
+                        audio,
+                        width as u32,
+                        height as u32,
+                    ) {
+                        error!("Failed to save video {:?}", e);
+                    }
+                    debug!("*********** saved! ***********");
+                    update_writing_state(WritingState::Idle);
+                });
+
+                info!("The encording got into the process.");
                 Ok("ok".into())
             }
             "stop_recording" => {
@@ -292,9 +302,36 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.channel_handler.lock().unwrap().encoding.0.close();
                 self.mark_recording_state_on_ui(call.isolate);
+                self.recording_info
+                    .lock()
+                    .unwrap()
+                    .set_writing_state(WritingState::Saving);
+                self.mark_writing_state_on_ui(call.isolate);
+
                 Ok("ok".into())
             }
+            "listen_ui_event_dispatcher" => {
+                debug!(
+                    "Received request {:?} on thread {:?}",
+                    call,
+                    thread::current().id()
+                );
+                while let Ok(event) = self.uiEvent.1.recv().await {
+                    debug!("event: {:?}", event);
+                    match event.0.as_str() {
+                        "write_state" => {
+                            self.recording_info
+                                .lock()
+                                .unwrap()
+                                .set_writing_state(WritingState::from_str(event.1.as_str()));
+                            self.mark_writing_state_on_ui(call.isolate);
+                        }
+                        _ => {}
+                    };
+                }
 
+                Ok("ok".into())
+            }
             _ => Err(PlatformError {
                 code: "invalid_method".into(),
                 message: Some(format!("Unknown Method: {}", call.method)),

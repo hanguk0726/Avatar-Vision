@@ -1,5 +1,6 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom},
+    ops::Not,
     path::Path,
     sync::{atomic::AtomicBool, Arc, Mutex},
 };
@@ -36,6 +37,15 @@ impl WritingState {
             WritingState::Encoding => "Encoding",
             WritingState::Saving => "Saving",
             WritingState::Idle => "Idle",
+        }
+    }
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "Collecting" => WritingState::Collecting,
+            "Encoding" => WritingState::Encoding,
+            "Saving" => WritingState::Saving,
+            "Idle" => WritingState::Idle,
+            _ => WritingState::Idle,
         }
     }
 }
@@ -93,40 +103,40 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 
 pub fn encode_to_h264(
     mut yuv_iter: OrdQueueIter<Vec<u8>>,
-    len: usize,
+    recording: Arc<AtomicBool>,
+    buf_h264: &mut Vec<u8>,
     width: usize,
     height: usize,
-) -> Vec<u8> {
-    let mut buf_h264 = Vec::new();
+) {
     let mut encoder = encoder(width as u32, height as u32).unwrap();
-    debug!("encoding to h264...");
+    debug!("encoding to h264");
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
-    for _ in 0..len {
+    while let Some(el) = yuv_iter.next() {
         if timer.elapsed().as_secs() > 3 {
             debug!("encoding...");
             timer = std::time::Instant::now();
         }
-        if let Some(el) = yuv_iter.next() {
-            let yuv = YUVBuf {
-                yuv: el,
-                width,
-                height,
-            };
-            let bitstream = encoder.encode(&yuv).unwrap();
+        let yuv = YUVBuf {
+            yuv: el,
+            width,
+            height,
+        };
+        let bitstream = encoder.encode(&yuv).unwrap();
 
-            for l in 0..bitstream.num_layers() {
-                let layer = bitstream.layer(l).unwrap();
-                for n in 0..layer.nal_count() {
-                    let nal = layer.nal_unit(n).unwrap();
-                    buf_h264.extend_from_slice(nal)
-                }
+        for l in 0..bitstream.num_layers() {
+            let layer = bitstream.layer(l).unwrap();
+            for n in 0..layer.nal_count() {
+                let nal = layer.nal_unit(n).unwrap();
+                buf_h264.extend_from_slice(nal);
             }
+        }
+        if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
+            break;
         }
     }
 
     debug!("encoding h264 done: {:?}", started.elapsed());
-    buf_h264
 }
 
 pub fn to_mp4<P: AsRef<Path>>(

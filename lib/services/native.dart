@@ -116,6 +116,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     setChannelHandlers();
     await checkFileDirectory();
     await queryDevices();
+    listenUiEventDispatcher();
   }
 
   void setChannelHandlers() {
@@ -123,17 +124,19 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_writing_state':
           writingState = WritingState.fromName(call.arguments);
-          if (writingState == WritingState.encoding &&
+          if (writingState == WritingState.saving &&
               !Setting().renderingWhileEncoding) {
             stopRendering();
             stopCameraStream();
           }
           notifyListeners();
+          debugPrint('writingState: $writingState');
           return null;
 
         case 'mark_recording_state':
           recording = call.arguments;
           notifyListeners();
+          debugPrint('recording: $recording');
           return null;
         default:
           debugPrint('Unknown method ${call.method} ');
@@ -189,9 +192,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void startRecording() async {
-    _startEncoding();
     final res = await recordingChannel.invokeMethod('start_recording', {});
     _showResult(res);
+    _startEncoding();
   }
 
   void _startEncoding() async {
@@ -204,6 +207,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void stopRecording() async {
     final res = await recordingChannel.invokeMethod('stop_recording', {});
+    _showResult(res);
+  }
+
+  // for rust to communicate each other(rust)
+  void listenUiEventDispatcher() async {
+    final res =
+        await recordingChannel.invokeMethod('listen_ui_event_dispatcher', {});
     _showResult(res);
   }
 
