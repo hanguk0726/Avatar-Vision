@@ -1,7 +1,10 @@
 use std::{
     collections::HashMap,
     mem::ManuallyDrop,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, AtomicUsize},
+        Arc, Mutex,
+    },
     thread,
 };
 
@@ -19,7 +22,7 @@ pub struct TextureHandler {
     pub render_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub recording: Arc<AtomicBool>,
-    pub encoding_buffer : Arc<Mutex<Vec<u8>>>,
+    pub encoding_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 #[async_trait(?Send)]
@@ -38,7 +41,7 @@ impl AsyncMethodHandler for TextureHandler {
                 let width = resolution[0].parse::<u32>().unwrap();
                 let height = resolution[1].parse::<u32>().unwrap();
 
-                let render_buffer_index: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+                let render_buffer_index: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
@@ -55,7 +58,15 @@ impl AsyncMethodHandler for TextureHandler {
                     let encoding = self.encoding_buffer.clone();
                     index += 1;
                     pool.spawn(async move {
-                        decode(index, buf, render_buffer ,pixel_buffer, encoding,width, height);
+                        decode(
+                            index,
+                            buf,
+                            render_buffer,
+                            pixel_buffer,
+                            encoding,
+                            width,
+                            height,
+                        );
                     });
                 }
                 Ok("ok".into())
@@ -84,12 +95,17 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
 fn decode(
     index: usize,
     buf: Buffer,
-    render_buffer: Arc<Mutex<usize>>,
+    render_buffer: Arc<AtomicUsize>,
     pixel_buffer: Arc<Mutex<Vec<u8>>>,
     encoding: Arc<Mutex<Vec<u8>>>,
     width: u32,
     height: u32,
 ) {
+    let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
+    if render_buffer_index > index {
+        debug!("drop frame :: outdated");
+        return;
+    }
     let decoded = decode_to_rgb(
         buf.buffer(),
         &buf.source_frame_format(),
@@ -98,13 +114,13 @@ fn decode(
         height,
     )
     .unwrap();
-    let mut render_buffer_index = render_buffer.lock().unwrap();
-    if index > render_buffer_index.to_owned()   {
+    let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
+    if index > render_buffer_index.to_owned() {
         let mut pixel_buffer = pixel_buffer.lock().unwrap();
         let mut encoding_buffer = encoding.lock().unwrap();
         *encoding_buffer = decoded.clone();
         *pixel_buffer = decoded;
-        *render_buffer_index = index;
+        render_buffer.store(index, std::sync::atomic::Ordering::SeqCst);
     } else {
         debug!("drop frame :: outdated");
     }
