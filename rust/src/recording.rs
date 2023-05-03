@@ -2,7 +2,10 @@ use std::{
     io::{Cursor, Read, Seek, SeekFrom},
     ops::Not,
     path::Path,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, AtomicUsize},
+        Arc, Mutex,
+    },
 };
 
 use log::debug;
@@ -103,13 +106,14 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 
 pub fn encode_to_h264(
     mut yuv_iter: OrdQueueIter<Vec<u8>>,
-    recording: Arc<AtomicBool>,
+    count: Arc<AtomicUsize>,
     buf_h264: &mut Vec<u8>,
     width: usize,
     height: usize,
 ) {
     let mut encoder = encoder(width as u32, height as u32).unwrap();
     debug!("encoding to h264");
+    let mut inner_count = 0;
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
     while let Some(el) = yuv_iter.next() {
@@ -131,7 +135,13 @@ pub fn encode_to_h264(
                 buf_h264.extend_from_slice(nal);
             }
         }
-        if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
+        inner_count += 1;
+        debug!(
+            "encoding to h264 recv {}, {}",
+            inner_count,
+            count.load(std::sync::atomic::Ordering::Relaxed)
+        );
+        if inner_count == count.load(std::sync::atomic::Ordering::Relaxed) {
             break;
         }
     }

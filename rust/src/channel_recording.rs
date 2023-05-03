@@ -3,7 +3,10 @@ use std::{
     fs,
     mem::ManuallyDrop,
     ops::Not,
-    sync::{atomic::AtomicUsize, Arc, Mutex},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
     thread,
     time::{Duration, Instant},
 };
@@ -143,10 +146,10 @@ impl AsyncMethodHandler for RecordingHandler {
                             });
                             if sent {
                                 frame_count += 1;
-                                debug!(
-                                "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                                frame_count, elapsed, adjusted_frame_interval
-                            );
+                                //     debug!(
+                                //     "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                                //     frame_count, elapsed, adjusted_frame_interval
+                                // );
                             }
                             compensation += frame_interval;
                         }
@@ -165,19 +168,19 @@ impl AsyncMethodHandler for RecordingHandler {
                     });
                     if sent {
                         frame_count += 1;
-                        debug!(
-                            "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                            frame_count, elapsed, adjusted_frame_interval
-                        );
+                        // debug!(
+                        //     "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                        //     frame_count, elapsed, adjusted_frame_interval
+                        // );
                     }
-                    debug!(
-                        "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
-                        accumulated,
-                        accumulated_minus,
-                        accumulated.saturating_sub(accumulated_minus),
-                        std::time::Instant::now().duration_since(recording_start_time),
-                        compensation
-                    );
+                    // debug!(
+                    //     "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
+                    //     accumulated,
+                    //     accumulated_minus,
+                    //     accumulated.saturating_sub(accumulated_minus),
+                    //     std::time::Instant::now().duration_since(recording_start_time),
+                    //     compensation
+                    // );
                     if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
                         break;
                     }
@@ -201,7 +204,8 @@ impl AsyncMethodHandler for RecordingHandler {
                 let width = resolution[0].parse::<usize>().unwrap();
                 let height = resolution[1].parse::<usize>().unwrap();
                 let ui_event_sender = self.uiEvent.0.clone();
-                let update_writing_state =  move |state: WritingState|  {
+                let update_writing_state = move |state: WritingState| {
+                    // REFACTOR ME
                     let sent = ui_event_sender
                         .try_send(("write_state".to_string(), state.to_str().to_string()))
                         .unwrap_or_else(|_| false);
@@ -209,11 +213,12 @@ impl AsyncMethodHandler for RecordingHandler {
                         debug!("uiEvent {} sent", state.to_str());
                     } else {
                         error!("uiEvent sending failed");
-
                     }
                 };
 
-                let mut count = 0;
+                let count = Arc::new(AtomicUsize::new(0));
+                let count2 = count.clone();
+                let count3 = count.clone();
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 if encoding_receiver.is_closed() {
                     self.channel_handler.lock().unwrap().reset_encoding();
@@ -226,35 +231,35 @@ impl AsyncMethodHandler for RecordingHandler {
                     .build()
                     .unwrap();
                 update_writing_state(WritingState::Collecting);
-                let recording = {
-                    let recording_info = self.recording_info.lock().unwrap();
-                    recording_info.recording.clone()
-                };
                 // update_writing_state(WritingState::Encoding);
 
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
                 let audio = Arc::clone(&self.audio);
                 thread::spawn(move || {
-                    let mut count = 0;
                     let r = encoding_receiver.to_sync();
 
                     rayon::scope(|s| {
                         s.spawn(|_| {
+                            let mut inner_count = 0;
                             while let Ok(rgba) = r.recv() {
                                 let queue = queue.clone();
                                 pool.spawn(async move {
                                     let yuv = rgba_to_yuv(&rgba[..], width, height);
-                                    queue.push(count, yuv).unwrap();
+                                    queue.push(inner_count, yuv).unwrap_or_else(|e| {
+                                        error!("queue push failed: {:?}", e);
+                                    });
+                                    debug!("encoding to h264 send {}", inner_count);
                                 });
                                 // debug!("encoded {} frames", count);
-                                count += 1;
+                                inner_count += 1;
                             }
+                            count.store(inner_count, Ordering::SeqCst);
                             debug!("terminate receiving frames on recording");
                         });
                         s.spawn(|_| {
                             let mut processed = processed2.lock().unwrap();
-                            encode_to_h264(iter, recording, &mut processed, width, height);
+                            encode_to_h264(iter, count2, &mut processed, width, height);
                             debug!("terminate encoding frames on recording");
                         });
                     });
@@ -262,16 +267,17 @@ impl AsyncMethodHandler for RecordingHandler {
                     pool.shutdown_timeout(std::time::Duration::from_secs(1));
                     debug!(
                         "encoded {} frames, time elapsed {}",
-                        count,
+                        count3.load(Ordering::SeqCst),
                         started.elapsed().as_secs()
                     );
 
                     debug!("*********** saving... ***********");
 
+                    let processed = processed.lock().unwrap();
+                    // prevent audio from being slightly short which makes noise.
+                    std::thread::sleep(std::time::Duration::from_secs(1));
                     let audio = audio.lock().unwrap();
                     let audio = audio.to_owned();
-
-                    let processed = processed.lock().unwrap();
 
                     if let Err(e) = to_mp4(
                         &processed[..],

@@ -106,6 +106,6 @@ fn decode(
         *pixel_buffer = decoded;
         *render_buffer_index = index;
     } else {
-        debug!("drop frame");
+        debug!("drop frame :: outdated");
     }
 }
