@@ -106,7 +106,6 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 
 pub fn encode_to_h264(
     mut yuv_iter: OrdQueueIter<Vec<u8>>,
-    count: Arc<AtomicUsize>,
     buf_h264: &mut Vec<u8>,
     width: usize,
     height: usize,
@@ -135,15 +134,8 @@ pub fn encode_to_h264(
                 buf_h264.extend_from_slice(nal);
             }
         }
+        debug!("encoding to h264 recv {} ", inner_count);
         inner_count += 1;
-        debug!(
-            "encoding to h264 recv {}, {}",
-            inner_count,
-            count.load(std::sync::atomic::Ordering::Relaxed)
-        );
-        if inner_count == count.load(std::sync::atomic::Ordering::Relaxed) {
-            break;
-        }
     }
 
     debug!("encoding h264 done: {:?}", started.elapsed());

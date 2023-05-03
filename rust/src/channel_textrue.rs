@@ -43,7 +43,7 @@ impl AsyncMethodHandler for TextureHandler {
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(8)
+                    .worker_threads(2)
                     .build()
                     .unwrap();
 

@@ -216,18 +216,15 @@ impl AsyncMethodHandler for RecordingHandler {
                     }
                 };
 
-                let count = Arc::new(AtomicUsize::new(0));
-                let count2 = count.clone();
-                let count3 = count.clone();
+                let mut count = 0;
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 if encoding_receiver.is_closed() {
                     self.channel_handler.lock().unwrap().reset_encoding();
                 }
-                let num_worker = 2;
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(num_worker)
+                    .worker_threads(2)
                     .build()
                     .unwrap();
                 update_writing_state(WritingState::Collecting);
@@ -241,25 +238,24 @@ impl AsyncMethodHandler for RecordingHandler {
 
                     rayon::scope(|s| {
                         s.spawn(|_| {
-                            let mut inner_count = 0;
                             while let Ok(rgba) = r.recv() {
                                 let queue = queue.clone();
                                 pool.spawn(async move {
                                     let yuv = rgba_to_yuv(&rgba[..], width, height);
-                                    queue.push(inner_count, yuv).unwrap_or_else(|e| {
+                                    queue.push(count, yuv).unwrap_or_else(|e| {
                                         error!("queue push failed: {:?}", e);
                                     });
-                                    debug!("encoding to h264 send {}", inner_count);
+                                    debug!("encoding to h264 send {}", count);
                                 });
                                 // debug!("encoded {} frames", count);
-                                inner_count += 1;
+                                count += 1;
                             }
-                            count.store(inner_count, Ordering::SeqCst);
+                            drop(queue);
                             debug!("terminate receiving frames on recording");
                         });
                         s.spawn(|_| {
                             let mut processed = processed2.lock().unwrap();
-                            encode_to_h264(iter, count2, &mut processed, width, height);
+                            encode_to_h264(iter, &mut processed, width, height);
                             debug!("terminate encoding frames on recording");
                         });
                     });
@@ -267,7 +263,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     pool.shutdown_timeout(std::time::Duration::from_secs(1));
                     debug!(
                         "encoded {} frames, time elapsed {}",
-                        count3.load(Ordering::SeqCst),
+                        count,
                         started.elapsed().as_secs()
                     );
 
