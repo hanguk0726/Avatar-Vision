@@ -123,27 +123,21 @@ impl AsyncMethodHandler for RecordingHandler {
                 let mut accumulated_minus = Duration::from_nanos(0);
                 let mut last_time = Instant::now();
                 let mut compensation = Duration::from_nanos(0);
-                let mut compensation_minus = Duration::from_nanos(0);
                 let max_adjustment = Duration::from_nanos(400_000);
-
                 let mut skip = false;
+                let mut compensation_minus = Duration::from_nanos(0);
                 thread::spawn(move || loop {
                     let start_time = Instant::now();
-                    let elapsed: Duration = if skip {
-                        skip = false;
-                        frame_interval
-                    } else {
-                        start_time.duration_since(last_time)
-                    };
+                    let elapsed: Duration = start_time.duration_since(last_time);
                     last_time = start_time;
                     if elapsed > frame_interval {
                         // Since the sleep won't be accurate even with the adjustment,
                         // the main goal is to minimize the value of 'accumulated'.
                         let error = elapsed - frame_interval;
                         accumulated += error;
-
-                        adjusted_frame_interval -= error.clamp(Duration::ZERO, max_adjustment);
-
+                        if error > max_adjustment {
+                            adjusted_frame_interval -= error.clamp(Duration::ZERO, max_adjustment);
+                        }
                         // For a specific frame rate, there is a fixed number of frames that are required.
                         // Adding one frame means potentially taking the place of a future frame,
                         // so it effectively runs at double speed in the long run.
@@ -165,41 +159,42 @@ impl AsyncMethodHandler for RecordingHandler {
                     } else {
                         let error = frame_interval - elapsed;
                         accumulated_minus += error;
-                        adjusted_frame_interval += error.clamp(Duration::ZERO, max_adjustment);
-
-                        if (accumulated_minus / 2) >= compensation_minus {
+                        if error > max_adjustment {
+                            adjusted_frame_interval += error.clamp(Duration::ZERO, max_adjustment);
+                        }
+                        if  accumulated_minus >= compensation_minus {
                             compensation_minus += frame_interval;
                             skip = true;
-                        } else {
-                            skip = false;
                         }
                     }
-                    if skip.not() {
-                        spin_sleep::sleep(adjusted_frame_interval);
 
-                        let rgba = encoding_buffer.lock().unwrap();
-                        let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
-                            debug!("encoding channel sending failed: {:?}", e);
-                            false
-                        });
-                        if sent {
-                            frame_count += 1;
-                            debug!(
-                                "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                                frame_count, elapsed, adjusted_frame_interval
-                            );
-                        }
+                    spin_sleep::sleep(adjusted_frame_interval);
+                    if skip {
+                        skip = false;
+                        continue;
+                    }
+                    let rgba = encoding_buffer.lock().unwrap();
+                    let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
+                        debug!("encoding channel sending failed: {:?}", e);
+                        false
+                    });
+                    if sent {
+                        frame_count += 1;
                         debug!(
-                            "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
-                            accumulated,
-                            accumulated_minus,
-                            accumulated.saturating_sub(accumulated_minus),
-                            std::time::Instant::now().duration_since(recording_start_time),
-                            compensation
+                            "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                            frame_count, elapsed, adjusted_frame_interval
                         );
-                        if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
-                            break;
-                        }
+                    }
+                    debug!(
+                        "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
+                        accumulated,
+                        accumulated_minus,
+                        accumulated.saturating_sub(accumulated_minus),
+                        std::time::Instant::now().duration_since(recording_start_time),
+                        compensation
+                    );
+                    if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
+                        break;
                     }
                 });
 
