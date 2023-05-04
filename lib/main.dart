@@ -6,8 +6,10 @@ import 'package:video_diary/services/db.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/tools/custom_scroll_behavior.dart';
 import 'package:window_manager/window_manager.dart';
-
 import 'services/setting.dart';
+
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setUp();

@@ -17,8 +17,8 @@ Widget customButton(Color color, Color textColor, String text, Function onClick,
             ),
           ),
           child: Container(
-              height: height,
               padding: const EdgeInsets.only(left: 12.0, right: 12.0),
+              height: height,
               color: color.withOpacity(backgroundColorOpacity),
               child: Center(
                 child: Text(text,

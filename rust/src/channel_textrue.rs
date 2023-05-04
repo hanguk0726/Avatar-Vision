@@ -46,14 +46,14 @@ impl AsyncMethodHandler for TextureHandler {
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
 
                 let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
+                    .worker_threads(8)
                     .build()
                     .unwrap();
 
                 let mut index = 0;
                 let pixel_buffer = self.render_buffer.clone();
                 while let Ok(buf) = receiver.recv() {
-                    let render_buffer = render_buffer_index.clone();
+                    let render_buffer_index = render_buffer_index.clone();
                     let pixel_buffer = pixel_buffer.clone();
                     let encoding = self.encoding_buffer.clone();
                     index += 1;
@@ -61,7 +61,7 @@ impl AsyncMethodHandler for TextureHandler {
                         decode(
                             index,
                             buf,
-                            render_buffer,
+                            render_buffer_index,
                             pixel_buffer,
                             encoding,
                             width,
@@ -106,6 +106,7 @@ fn decode(
         debug!("drop frame :: outdated");
         return;
     }
+    // let time = std::time::Instant::now();
     let decoded = decode_to_rgb(
         buf.buffer(),
         &buf.source_frame_format(),
@@ -114,6 +115,7 @@ fn decode(
         height,
     )
     .unwrap();
+    // debug!("decode time {:?}", time.elapsed());
     let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
     if index > render_buffer_index.to_owned() {
         let mut pixel_buffer = pixel_buffer.lock().unwrap();

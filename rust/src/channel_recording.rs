@@ -105,16 +105,17 @@ impl AsyncMethodHandler for RecordingHandler {
                 let recording = recording_info.lock().unwrap().recording.clone();
 
                 {
+                    self.audio.lock().unwrap().data.lock().unwrap().clear();
+                }
+                // start audio before start recording
+                {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
-                {
-                    self.mark_recording_state_on_ui(call.isolate);
-                    self.audio.lock().unwrap().data.lock().unwrap().clear();
-                }
+                self.mark_recording_state_on_ui(call.isolate);
                 let mut frame_count = 0;
                 let recording_start_time = std::time::Instant::now();
-
+                //Duration::from_nanos(83_333_333);
                 // Record textures in a separate thread and compensate for delay to maintain the frame rate.
                 let frame_interval = Duration::from_nanos(41_666_667);
                 let mut adjusted_frame_interval = Duration::from_nanos(41_666_667);
@@ -138,7 +139,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         // For a specific frame rate, there is a fixed number of frames that are required.
                         // Adding one frame means potentially taking the place of a future frame,
                         // so it effectively runs at double speed in the long run.
-                        if (accumulated / 2) > compensation {
+                        if (accumulated / 2) >= compensation {
                             let rgba = encoding_buffer.lock().unwrap();
                             let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
                                 debug!("encoding channel sending failed: {:?}", e);
@@ -146,10 +147,10 @@ impl AsyncMethodHandler for RecordingHandler {
                             });
                             if sent {
                                 frame_count += 1;
-                                //     debug!(
-                                //     "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                                //     frame_count, elapsed, adjusted_frame_interval
-                                // );
+                                debug!(
+                                    "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                                    frame_count, elapsed, adjusted_frame_interval
+                                );
                             }
                             compensation += frame_interval;
                         }
@@ -168,19 +169,19 @@ impl AsyncMethodHandler for RecordingHandler {
                     });
                     if sent {
                         frame_count += 1;
-                        // debug!(
-                        //     "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                        //     frame_count, elapsed, adjusted_frame_interval
-                        // );
+                        debug!(
+                            "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                            frame_count, elapsed, adjusted_frame_interval
+                        );
                     }
-                    // debug!(
-                    //     "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
-                    //     accumulated,
-                    //     accumulated_minus,
-                    //     accumulated.saturating_sub(accumulated_minus),
-                    //     std::time::Instant::now().duration_since(recording_start_time),
-                    //     compensation
-                    // );
+                    debug!(
+                        "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
+                        accumulated,
+                        accumulated_minus,
+                        accumulated.saturating_sub(accumulated_minus),
+                        std::time::Instant::now().duration_since(recording_start_time),
+                        compensation
+                    );
                     if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
                         break;
                     }
@@ -233,6 +234,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
                 let audio = Arc::clone(&self.audio);
+                let mut fianl_audio: Option<Pcm> = None;
                 thread::spawn(move || {
                     let r = encoding_receiver.to_sync();
 
@@ -245,12 +247,15 @@ impl AsyncMethodHandler for RecordingHandler {
                                     queue.push(count, yuv).unwrap_or_else(|e| {
                                         error!("queue push failed: {:?}", e);
                                     });
-                                    debug!("encoding to h264 send {}", count);
+                                    // debug!("encoding to h264 send {}", count);
                                 });
                                 // debug!("encoded {} frames", count);
                                 count += 1;
                             }
+                            let audio = audio.lock().unwrap();
+                            fianl_audio = Some(audio.clone());
                             drop(queue);
+
                             debug!("terminate receiving frames on recording");
                         });
                         s.spawn(|_| {
@@ -270,16 +275,12 @@ impl AsyncMethodHandler for RecordingHandler {
                     debug!("*********** saving... ***********");
 
                     let processed = processed.lock().unwrap();
-                    // prevent audio from being slightly short which makes noise.
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                    let audio = audio.lock().unwrap();
-                    let audio = audio.to_owned();
 
                     if let Err(e) = to_mp4(
                         &processed[..],
                         file_path,
                         24,
-                        audio,
+                        fianl_audio.unwrap(),
                         width as u32,
                         height as u32,
                     ) {
