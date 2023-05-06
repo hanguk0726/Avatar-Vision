@@ -60,7 +60,6 @@ class DatabaseService {
         // add mock data
     final metadata = Metadata(
         videoTitle: title,
-        timestamp: DateTime.now().toUtc().millisecondsSinceEpoch,
         note: 'This is a note',
         tags: 'tag1, tag2, tag3',
         thumbnail: 'thumbnail');

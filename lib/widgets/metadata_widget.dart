@@ -29,9 +29,6 @@ class MetadataWidgetState extends State<MetadataWidget> {
   Color textColor = customSky;
   late MetadataModel model;
   final isDirtySubject = BehaviorSubject<bool>.seeded(false);
-  final inputFormatter =
-      RegExp(r'^\d{0,4}[-]\d{0,2}[-]\d{0,2} \d{0,2}[:]\d{0,2}[:]\d{0,2}$');
-  bool isTimestampFomatted = true; // User has to break the regex while editing
 
   Timer? _timer;
   final datatimeEditingController = TextEditingController();
@@ -47,24 +44,9 @@ class MetadataWidgetState extends State<MetadataWidget> {
       model.flush();
       isDirtySubject.add(false);
     };
-    datatimeEditingController.text = getFormattedTimestamp(model.timestamp);
+    datatimeEditingController.text =
+        getFormattedTimestamp(timestamp: model.timestamp);
     noteEditingController.text = model.note ?? "";
-  }
-
-  void tick(String value) {
-    _timer?.cancel();
-    isTimestampFomatted = false;
-    _timer = Timer(const Duration(milliseconds: 200), () {
-      setState(() {
-        isTimestampFomatted =
-            inputFormatter.hasMatch(value);
-            print("isTimestampFomatted $isTimestampFomatted value $value");
-        if (isTimestampFomatted) {
-          model.timestamp = toUtcTimestamp(value);
-          isDirtySubject.add(model.isDirty);
-        }
-      });
-    });
   }
 
   @override
@@ -103,10 +85,8 @@ class MetadataWidgetState extends State<MetadataWidget> {
                               width: 170,
                               height: 32,
                               child: TextField(
+                                readOnly: true,
                                 controller: datatimeEditingController,
-                                onChanged: (value) {
-                                  tick(value);
-                                },
                                 style: TextStyle(
                                     color: textColor,
                                     fontSize: 16,
@@ -121,10 +101,9 @@ class MetadataWidgetState extends State<MetadataWidget> {
                                 stream: isDirtySubject.stream,
                                 builder: (context, snapshot) {
                                   if (snapshot.hasData) {
-                                    if (snapshot.data! && isTimestampFomatted) {
+                                    if (snapshot.data!) {
                                       return customButton(
-                                          customSky, Colors.white, "Apply",
-                                          () {
+                                          customSky, Colors.white, "Apply", () {
                                         model.flush();
                                         isDirtySubject.add(false);
                                       },
@@ -199,7 +178,6 @@ class MetadataModel {
 
   bool get isDirty {
     return _data.videoTitle != videoTitle ||
-        _data.timestamp != timestamp ||
         _data.note != note ||
         _data.tags != tags ||
         _data.thumbnail != thumbnail;
@@ -210,7 +188,6 @@ class MetadataModel {
         _data.videoTitle,
         Metadata(
             videoTitle: videoTitle,
-            timestamp: timestamp,
             note: note,
             tags: tags,
             thumbnail: thumbnail));

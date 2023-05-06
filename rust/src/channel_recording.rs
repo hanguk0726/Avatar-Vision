@@ -82,7 +82,6 @@ impl RecordingHandler {
             .call_method_sync(target_isolate, "mark_recording_state", recording, |_| {});
     }
 }
-
 #[async_trait(?Send)]
 impl AsyncMethodHandler for RecordingHandler {
     fn assign_invoker(&self, _invoker: AsyncMethodInvoker) {
@@ -103,7 +102,6 @@ impl AsyncMethodHandler for RecordingHandler {
                 let encoding_buffer = self.encoding_buffer.clone();
                 let encoding_sender = channel_handler.lock().unwrap().encoding.0.clone();
                 let recording = recording_info.lock().unwrap().recording.clone();
-
                 {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
                 }
@@ -115,8 +113,8 @@ impl AsyncMethodHandler for RecordingHandler {
                 self.mark_recording_state_on_ui(call.isolate);
                 let mut frame_count = 0;
                 let recording_start_time = std::time::Instant::now();
-                //Duration::from_nanos(83_333_333);
                 // Record textures in a separate thread and compensate for delay to maintain the frame rate.
+                // this covers a video under 30 min when I tested. needs better way.
                 let frame_interval = Duration::from_nanos(41_666_667);
                 let mut adjusted_frame_interval = Duration::from_nanos(41_666_667);
                 let mut accumulated = Duration::from_nanos(0);
@@ -124,8 +122,6 @@ impl AsyncMethodHandler for RecordingHandler {
                 let mut last_time = Instant::now();
                 let mut compensation = Duration::from_nanos(0);
                 let max_adjustment = Duration::from_nanos(400_000);
-                let mut skip = false;
-                let mut compensation_minus = Duration::from_nanos(0);
                 thread::spawn(move || loop {
                     let start_time = Instant::now();
                     let elapsed: Duration = start_time.duration_since(last_time);
@@ -133,67 +129,51 @@ impl AsyncMethodHandler for RecordingHandler {
                     if elapsed > frame_interval {
                         // Since the sleep won't be accurate even with the adjustment,
                         // the main goal is to minimize the value of 'accumulated'.
-                        let error = elapsed - frame_interval;
-                        accumulated += error;
-                        if error > max_adjustment {
-                            adjusted_frame_interval -= error.clamp(Duration::ZERO, max_adjustment);
-                        }
-                        // For a specific frame rate, there is a fixed number of frames that are required.
-                        // Adding one frame means potentially taking the place of a future frame,
-                        // so it effectively runs at double speed in the long run.
-                        if (accumulated / 2) >= compensation {
+                        
+                        let error_ = elapsed - frame_interval;
+                        accumulated += error_;
+                        adjusted_frame_interval -= error_.clamp(Duration::ZERO, max_adjustment);
+                        // try to cover missed frame count
+                        if accumulated >= compensation {
                             let rgba = encoding_buffer.lock().unwrap();
-                            let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
+                            encoding_sender.send(rgba.clone()).unwrap_or_else(|e| {
                                 debug!("encoding channel sending failed: {:?}", e);
-                                false
                             });
-                            if sent {
-                                frame_count += 1;
-                                debug!(
-                                    "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                                    frame_count, elapsed, adjusted_frame_interval
-                                );
-                            }
+                            frame_count += 1;
+                            debug!(
+                                "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                                frame_count, elapsed, adjusted_frame_interval
+                            );
                             compensation += frame_interval;
                         }
                     } else {
-                        let error = frame_interval - elapsed;
-                        accumulated_minus += error;
-                        if error > max_adjustment {
-                            adjusted_frame_interval += error.clamp(Duration::ZERO, max_adjustment);
+                        let error_ = frame_interval - elapsed;
+                        accumulated_minus += error_;
+                        if accumulated > accumulated_minus {
+                            accumulated -= accumulated_minus;
+                            accumulated_minus = Duration::from_nanos(0);
                         }
-                        if  accumulated_minus >= compensation_minus {
-                            compensation_minus += frame_interval;
-                            skip = true;
-                        }
+                        adjusted_frame_interval += error_.clamp(Duration::ZERO, max_adjustment);
                     }
 
                     spin_sleep::sleep(adjusted_frame_interval);
-                    if skip {
-                        skip = false;
-                        continue;
-                    }
                     let rgba = encoding_buffer.lock().unwrap();
-                    let sent = encoding_sender.try_send(rgba.clone()).unwrap_or_else(|e| {
+                    encoding_sender.send(rgba.clone()).unwrap_or_else(|e| {
                         debug!("encoding channel sending failed: {:?}", e);
-                        false
                     });
-                    if sent {
-                        frame_count += 1;
-                        debug!(
-                            "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                            frame_count, elapsed, adjusted_frame_interval
-                        );
-                    }
+                    frame_count += 1;
                     debug!(
-                        "accumulated: {:?},accumulated_minus {:?}, total {:?} recording: {:?}, compansation: {:?}",
+                        "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
+                        frame_count, elapsed, adjusted_frame_interval
+                    );
+                    debug!(
+                        "accumulated: {:?}  recording: {:?}, compansation: {:?}",
                         accumulated,
-                        accumulated_minus,
-                        accumulated.saturating_sub(accumulated_minus),
                         std::time::Instant::now().duration_since(recording_start_time),
                         compensation
                     );
                     if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
+                       
                         break;
                     }
                 });
@@ -217,7 +197,6 @@ impl AsyncMethodHandler for RecordingHandler {
                 let height = resolution[1].parse::<usize>().unwrap();
                 let ui_event_sender = self.uiEvent.0.clone();
                 let update_writing_state = move |state: WritingState| {
-                    // REFACTOR ME
                     let sent = ui_event_sender
                         .try_send(("write_state".to_string(), state.to_str().to_string()))
                         .unwrap_or_else(|_| false);
@@ -239,19 +218,16 @@ impl AsyncMethodHandler for RecordingHandler {
                     .worker_threads(2)
                     .build()
                     .unwrap();
-                update_writing_state(WritingState::Collecting);
-                // update_writing_state(WritingState::Encoding);
+                update_writing_state(WritingState::Encoding);
 
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
                 let audio = Arc::clone(&self.audio);
                 let mut fianl_audio: Option<Pcm> = None;
                 thread::spawn(move || {
-                    let r = encoding_receiver.to_sync();
-
                     rayon::scope(|s| {
                         s.spawn(|_| {
-                            while let Ok(rgba) = r.recv() {
+                            while let Ok(rgba) = encoding_receiver.recv() {
                                 let queue = queue.clone();
                                 pool.spawn(async move {
                                     let yuv = rgba_to_yuv(&rgba[..], width, height);

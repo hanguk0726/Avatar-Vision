@@ -20,39 +20,39 @@ export 'package:objectbox/objectbox.dart'; // so that callers only have to impor
 
 final _entities = <ModelEntity>[
   ModelEntity(
-      id: const IdUid(1, 403957900830012942),
+      id: const IdUid(1, 318766309290316069),
       name: 'Metadata',
-      lastPropertyId: const IdUid(6, 2847845973711074343),
+      lastPropertyId: const IdUid(6, 3900849602054509419),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 1700872531042947758),
+            id: const IdUid(1, 4846641387539038391),
             name: 'id',
             type: 6,
             flags: 1),
         ModelProperty(
-            id: const IdUid(2, 3540835376430048582),
+            id: const IdUid(2, 5748327555256795596),
             name: 'videoTitle',
             type: 9,
-            flags: 2080,
-            indexId: const IdUid(1, 786738118606110385)),
-        ModelProperty(
-            id: const IdUid(3, 5962443849967818597),
-            name: 'timestamp',
-            type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 549483505540694786),
+            id: const IdUid(3, 6918448145992445918),
+            name: 'timestamp',
+            type: 6,
+            flags: 40,
+            indexId: const IdUid(1, 8928939169996754816)),
+        ModelProperty(
+            id: const IdUid(4, 1161244386333495147),
             name: 'note',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(5, 6086831854859562419),
+            id: const IdUid(5, 5751156866390207555),
             name: 'tags',
             type: 9,
             flags: 0),
         ModelProperty(
-            id: const IdUid(6, 2847845973711074343),
+            id: const IdUid(6, 3900849602054509419),
             name: 'thumbnail',
             type: 9,
             flags: 0)
@@ -81,8 +81,8 @@ Future<Store> openStore(
 ModelDefinition getObjectBoxModel() {
   final model = ModelInfo(
       entities: _entities,
-      lastEntityId: const IdUid(1, 403957900830012942),
-      lastIndexId: const IdUid(1, 786738118606110385),
+      lastEntityId: const IdUid(1, 318766309290316069),
+      lastIndexId: const IdUid(1, 8928939169996754816),
       lastRelationId: const IdUid(0, 0),
       lastSequenceId: const IdUid(0, 0),
       retiredEntityUids: const [],
@@ -128,15 +128,15 @@ ModelDefinition getObjectBoxModel() {
           final object = Metadata(
               videoTitle: const fb.StringReader(asciiOptimization: true)
                   .vTableGet(buffer, rootOffset, 6, ''),
-              timestamp:
-                  const fb.Int64Reader().vTableGet(buffer, rootOffset, 8, 0),
               note: const fb.StringReader(asciiOptimization: true)
                   .vTableGetNullable(buffer, rootOffset, 10),
               tags: const fb.StringReader(asciiOptimization: true)
                   .vTableGetNullable(buffer, rootOffset, 12),
               thumbnail: const fb.StringReader(asciiOptimization: true)
                   .vTableGetNullable(buffer, rootOffset, 14))
-            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+            ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+            ..timestamp =
+                const fb.Int64Reader().vTableGet(buffer, rootOffset, 8, 0);
 
           return object;
         })

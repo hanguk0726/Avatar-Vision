@@ -27,7 +27,6 @@ pub struct RecordingInfo {
 
 #[derive(Debug, Clone, Copy)]
 pub enum WritingState {
-    Collecting,
     Encoding,
     Saving,
     Idle,
@@ -36,7 +35,6 @@ pub enum WritingState {
 impl WritingState {
     pub fn to_str(&self) -> &'static str {
         match self {
-            WritingState::Collecting => "Collecting",
             WritingState::Encoding => "Encoding",
             WritingState::Saving => "Saving",
             WritingState::Idle => "Idle",
@@ -44,7 +42,6 @@ impl WritingState {
     }
     pub fn from_str(s: &str) -> Self {
         match s {
-            "Collecting" => WritingState::Collecting,
             "Encoding" => WritingState::Encoding,
             "Saving" => WritingState::Saving,
             "Idle" => WritingState::Idle,
@@ -56,7 +53,6 @@ impl WritingState {
 impl PartialEq for WritingState {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (WritingState::Collecting, WritingState::Collecting) => true,
             (WritingState::Encoding, WritingState::Encoding) => true,
             (WritingState::Saving, WritingState::Saving) => true,
             (WritingState::Idle, WritingState::Idle) => true,
@@ -115,6 +111,7 @@ pub fn encode_to_h264(
     let mut inner_count = 0;
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
+
     while let Some(el) = yuv_iter.next() {
         if timer.elapsed().as_secs() > 3 {
             debug!("encoding...");
@@ -134,11 +131,15 @@ pub fn encode_to_h264(
                 buf_h264.extend_from_slice(nal);
             }
         }
-        // debug!("encoding to h264 recv {} ", inner_count);
+        debug!("encoding to h264 recv {} ", inner_count);
         inner_count += 1;
     }
 
-    debug!("encoding h264 done: {:?}", started.elapsed());
+    debug!(
+        "encoding h264 done: {:?}, count {}",
+        started.elapsed(),
+        buf_h264.len()
+    );
 }
 
 pub fn to_mp4<P: AsRef<Path>>(

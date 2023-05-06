@@ -110,46 +110,6 @@ Widget settings(BuildContext context) {
                                 const Icon(Icons.do_not_disturb, color: color),
                             textColor: color),
                       spacer,
-                      dropdown(
-                          value: formatDuration(Setting().timeZoneOffset),
-                          items: timeZoneOffsetList,
-                          onChanged: (offset) {
-                            Setting().timeZoneOffset =
-                                parseTimeZoneOffset(offset);
-                            Setting().save();
-                          },
-                          icon: const Icon(Icons.access_time, color: color),
-                          textOnEmpty: "Error",
-                          iconOnEmpty:
-                              const Icon(Icons.do_not_disturb, color: color),
-                          textColor: color),
-                      spacer,
-                      Tooltip(
-                          message:
-                              'Depending on the cpu specification, This may increase encoding time',
-                          preferBelow: true,
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.only(left: 16.0, right: 8.0),
-                            child: Row(
-                              children: [
-                                Text("Render while recording",
-                                    style: TextStyle(
-                                        color: color,
-                                        fontSize: 16,
-                                        fontFamily: mainFont)),
-                                const Spacer(),
-                                Switch(
-                                  value: setting.renderingWhileEncoding,
-                                  activeColor: customSky,
-                                  onChanged: (value) {
-                                    setting.toggleRenderingWhileEncoding();
-                                  },
-                                ),
-                              ],
-                            ),
-                          )),
-                      spacer,
                       Padding(
                         padding: const EdgeInsets.only(left: 16.0, right: 8.0),
                         child: Row(

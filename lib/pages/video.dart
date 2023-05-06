@@ -85,7 +85,6 @@ class _VideoPageState extends State<VideoPage> {
     final currentCameraDevice = native.currentCameraDevice;
     final cameraHealthCheck = native.cameraHealthCheck;
     final cameraHealthCheckErrorMessage = native.cameraHealthCheckErrorMessage;
-    final renderingWhileEncoding = setting.renderingWhileEncoding;
     final width = native.currentResolutionWidth;
     final height = native.currentResolutionHeight;
     final recordingHealthCheck = native.recordingHealthCheck;
@@ -124,7 +123,7 @@ class _VideoPageState extends State<VideoPage> {
           writingStateMessage(
               writingState: writingState,
               recording: recording,
-              renderingWhileEncoding: renderingWhileEncoding),
+              rendering: rendering),
         ]),
       )),
     );
@@ -160,20 +159,20 @@ class _VideoPageState extends State<VideoPage> {
   Widget writingStateMessage(
       {required WritingState writingState,
       required bool recording,
-      required bool renderingWhileEncoding}) {
-    if (writingState != WritingState.saving || selectedMetadata != null) {
+      required bool rendering}) {
+    if (rendering || selectedMetadata != null) {
       return const SizedBox();
-    } else if (renderingWhileEncoding) {
-      return Positioned(
-          top: 32,
-          right: 32,
-          child: SavingIndicator(
-            recording: recording,
-            writingState: writingState,
-          ));
-    } else {
+    } else if (writingState != WritingState.idle){
       return messageWidget(writingState.toName(), true, true);
     }
+    return const SizedBox();
+    // return Positioned(
+    //     top: 32,
+    //     right: 32,
+    //     child: SavingIndicator(
+    //       recording: recording,
+    //       writingState: writingState,
+    //     ));
   }
 
   Widget messageNoCameraFound() {

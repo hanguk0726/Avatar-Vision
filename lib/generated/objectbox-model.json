@@ -4,40 +4,40 @@
   "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
   "entities": [
     {
-      "id": "1:403957900830012942",
-      "lastPropertyId": "6:2847845973711074343",
+      "id": "1:318766309290316069",
+      "lastPropertyId": "6:3900849602054509419",
       "name": "Metadata",
       "properties": [
         {
-          "id": "1:1700872531042947758",
+          "id": "1:4846641387539038391",
           "name": "id",
           "type": 6,
           "flags": 1
         },
         {
-          "id": "2:3540835376430048582",
+          "id": "2:5748327555256795596",
           "name": "videoTitle",
-          "type": 9,
-          "flags": 2080,
-          "indexId": "1:786738118606110385"
+          "type": 9
         },
         {
-          "id": "3:5962443849967818597",
+          "id": "3:6918448145992445918",
           "name": "timestamp",
-          "type": 6
+          "type": 6,
+          "flags": 40,
+          "indexId": "1:8928939169996754816"
         },
         {
-          "id": "4:549483505540694786",
+          "id": "4:1161244386333495147",
           "name": "note",
           "type": 9
         },
         {
-          "id": "5:6086831854859562419",
+          "id": "5:5751156866390207555",
           "name": "tags",
           "type": 9
         },
         {
-          "id": "6:2847845973711074343",
+          "id": "6:3900849602054509419",
           "name": "thumbnail",
           "type": 9
         }
@@ -45,8 +45,8 @@
       "relations": []
     }
   ],
-  "lastEntityId": "1:403957900830012942",
-  "lastIndexId": "1:786738118606110385",
+  "lastEntityId": "1:318766309290316069",
+  "lastIndexId": "1:8928939169996754816",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

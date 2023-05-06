@@ -6,7 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wakelock/wakelock.dart';
 
+import '../tools/time.dart';
 import 'setting.dart';
 import '../domain/writing_state.dart';
 
@@ -57,7 +59,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   late final NativeMethodChannel audioChannel;
 
   String filePathPrefix = '';
-  String fileName = 'test';
+  String fileName = '';
   List<String> files = [];
   Future<void> checkFileDirectory() async {
     // On Windows, get or create the appdata folder
@@ -124,8 +126,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       switch (call.method) {
         case 'mark_writing_state':
           writingState = WritingState.fromName(call.arguments);
-          if (writingState == WritingState.saving &&
-              !Setting().renderingWhileEncoding) {
+          if (writingState == WritingState.saving) {
             stopRendering();
             stopCameraStream();
           }
@@ -149,6 +150,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         case 'mark_rendering_state':
           rendering = call.arguments;
           notifyListeners();
+          rendering ? Wakelock.enable() : Wakelock.disable();
           return null;
         default:
           debugPrint('Unknown method ${call.method} ');
@@ -198,6 +200,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void _startEncoding() async {
+    fileName = getFormattedTimestamp(format: 'yyyy-MM-dd_HH-mm-ss');
     final res = await recordingChannel.invokeMethod('start_encording', {
       'file_path': "$filePathPrefix\\$fileName",
       'resolution': currentResolution,

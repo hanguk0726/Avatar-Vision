@@ -1,13 +1,10 @@
 enum WritingState {
-  collecting,
   encoding,
   saving,
   idle;
 
   static WritingState fromName(String name) {
     switch (name) {
-      case 'Collecting':
-        return WritingState.collecting;
       case 'Encoding':
         return WritingState.encoding;
       case 'Saving':
@@ -21,8 +18,6 @@ enum WritingState {
 
   String toName() {
     switch (this) {
-      case WritingState.collecting:
-        return 'Collecting';
       case WritingState.encoding:
         return 'Encoding';
       case WritingState.saving:
