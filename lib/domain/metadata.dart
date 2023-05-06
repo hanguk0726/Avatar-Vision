@@ -3,11 +3,12 @@ import 'package:objectbox/objectbox.dart';
 @Entity()
 class Metadata {
   int id = 0; // required for ObjectBox to work
-  String videoTitle;
 
   @Index()
   @Unique()
-  int timestamp = DateTime.now().millisecondsSinceEpoch;
+  int timestamp;
+
+  String title;
 
   String? note;
 
@@ -16,7 +17,8 @@ class Metadata {
   String? thumbnail;
 
   Metadata({
-    required this.videoTitle,
+    required this.title,
+    required this.timestamp,
     this.note,
     this.tags,
     this.thumbnail,

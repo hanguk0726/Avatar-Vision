@@ -31,6 +31,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
   final isDirtySubject = BehaviorSubject<bool>.seeded(false);
 
   Timer? _timer;
+  final titleEditingController = TextEditingController();
   final datatimeEditingController = TextEditingController();
   final noteEditingController = TextEditingController();
 
@@ -44,6 +45,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
       model.flush();
       isDirtySubject.add(false);
     };
+    titleEditingController.text = model.title;
     datatimeEditingController.text =
         getFormattedTimestamp(timestamp: model.timestamp);
     noteEditingController.text = model.note ?? "";
@@ -118,8 +120,16 @@ class MetadataWidgetState extends State<MetadataWidget> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          model.videoTitle,
+                        TextField(
+                          controller: titleEditingController,
+                          cursorColor: Colors.white,
+                          onChanged: (value) {
+                            model.title = value;
+                            isDirtySubject.add(model.isDirty);
+                          },
+                          onSubmitted: (value) {
+                            onSubmitted();
+                          },
                           style: TextStyle(
                               color: textColor,
                               fontSize: 16,
@@ -142,8 +152,12 @@ class MetadataWidgetState extends State<MetadataWidget> {
                             onSubmitted: (value) {
                               onSubmitted();
                             },
-                            decoration: const InputDecoration(
-                              hintText: 'Enter note here',
+                            decoration: InputDecoration(
+                              hintText: 'Empty note',
+                              hintStyle: TextStyle(
+                                color: Colors.white54,
+                                fontFamily: mainFont,
+                              ),
                               border: InputBorder.none,
                             )),
                       ],
@@ -156,7 +170,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
 class MetadataModel {
   late final Metadata _data;
 
-  late String videoTitle;
+  late String title;
 
   late int timestamp;
 
@@ -167,7 +181,7 @@ class MetadataModel {
   late String? thumbnail;
 
   MetadataModel(this._data) {
-    videoTitle = _data.videoTitle;
+    title = _data.title;
     timestamp = _data.timestamp;
     note = _data.note;
     tags = _data.tags;
@@ -177,17 +191,18 @@ class MetadataModel {
   Metadata get original => _data;
 
   bool get isDirty {
-    return _data.videoTitle != videoTitle ||
+    return _data.title != title ||
         _data.note != note ||
         _data.tags != tags ||
         _data.thumbnail != thumbnail;
   }
 
   void flush() {
-    DatabaseService().updateMetadata(
-        _data.videoTitle,
+    DatabaseService().update(
+        _data.title,
         Metadata(
-            videoTitle: videoTitle,
+            title: title,
+            timestamp: timestamp,
             note: note,
             tags: tags,
             thumbnail: thumbnail));

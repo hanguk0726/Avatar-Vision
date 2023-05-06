@@ -114,7 +114,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let mut frame_count = 0;
                 let recording_start_time = std::time::Instant::now();
                 // Record textures in a separate thread and compensate for delay to maintain the frame rate.
-                // this covers a video under 30 min when I tested. needs better way.
+                // it needs better way.
                 let frame_interval = Duration::from_nanos(41_666_667);
                 let mut adjusted_frame_interval = Duration::from_nanos(41_666_667);
                 let mut accumulated = Duration::from_nanos(0);
@@ -129,10 +129,10 @@ impl AsyncMethodHandler for RecordingHandler {
                     if elapsed > frame_interval {
                         // Since the sleep won't be accurate even with the adjustment,
                         // the main goal is to minimize the value of 'accumulated'.
-                        
+
                         let error_ = elapsed - frame_interval;
                         accumulated += error_;
-                        adjusted_frame_interval -= error_.clamp(Duration::ZERO, max_adjustment);
+                        // adjusted_frame_interval -= error_.clamp(Duration::ZERO, max_adjustment);
                         // try to cover missed frame count
                         if accumulated >= compensation {
                             let rgba = encoding_buffer.lock().unwrap();
@@ -144,7 +144,7 @@ impl AsyncMethodHandler for RecordingHandler {
                                 "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
                                 frame_count, elapsed, adjusted_frame_interval
                             );
-                            compensation += frame_interval;
+                            compensation += frame_interval / 2 + frame_interval / 3;
                         }
                     } else {
                         let error_ = frame_interval - elapsed;
@@ -153,7 +153,7 @@ impl AsyncMethodHandler for RecordingHandler {
                             accumulated -= accumulated_minus;
                             accumulated_minus = Duration::from_nanos(0);
                         }
-                        adjusted_frame_interval += error_.clamp(Duration::ZERO, max_adjustment);
+                        // adjusted_frame_interval += error_.clamp(Duration::ZERO, max_adjustment);
                     }
 
                     spin_sleep::sleep(adjusted_frame_interval);
@@ -173,7 +173,6 @@ impl AsyncMethodHandler for RecordingHandler {
                         compensation
                     );
                     if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
-                       
                         break;
                     }
                 });

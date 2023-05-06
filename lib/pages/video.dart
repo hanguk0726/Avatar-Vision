@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
-import 'package:video_diary/services/setting.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
+import 'package:video_diary/services/setting.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
@@ -18,9 +18,6 @@ import '../domain/result.dart';
 import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
 import '../services/db.dart';
-import '../tools/custom_scroll_behavior.dart';
-import '../widgets/indicator.dart';
-import '../widgets/key_listener.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
@@ -50,8 +47,8 @@ class _VideoPageState extends State<VideoPage> {
       if (event.event is MetadataEvent) {
         MetadataEvent casted = event.event as MetadataEvent;
         // add data
-        String videoTitle = casted.videoTitle;
-        final queryResult = DatabaseService().getMetadata(videoTitle);
+        String title = casted.title;
+        final queryResult = DatabaseService().findByTitle(title);
         if (queryResult is Success) {
           setState(() {
             selectedMetadata = (queryResult as Success<Metadata>).value;
@@ -119,7 +116,7 @@ class _VideoPageState extends State<VideoPage> {
           showMessageOnError(errors),
           menuTaps(recording: recording),
           _mediaControlButton(),
-          pastEntryMetadata(),
+          pastEntryMetadata(recording: recording),
           writingStateMessage(
               writingState: writingState,
               recording: recording,
@@ -143,8 +140,8 @@ class _VideoPageState extends State<VideoPage> {
     }
   }
 
-  Widget pastEntryMetadata() {
-    if (selectedMetadata == null) {
+  Widget pastEntryMetadata({required bool recording}) {
+    if (recording || selectedMetadata == null) {
       return const SizedBox();
     } else {
       return Positioned(
@@ -162,7 +159,7 @@ class _VideoPageState extends State<VideoPage> {
       required bool rendering}) {
     if (rendering || selectedMetadata != null) {
       return const SizedBox();
-    } else if (writingState != WritingState.idle){
+    } else if (writingState != WritingState.idle) {
       return messageWidget(writingState.toName(), true, true);
     }
     return const SizedBox();

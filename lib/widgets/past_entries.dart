@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
+import 'package:video_diary/services/db.dart';
 import 'package:video_diary/widgets/key_listener.dart';
 
 import '../domain/event.dart';
@@ -31,14 +32,18 @@ class PastEntriesState extends State<PastEntries> {
   set selectedIndex(int value) => selectedIndexSubject.add(value);
   String eventKey = 'pastEntries';
   String allowedEventKey = 'tab';
-  
+
   @override
   void initState() {
     super.initState();
     Native native = context.read<Native>();
+    var db = DatabaseService();
+    db.sync();
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
-      String fileName = native.files[selectedIndex];
-      EventBus().fire(MetadataEvent(fileName), eventKey);
+      if (db.pastEntries.isNotEmpty) {
+        String fileName = db.pastEntries[selectedIndex];
+        EventBus().fire(MetadataEvent(fileName), eventKey);
+      }
     });
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (eventKey != event.key && allowedEventKey != event.key) {
@@ -95,8 +100,9 @@ class PastEntriesState extends State<PastEntries> {
   }
 
   void play() async {
-    Native native = context.read<Native>();
-    String fileName = native.files[selectedIndex];
+    var db = DatabaseService();
+    var native = Native();
+    String fileName = db.pastEntries[selectedIndex];
     String filePath = "${native.filePathPrefix}/$fileName.mp4";
     focusNode.unfocus();
     Navigator.push(
@@ -112,8 +118,9 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   build(BuildContext context) {
-    Native native = context.watch<Native>();
-    List<String> files = native.files;
+    var db = DatabaseService();
+    db.sync();
+    List<String> files = DatabaseService().pastEntries;
     return ClipRRect(
         child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),

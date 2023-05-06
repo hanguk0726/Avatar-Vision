@@ -6,11 +6,14 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:video_diary/services/db.dart';
 import 'package:wakelock/wakelock.dart';
 
 import '../tools/time.dart';
 import 'setting.dart';
 import '../domain/writing_state.dart';
+
+
 
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Native._privateConstructor();
@@ -18,7 +21,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   factory Native() {
     return _instance;
   }
-
   WritingState writingState = WritingState
       .idle; // whether the recorded video data is being written to the file
   bool recording = false; // whether the video is being recorded
@@ -61,17 +63,17 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   String filePathPrefix = '';
   String fileName = '';
   List<String> files = [];
-  Future<void> checkFileDirectory() async {
+  Future<void> checkFileDirectoryAndSetFiles() async {
     // On Windows, get or create the appdata folder
     if (Platform.isWindows) {
       final appDataDir = Directory.current;
       final targetDirectory = Directory('${appDataDir.path}\\data');
       filePathPrefix = targetDirectory.path;
       if (await targetDirectory.exists()) {
-        debugPrint('Directory already exists');
+        // debugPrint('Directory already exists');
       } else {
         await targetDirectory.create(recursive: true);
-        debugPrint('Directory created at: ${targetDirectory.path}');
+        // debugPrint('Directory created at: ${targetDirectory.path}');
       }
       if (targetDirectory.existsSync()) {
         var result = targetDirectory.statSync();
@@ -116,7 +118,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         'rendering_channel_background_thread',
         context: nativeContext);
     setChannelHandlers();
-    await checkFileDirectory();
+    await checkFileDirectoryAndSetFiles();
     await queryDevices();
     listenUiEventDispatcher();
   }
@@ -200,7 +202,11 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void _startEncoding() async {
-    fileName = getFormattedTimestamp(format: 'yyyy-MM-dd_HH-mm-ss');
+    final int timestamp = DateTime.now().millisecondsSinceEpoch;
+
+    final fileName = gererateFileName(timestamp);
+
+    DatabaseService().insert(timestamp);
     final res = await recordingChannel.invokeMethod('start_encording', {
       'file_path': "$filePathPrefix\\$fileName",
       'resolution': currentResolution,

@@ -46,9 +46,9 @@ class KeyboardEvent<T> extends Event<T> {
 }
 
 class MetadataEvent<T> extends Event<T> {
-  final String videoTitle;
+  final String title;
 
-  const MetadataEvent(this.videoTitle) : super._();
+  const MetadataEvent(this.title) : super._();
 
   
 }

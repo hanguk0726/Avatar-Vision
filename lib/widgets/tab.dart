@@ -10,6 +10,7 @@ import 'package:video_diary/widgets/tabItem.dart';
 import '../domain/event.dart';
 import '../domain/tab_item.dart';
 import '../services/event_bus.dart';
+import '../services/runtime_data.dart';
 import '../tools/custom_button_clipper.dart';
 
 class Tabs extends StatefulWidget {
@@ -32,12 +33,13 @@ class TabsState extends State<Tabs> {
   final String eventKey = 'tab';
   final String allowedEventKey = 'pastEntries';
   final FocusNode focusNode = FocusNode();
-  
+
   @override
   void initState() {
     super.initState();
+    selectedIndex = RuntimeData().tabIndex;
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (event.key != eventKey  && event.key != allowedEventKey) {
+      if (event.key != eventKey && event.key != allowedEventKey) {
         return;
       }
       switch (event.event) {
@@ -45,6 +47,7 @@ class TabsState extends State<Tabs> {
           if (selectedIndex > 0) {
             setState(() {
               selectedIndex--;
+              RuntimeData().tabIndex = selectedIndex;
               widget.onTabSelected(widget.buttonLabels[selectedIndex]);
             });
             return;
@@ -54,6 +57,7 @@ class TabsState extends State<Tabs> {
           if (selectedIndex < widget.buttonLabels.length - 1) {
             setState(() {
               selectedIndex++;
+              RuntimeData().tabIndex = selectedIndex;
               widget.onTabSelected(widget.buttonLabels[selectedIndex]);
             });
             return;
@@ -100,6 +104,7 @@ class TabsState extends State<Tabs> {
                           onPressed: () {
                             setState(() {
                               selectedIndex = entry.key;
+                              RuntimeData().tabIndex = selectedIndex;
                               widget.onTabSelected(entry.value);
                             });
                           },
