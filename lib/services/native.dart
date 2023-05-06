@@ -13,8 +13,6 @@ import '../tools/time.dart';
 import 'setting.dart';
 import '../domain/writing_state.dart';
 
-
-
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Native._privateConstructor();
   static final Native _instance = Native._privateConstructor();
@@ -78,13 +76,14 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       if (targetDirectory.existsSync()) {
         var result = targetDirectory.statSync();
         var isWritable = result.mode & 0x92 != 0; // 0x92 = 10010010 in binary
-        List<FileSystemEntity> files = targetDirectory.listSync();
-        for (FileSystemEntity file in files) {
+        List<FileSystemEntity> files_ = targetDirectory.listSync();
+        files.clear();
+        for (FileSystemEntity file in files_) {
           if (file is File) {
             if (!file.path.endsWith('.mp4')) continue;
             // remove the file extension and the path
             String fileName = file.path.split('\\').last.split('.mp4').first;
-            this.files.add(fileName);
+            files.add(fileName);
           }
         }
         if (isWritable) {

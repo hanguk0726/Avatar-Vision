@@ -114,25 +114,19 @@ impl AsyncMethodHandler for RecordingHandler {
                 let mut frame_count = 0;
                 let recording_start_time = std::time::Instant::now();
                 // Record textures in a separate thread and compensate for delay to maintain the frame rate.
-                // it needs better way.
+                // this may need a better way.
                 let frame_interval = Duration::from_nanos(41_666_667);
-                let mut adjusted_frame_interval = Duration::from_nanos(41_666_667);
                 let mut accumulated = Duration::from_nanos(0);
-                let mut accumulated_minus = Duration::from_nanos(0);
                 let mut last_time = Instant::now();
                 let mut compensation = Duration::from_nanos(0);
-                let max_adjustment = Duration::from_nanos(400_000);
                 thread::spawn(move || loop {
                     let start_time = Instant::now();
                     let elapsed: Duration = start_time.duration_since(last_time);
                     last_time = start_time;
                     if elapsed > frame_interval {
-                        // Since the sleep won't be accurate even with the adjustment,
-                        // the main goal is to minimize the value of 'accumulated'.
-
                         let error_ = elapsed - frame_interval;
                         accumulated += error_;
-                        // adjusted_frame_interval -= error_.clamp(Duration::ZERO, max_adjustment);
+                        // Since the sleep won't be accurate even with the adjustment,
                         // try to cover missed frame count
                         if accumulated >= compensation {
                             let rgba = encoding_buffer.lock().unwrap();
@@ -141,30 +135,21 @@ impl AsyncMethodHandler for RecordingHandler {
                             });
                             frame_count += 1;
                             debug!(
-                                "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                                frame_count, elapsed, adjusted_frame_interval
+                                "frame_count: {:?}, elapsed: {:?}, frame_interval {:?}",
+                                frame_count, elapsed, frame_interval
                             );
-                            compensation += frame_interval / 2 + frame_interval / 3;
+                            compensation += frame_interval;
                         }
-                    } else {
-                        let error_ = frame_interval - elapsed;
-                        accumulated_minus += error_;
-                        if accumulated > accumulated_minus {
-                            accumulated -= accumulated_minus;
-                            accumulated_minus = Duration::from_nanos(0);
-                        }
-                        // adjusted_frame_interval += error_.clamp(Duration::ZERO, max_adjustment);
-                    }
-
-                    spin_sleep::sleep(adjusted_frame_interval);
+                    }  
+                    spin_sleep::sleep(frame_interval);
                     let rgba = encoding_buffer.lock().unwrap();
                     encoding_sender.send(rgba.clone()).unwrap_or_else(|e| {
                         debug!("encoding channel sending failed: {:?}", e);
                     });
                     frame_count += 1;
                     debug!(
-                        "frame_count: {:?}, elapsed: {:?}, adjusted_frame_interval {:?}",
-                        frame_count, elapsed, adjusted_frame_interval
+                        "frame_count: {:?}, elapsed: {:?}, frame_interval {:?}",
+                        frame_count, elapsed, frame_interval
                     );
                     debug!(
                         "accumulated: {:?}  recording: {:?}, compansation: {:?}",
