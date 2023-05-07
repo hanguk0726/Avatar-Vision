@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
-import 'package:video_diary/services/setting.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
@@ -40,6 +40,8 @@ class _VideoPageState extends State<VideoPage> {
   String eventKey = 'video';
   bool isMovedAway = false;
   final runtimeData = RuntimeData();
+  Timer? _timer;
+  DateTime recordingTime = DateTime.now();
   @override
   void initState() {
     super.initState();
@@ -69,17 +71,28 @@ class _VideoPageState extends State<VideoPage> {
     });
   }
 
+  void startTimter() {
+    _timer?.cancel();
+    var db = DatabaseService();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        recordingTime =
+            DateTime.now().subtract(Duration(seconds: db.lastestTimestamp));
+      });
+    });
+  }
+
   @override
   void dispose() {
     tabItem.close();
     _eventSubscription.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
-    final setting = context.watch<Setting>();
     final writingState = native.writingState;
     final recording = native.recording;
     final rendering = native.rendering;
@@ -118,6 +131,7 @@ class _VideoPageState extends State<VideoPage> {
               Container(), //empty container for the background
               if (rendering) texture(width, height),
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
+              if (recording || true) recordingInfo(),
               showMessageOnError(errors),
               menuTaps(recording: recording),
               _mediaControlButton(),
@@ -144,7 +158,40 @@ class _VideoPageState extends State<VideoPage> {
       isMovedAway: isMovedAway,
       bottom: 32,
       right: 32,
-      child: mediaControlButton(context: context),
+      child: mediaControlButton(
+          context: context,
+          onRecordStart: startTimter,
+          onRecordStop: () {
+            _timer?.cancel();
+          }),
+    );
+  }
+
+  Widget recordingInfo() {
+    return buildAnimatedPositioned(
+      isMovedAway: isMovedAway,
+      bottom: 32,
+      left: 32,
+      child: Text.rich(
+        TextSpan(
+          style: TextStyle(
+              color: customSky,
+              fontSize: 26,
+              fontFamily: subFont,
+              fontWeight: FontWeight.w600),
+          text: '',
+          // text: 'TITLE\n',
+          children: <TextSpan>[
+            TextSpan(
+              text: 'TIME:  ${DateFormat('mm:ss').format(recordingTime)}\n',
+            ),
+            TextSpan(
+              text:
+                  'DATE:  ${DateFormat('MM/dd/yyyy').format(DateTime.now())}',
+            ),
+          ],
+        ),
+      ),
     );
   }
 

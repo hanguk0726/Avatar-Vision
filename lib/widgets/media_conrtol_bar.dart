@@ -6,7 +6,10 @@ import '../domain/assets.dart';
 import '../domain/writing_state.dart';
 import '../services/native.dart';
 
-Widget mediaControlButton({required BuildContext context}) {
+Widget mediaControlButton(
+    {required BuildContext context,
+    required Function onRecordStart,
+    required Function onRecordStop}) {
   final native = context.watch<Native>();
 
   final writingState = native.writingState;
@@ -19,14 +22,16 @@ Widget mediaControlButton({required BuildContext context}) {
       currentCameraDevice.isNotEmpty;
   bool showMediaControlButton =
       currentCameraDevice.isNotEmpty && rendering && !recording;
-      
+
   if (showMediaControlButton) {
     return customButton(customSky, customBlack, 'REC', () {
+      onRecordStart();
       Native().startRecording();
     });
   }
   if (recording) {
     return customButton(customOrange, Colors.white, 'STOP', () {
+      onRecordStop();
       Native().stopRecording();
     });
   }

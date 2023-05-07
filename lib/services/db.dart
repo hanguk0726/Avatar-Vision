@@ -21,6 +21,7 @@ class DatabaseService {
 
   List<int> pastEntriesTimestamp = [];
   List<String> pastEntries = [];
+  int lastestTimestamp = 0;
 
   Future<void> init() async {
     final dir = Directory.current;
@@ -61,6 +62,7 @@ class DatabaseService {
   }
 
   void insert(int timestamp) {
+    lastestTimestamp = timestamp;
     String fileName =
         getFormattedTimestamp(timestamp: timestamp, format: fileNameFormat);
     final metadata = Metadata(

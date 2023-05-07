@@ -7,3 +7,4 @@ Color customOrange = const Color.fromARGB(255, 254, 100, 24);
 Color customOcean = const Color.fromARGB(255, 16, 88, 101);
 
 String mainFont = 'TitilliumWeb';
+String subFont = 'Rajdhani';

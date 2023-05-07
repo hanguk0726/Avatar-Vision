@@ -102,6 +102,14 @@ flutter:
           weight: 400
         - asset: assets/fonts/TitilliumWeb_SemiBold.ttf
           weight: 600
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani_Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Rajdhani_SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Rajdhani_Bold.ttf
+          weight: 800
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf
