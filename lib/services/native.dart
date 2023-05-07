@@ -61,6 +61,23 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   String filePathPrefix = '';
   String fileName = '';
   List<String> files = [];
+  void _deleteFile(int timestamp) {
+    final fileName = gererateFileName(timestamp);
+    File file = File('$filePathPrefix\\$fileName.mp4');
+    file.deleteSync();
+  }
+
+  void _copyFileToDesktop(String filePath) {
+    File file = File(filePath);
+    if (file.existsSync()) {
+      String desktopDir = '${Platform.environment['USERPROFILE']}\\Desktop';
+      File copiedFile =
+          file.copySync('$desktopDir\\${file.path.split('\\').last}');
+    } else {
+      print('File does not exist.');
+    }
+  }
+
   Future<void> checkFileDirectoryAndSetFiles() async {
     // On Windows, get or create the appdata folder
     if (Platform.isWindows) {

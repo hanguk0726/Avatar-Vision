@@ -104,6 +104,7 @@ class DatabaseService {
     pastEntries =
         getEntriesTimestamp().map((el) => gererateFileName(el)).toList();
     clearOutdatedRecords();
+    debugPrint('DB Synced');
   }
 }
 
