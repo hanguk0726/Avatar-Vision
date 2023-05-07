@@ -18,6 +18,7 @@ import '../domain/result.dart';
 import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
 import '../services/db.dart';
+import '../services/runtime_data.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
@@ -37,6 +38,8 @@ class _VideoPageState extends State<VideoPage> {
   String metadataQueryErrorMessage = '';
   late StreamSubscription<KeyEventPair> _eventSubscription;
   String eventKey = 'video';
+  bool isMovedAway = false;
+  final runtimeData = RuntimeData();
   @override
   void initState() {
     super.initState();
@@ -48,7 +51,8 @@ class _VideoPageState extends State<VideoPage> {
         MetadataEvent casted = event.event as MetadataEvent;
         // add data
         int timestamp = casted.timestamp;
-        final queryResult = DatabaseService().findByOsFileName(gererateFileName(timestamp));
+        final queryResult =
+            DatabaseService().findByOsFileName(gererateFileName(timestamp));
         if (queryResult is Success) {
           setState(() {
             selectedMetadata = (queryResult as Success<Metadata>).value;
@@ -102,33 +106,46 @@ class _VideoPageState extends State<VideoPage> {
     ];
 
     return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: customBlack,
-      drawerScrimColor: Colors.transparent,
-      body: Center(
-          child: SizedBox(
-        width: width,
-        height: height,
-        child: Stack(children: [
-          Container(), //empty container for the background
-          if (rendering) texture(width, height),
-          if (currentCameraDevice.isEmpty) messageNoCameraFound(),
-          showMessageOnError(errors),
-          menuTaps(recording: recording),
-          _mediaControlButton(),
-          pastEntryMetadata(recording: recording),
-          writingStateMessage(
-              writingState: writingState,
-              recording: recording,
-              rendering: rendering),
-        ]),
-      )),
-    );
+        key: _scaffoldKey,
+        backgroundColor: customBlack,
+        drawerScrimColor: Colors.transparent,
+        body: GestureDetector(
+          child: Center(
+              child: SizedBox(
+            width: width,
+            height: height,
+            child: Stack(children: [
+              Container(), //empty container for the background
+              if (rendering) texture(width, height),
+              if (currentCameraDevice.isEmpty) messageNoCameraFound(),
+              showMessageOnError(errors),
+              menuTaps(recording: recording),
+              _mediaControlButton(),
+              pastEntryMetadata(recording: recording),
+              writingStateMessage(
+                  writingState: writingState,
+                  recording: recording,
+                  rendering: rendering),
+            ]),
+          )),
+          onTap: () {
+            setState(() {
+              if (runtimeData.tabIndex == 0 || recording) {
+                isMovedAway = !isMovedAway;
+                EventBus().off = isMovedAway;
+              }
+            });
+          },
+        ));
   }
 
   Widget _mediaControlButton() {
-    return Positioned(
-        bottom: 32, right: 32, child: mediaControlButton(context: context));
+    return buildAnimatedPositioned(
+      isMovedAway: isMovedAway,
+      bottom: 32,
+      right: 32,
+      child: mediaControlButton(context: context),
+    );
   }
 
   Widget showMessageOnError(List<CustomError> errors) {
@@ -180,8 +197,10 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Widget menuTaps({required bool recording}) {
-    return Padding(
-        padding: const EdgeInsets.only(top: 32, left: 32),
+    return buildAnimatedPositioned(
+        isMovedAway: isMovedAway,
+        top: 32.0,
+        left: 32.0,
         child: recording
             ? recordingIndicator()
             : SingleChildScrollView(
@@ -209,4 +228,26 @@ class _VideoPageState extends State<VideoPage> {
                 ),
               ));
   }
+}
+
+Widget buildAnimatedPositioned({
+  required bool isMovedAway,
+  required Widget child,
+  Duration duration = const Duration(milliseconds: 500),
+  Curve curve = Curves.easeInOut,
+  double? top,
+  double? bottom,
+  double? left,
+  double? right,
+}) {
+  const double offset = 200;
+  return AnimatedPositioned(
+    duration: duration,
+    curve: curve,
+    top: top != null ? (isMovedAway ? top - offset : top) : null,
+    left: left != null ? (isMovedAway ? left - offset : left) : null,
+    right: right != null ? (isMovedAway ? right - offset : right) : null,
+    bottom: bottom != null ? (isMovedAway ? bottom - offset : bottom) : null,
+    child: child,
+  );
 }

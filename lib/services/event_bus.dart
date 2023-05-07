@@ -12,8 +12,12 @@ class EventBus {
   final _eventController = StreamController<KeyEventPair>.broadcast();
 
   Stream<KeyEventPair> get onEvent => _eventController.stream;
-
+  
+  bool off = false;
   void fire(Event event, String key) {
+    if (off) {
+      return;
+    }
     _eventController.sink.add(KeyEventPair(event, key));
   }
 

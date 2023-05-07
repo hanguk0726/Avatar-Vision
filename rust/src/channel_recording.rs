@@ -118,7 +118,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let frame_interval = Duration::from_nanos(41_666_667);
                 let mut accumulated = Duration::from_nanos(0);
                 let mut last_time = Instant::now();
-                let mut compensation = frame_interval + (frame_interval - frame_interval / 4);
+                let mut compensation = frame_interval + frame_interval/2;
                 thread::spawn(move || loop {
                     let start_time = Instant::now();
                     let elapsed: Duration = start_time.duration_since(last_time);
