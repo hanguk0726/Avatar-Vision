@@ -1,6 +1,8 @@
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:video_diary/services/native.dart';
 
@@ -17,6 +19,7 @@ class DatabaseService {
 
   late final Store store;
 
+  List<int> pastEntriesTimestamp = [];
   List<String> pastEntries = [];
 
   Future<void> init() async {
@@ -28,7 +31,6 @@ class DatabaseService {
 
   Result<Metadata> findByOsFileName(String fileName) {
     int timestamp = int.parse(fileName.split('_').last);
-    debugPrint('query timestamp :: $timestamp');
     final query = store
         .box<Metadata>()
         .query(Metadata_.timestamp.equals(timestamp))
@@ -37,18 +39,6 @@ class DatabaseService {
     if (result.isEmpty) {
       debugPrint('No metadata found for $fileName');
       return Error('No metadata found for $timestamp');
-    } else {
-      debugPrint('Metadata found for $fileName');
-      return Success(result.first);
-    }
-  }
-
-  Result<Metadata> findByTitle(String title) {
-    final query =
-        store.box<Metadata>().query(Metadata_.title.equals(title)).build();
-    final result = query.find();
-    if (result.isEmpty) {
-      return Error('No metadata found for $title');
     } else {
       return Success(result.first);
     }
@@ -85,7 +75,6 @@ class DatabaseService {
   List<int> getEntriesTimestamp() {
     Native native = Native();
     native.checkFileDirectoryAndSetFiles();
-    debugPrint("native.files :: ${native.files}");
     return native.files
         .map((el) => findByOsFileName(el))
         .whereType<Success>()
@@ -93,42 +82,27 @@ class DatabaseService {
         .toList();
   }
 
-  List<String> getEntries() {
-    var timestamp = getEntriesTimestamp();
-    debugPrint("timestamp :: ${timestamp.toString()}");
-
-    List<String> result = [];
-    for (var el in timestamp) {
-      store
-          .box<Metadata>()
-          .query(Metadata_.timestamp.equals(el))
-          .build()
-          .find()
-          .forEach((element) {
-            debugPrint("element.title :: ${element.title}");
-        result.add(element.title);
-      });
-    }
-    return result;
-  }
-
   void clearOutdatedRecords() {
-    // var files = getEntriesTimestamp();
+    var files = getEntriesTimestamp();
 
-    // final query = store.box<Metadata>().query().build();
-    // final result = query.find();
+    final query = store.box<Metadata>().query().build();
+    final result = query.find();
 
-    // for (var el in result) {
-    //   if (!files.contains(el.timestamp)) {
-    //     store.box<Metadata>().remove(el.id);
-    //   }
-    // }
+    for (var el in result) {
+      // the data inserted when start, but actual file could be writing now.
+      bool isTheDataJustAdded =
+          DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
+      if (!files.contains(el.timestamp) && !isTheDataJustAdded) {
+        store.box<Metadata>().remove(el.id);
+      }
+    }
   }
 
   sync() {
-    pastEntries = getEntries();
-    debugPrint("getEntries :: ${getEntries()}");
-    debugPrint("pastEntries :: ${pastEntries.toString()}");
+    var timestampList = getEntriesTimestamp();
+    pastEntriesTimestamp = timestampList;
+    pastEntries =
+        getEntriesTimestamp().map((el) => gererateFileName(el)).toList();
     clearOutdatedRecords();
   }
 }

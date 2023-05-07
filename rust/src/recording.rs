@@ -128,7 +128,7 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                buf_h264.extend_from_slice(nal);
+                    buf_h264.extend_from_slice(nal);
             }
         }
         debug!("encoding to h264 recv {} ", inner_count);

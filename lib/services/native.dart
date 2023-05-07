@@ -87,7 +87,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           }
         }
         if (isWritable) {
-          debugPrint('$targetDirectory is writable.');
+          // debugPrint('$targetDirectory is writable.');
         } else {
           debugPrint('$targetDirectory is not writable.');
           recordingHealthCheck = false;
@@ -152,6 +152,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           rendering = call.arguments;
           notifyListeners();
           rendering ? Wakelock.enable() : Wakelock.disable();
+
           return null;
         default:
           debugPrint('Unknown method ${call.method} ');

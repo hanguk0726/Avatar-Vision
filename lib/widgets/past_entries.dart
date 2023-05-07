@@ -32,17 +32,24 @@ class PastEntriesState extends State<PastEntries> {
   set selectedIndex(int value) => selectedIndexSubject.add(value);
   String eventKey = 'pastEntries';
   String allowedEventKey = 'tab';
-
+  Timer? _timer;
+  List<String> files = [];
   @override
   void initState() {
     super.initState();
-    Native native = context.read<Native>();
-    var db = DatabaseService();
+    DatabaseService db = DatabaseService();
     db.sync();
+    files = db.pastEntries;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      db.sync();
+      setState(() {
+        files = db.pastEntries;
+      });
+    });
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       if (db.pastEntries.isNotEmpty) {
-        String fileName = db.pastEntries[selectedIndex];
-        EventBus().fire(MetadataEvent(fileName), eventKey);
+        int timestamp = db.pastEntriesTimestamp[selectedIndex];
+        EventBus().fire(MetadataEvent(timestamp), eventKey);
       }
     });
     _eventSubscription = EventBus().onEvent.listen((event) {
@@ -82,6 +89,7 @@ class PastEntriesState extends State<PastEntries> {
     focusNode.dispose();
     _eventSubscription.cancel();
     _selectedIndexSubscription.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -102,7 +110,8 @@ class PastEntriesState extends State<PastEntries> {
   void play() async {
     var db = DatabaseService();
     var native = Native();
-    String fileName = db.pastEntries[selectedIndex];
+    int timestamp = db.pastEntriesTimestamp[selectedIndex];
+    String fileName = gererateFileName(timestamp);
     String filePath = "${native.filePathPrefix}/$fileName.mp4";
     focusNode.unfocus();
     Navigator.push(
@@ -118,9 +127,6 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   build(BuildContext context) {
-    var db = DatabaseService();
-    db.sync();
-    List<String> files = DatabaseService().pastEntries;
     return ClipRRect(
         child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),

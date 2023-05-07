@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 // This could be refactored when Flutter supports sealed classes.
@@ -6,7 +5,7 @@ abstract class Event<T> {
   const Event._();
 
   factory Event.keyboard(KeyboardEventType type) = KeyboardEvent<T>;
-  factory Event.metadata(String videoTitle) = MetadataEvent<T>;
+  factory Event.metadata(int timestamp) = MetadataEvent<T>;
 }
 
 enum KeyboardEventType {
@@ -46,9 +45,9 @@ class KeyboardEvent<T> extends Event<T> {
 }
 
 class MetadataEvent<T> extends Event<T> {
-  final String title;
+  final int timestamp;
 
-  const MetadataEvent(this.title) : super._();
+  const MetadataEvent(this.timestamp) : super._();
 
   
 }

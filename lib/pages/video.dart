@@ -47,8 +47,8 @@ class _VideoPageState extends State<VideoPage> {
       if (event.event is MetadataEvent) {
         MetadataEvent casted = event.event as MetadataEvent;
         // add data
-        String title = casted.title;
-        final queryResult = DatabaseService().findByTitle(title);
+        int timestamp = casted.timestamp;
+        final queryResult = DatabaseService().findByOsFileName(gererateFileName(timestamp));
         if (queryResult is Success) {
           setState(() {
             selectedMetadata = (queryResult as Success<Metadata>).value;
