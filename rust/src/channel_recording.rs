@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
+    io::Read,
     mem::ManuallyDrop,
     ops::Not,
     sync::{
@@ -18,13 +19,18 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
-use kanal::{AsyncReceiver, AsyncSender};
+use kanal::{AsyncReceiver, AsyncSender, Sender};
 use log::{debug, error, info};
+use nokhwa::Buffer;
+use tokio::{
+    runtime::Runtime,
+    task::{block_in_place, spawn_blocking},
+};
 
 use crate::{
     channel::ChannelHandler,
     channel_audio::Pcm,
-    domain::image_processing::rgba_to_yuv,
+    domain::image_processing::{decode_to_rgb, rgba_to_yuv},
     recording::{encode_to_h264, to_mp4, RecordingInfo, WritingState},
     tools::ordqueue::{new, OrdQueueIter},
 };
@@ -82,6 +88,7 @@ impl RecordingHandler {
             .call_method_sync(target_isolate, "mark_recording_state", recording, |_| {});
     }
 }
+
 #[async_trait(?Send)]
 impl AsyncMethodHandler for RecordingHandler {
     fn assign_invoker(&self, _invoker: AsyncMethodInvoker) {
@@ -102,64 +109,105 @@ impl AsyncMethodHandler for RecordingHandler {
                 let encoding_buffer = self.encoding_buffer.clone();
                 let encoding_sender = channel_handler.lock().unwrap().encoding.0.clone();
                 let recording = recording_info.lock().unwrap().recording.clone();
-                {
-                    self.audio.lock().unwrap().data.lock().unwrap().clear();
-                }
+                let recording_receiver = self.channel_handler.lock().unwrap().recording.1.clone();
                 // start audio before start recording
                 {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
                 self.mark_recording_state_on_ui(call.isolate);
-                let mut frame_count = 0;
-                let recording_start_time = std::time::Instant::now();
-                // Record textures in a separate thread and compensate for delay to maintain the frame rate.
-                // this may need a better way.
-                let frame_interval = Duration::from_nanos(41_666_667);
-                let mut accumulated = Duration::from_nanos(0);
+
                 let mut last_time = Instant::now();
-                let mut compensation = frame_interval + frame_interval/2;
-                thread::spawn(move || loop {
-                    let start_time = Instant::now();
-                    let elapsed: Duration = start_time.duration_since(last_time);
-                    last_time = start_time;
-                    if elapsed > frame_interval {
-                        let error_ = elapsed - frame_interval;
-                        accumulated += error_;
-                        // Since the sleep won't be accurate even with the adjustment,
-                        // try to cover missed frame count
-                        if accumulated >= compensation {
-                            let rgba = encoding_buffer.lock().unwrap();
-                            encoding_sender.send(rgba.clone()).unwrap_or_else(|e| {
-                                debug!("encoding channel sending failed: {:?}", e);
-                            });
-                            frame_count += 1;
-                            debug!(
-                                "frame_count: {:?}, elapsed: {:?}, frame_interval {:?}",
-                                frame_count, elapsed, frame_interval
-                            );
-                            compensation += frame_interval;
+
+                let mut batch =
+                    move |list: Vec<(Buffer, Instant)>, encoding_sender: Sender<Buffer>| -> u32 {
+                        let mut last_on_this_batch = None;
+                        let mut count = 0u32;
+                        //seek until 1s elapsed from last_time
+                        for (_, time) in list.iter() {
+                            count += 1;
+                            if time.duration_since(last_time).as_secs() >= 1 {
+                                last_on_this_batch = Some(time);
+
+                                break;
+                            }
                         }
-                    }
-                    spin_sleep::sleep(frame_interval);
-                    let rgba = encoding_buffer.lock().unwrap();
-                    encoding_sender.send(rgba.clone()).unwrap_or_else(|e| {
-                        debug!("encoding channel sending failed: {:?}", e);
+                        if last_on_this_batch.is_none() {
+                            return 0;
+                        }
+                        let mut step = 1;
+                        let mut loop_count = 0;
+                        for i in 0..count {
+                            let rest_loop = 24 - loop_count;
+                            let rest_index = count - i;
+                            if step == 0 {
+                                step = (rest_index as f32 / rest_loop as f32).floor() as u32;
+                                if step == 0 {
+                                    step = 1;
+                                }
+                            } else {
+                                step -= 1;
+                                continue;
+                            }
+
+                            let (buffer, _) = &list[i as usize];
+                            encoding_sender.send(buffer.clone()).unwrap();
+                            loop_count += 1;
+                            if loop_count == 24 {
+                                break;
+                            }
+                            debug!("rest_loop {}, rest_index {}", rest_loop, rest_index);
+
+                            debug!("loop_count ::{} step:: {}, index {}", loop_count, step, i);
+                        }
+                        // if sent == 23 && i + step < count {
+                        //     let (buffer, time_) = &list[(i + step) as usize];
+                        //     encoding_sender.send(buffer.clone()).unwrap();
+                        //     sent += 1;
+                        //     debug!("Sent additional frame");
+                        // }
+                        debug!("Sent {} frames", loop_count);
+                        if loop_count != 24 {
+                            panic!("Sent {} frames", loop_count)
+                        }
+                        last_time += Duration::from_secs(1);
+                        count
+                    };
+                {
+                    self.audio.lock().unwrap().data.lock().unwrap().clear();
+                }
+                // + 1s on last_time when flush
+                let list: Arc<Mutex<Vec<(Buffer, Instant)>>> = Arc::new(Mutex::new(vec![]));
+
+                thread::spawn(move || {
+                    rayon::scope(|s| {
+                        s.spawn(|_| {
+                            while let Ok(el) = recording_receiver.recv() {
+                                list.lock().unwrap().push(el);
+                            }
+                            if recording.load(std::sync::atomic::Ordering::Relaxed) {
+                                recording_receiver.close();
+                            }
+                        });
+                        s.spawn(|_| {
+                            loop {
+                                let list_ = { list.lock().unwrap().clone() };
+                                if list_.len() > 0 {
+                                    let flushed_length = batch(list_, encoding_sender.clone());
+                                    if flushed_length != 0 {
+                                        //remove all flushed elements from origin
+                                        let mut list = list.lock().unwrap();
+                                        list.drain(0..flushed_length as usize);
+                                        if recording_receiver.is_closed() {
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    thread::sleep(Duration::from_millis(400));
+                                }
+                            }
+                        });
                     });
-                    frame_count += 1;
-                    debug!(
-                        "frame_count: {:?}, elapsed: {:?}, frame_interval {:?}",
-                        frame_count, elapsed, frame_interval
-                    );
-                    debug!(
-                        "accumulated: {:?}  recording: {:?}, compansation: {:?}",
-                        accumulated,
-                        std::time::Instant::now().duration_since(recording_start_time),
-                        compensation
-                    );
-                    if recording.load(std::sync::atomic::Ordering::Relaxed).not() {
-                        break;
-                    }
                 });
 
                 info!("The recording got into the process.");
@@ -198,12 +246,13 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 let (queue, iter) = new();
                 let queue = Arc::new(queue);
-                let pool = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
+                let mut worker_count = 2;
+                let mut pool = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(worker_count)
                     .build()
                     .unwrap();
                 update_writing_state(WritingState::Encoding);
-
+                let writing_state = { self.recording_info.lock().unwrap().writing_state.clone() };
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
                 let audio = Arc::clone(&self.audio);
@@ -211,9 +260,17 @@ impl AsyncMethodHandler for RecordingHandler {
                 thread::spawn(move || {
                     rayon::scope(|s| {
                         s.spawn(|_| {
-                            while let Ok(rgba) = encoding_receiver.recv() {
+                            while let Ok(buf) = encoding_receiver.recv() {
                                 let queue = queue.clone();
                                 pool.spawn(async move {
+                                    let rgba = decode_to_rgb(
+                                        buf.buffer(),
+                                        &buf.source_frame_format(),
+                                        true,
+                                        width as u32,
+                                        height as u32,
+                                    )
+                                    .unwrap();
                                     let yuv = rgba_to_yuv(&rgba[..], width, height);
                                     queue.push(count, yuv).unwrap_or_else(|e| {
                                         error!("queue push failed: {:?}", e);
@@ -222,6 +279,15 @@ impl AsyncMethodHandler for RecordingHandler {
                                 });
                                 // debug!("encoded {} frames", count);
                                 count += 1;
+                                if *writing_state.lock().unwrap() == WritingState::Saving {
+                                    if worker_count == 2 {
+                                        worker_count = 8;
+                                        pool = tokio::runtime::Builder::new_multi_thread()
+                                            .worker_threads(worker_count)
+                                            .build()
+                                            .unwrap();
+                                    }
+                                }
                             }
                             let audio = audio.lock().unwrap();
                             fianl_audio = Some(audio.clone());

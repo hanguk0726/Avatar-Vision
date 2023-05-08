@@ -128,7 +128,16 @@ class _VideoPageState extends State<VideoPage> {
             height: height,
             child: Stack(children: [
               Container(), //empty container for the background
-              if (rendering) texture(width, height),
+              AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                  child: rendering ? texture(width, height) : const SizedBox()),
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               showMessageOnError(errors),

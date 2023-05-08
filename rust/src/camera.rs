@@ -86,7 +86,7 @@ impl Camera {
 
 pub fn inflate_camera_conection(
     index: CameraIndex,
-    rendering_sender: Sender<Buffer>,
+    rendering_sender: Sender<(Buffer, Instant)>,
     requested_resolution: Option<&String>,
     resolution_settings: Arc<ResolutionSettings>,
 ) -> Result<CallbackCamera, Error> {
@@ -111,10 +111,13 @@ pub fn inflate_camera_conection(
     }
 
     let mut camera = CallbackCamera::new(index, requested.unwrap(), move |buf| {
-        rendering_sender.try_send_realtime(buf).unwrap_or_else(|e| {
-            error!("Error sending frame: {:?}", e);
-            false
-        });
+        // debug_time_elasped();
+        rendering_sender
+            .try_send_realtime((buf, std::time::Instant::now()))
+            .unwrap_or_else(|e| {
+                error!("Error sending frame: {:?}", e);
+                false
+            });
     })
     .map_err(|why| {
         error!("Error opening camera: {:?}", why);
@@ -125,6 +128,7 @@ pub fn inflate_camera_conection(
         Error
     })?;
     let camera_info = camera.info().clone();
+    
     debug!("format :{}", format);
     debug!("camera_info :{}", camera_info);
 
@@ -147,8 +151,8 @@ fn debug_time_elasped() {
     if let Ok(elapsed) = TIME_INSTANCE.lock() {
         match elapsed.borrow().as_ref() {
             Some(_elapsed) => {
-                // let duration = _elapsed.elapsed().as_millis();
-                // debug!("sending frame {}", duration);
+                let duration = _elapsed.elapsed().as_nanos();
+                debug!("sending frame {}", duration);
             }
             None => {}
         }

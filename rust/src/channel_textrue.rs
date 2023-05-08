@@ -44,18 +44,23 @@ impl AsyncMethodHandler for TextureHandler {
                 let render_buffer_index: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
                 let receiver = self.channel_handler.lock().unwrap().rendering.1.clone();
-
+                let recording = self.recording.clone();
                 let pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(8)
                     .build()
                     .unwrap();
-
+                let sender = self.channel_handler.lock().unwrap().recording.0.clone();
                 let mut index = 0;
                 let pixel_buffer = self.render_buffer.clone();
-                while let Ok(buf) = receiver.recv() {
+                while let Ok((buf, timestamp)) = receiver.recv() {
                     let render_buffer_index = render_buffer_index.clone();
                     let pixel_buffer = pixel_buffer.clone();
                     let encoding = self.encoding_buffer.clone();
+                    if recording.load(std::sync::atomic::Ordering::Relaxed) {
+                        sender
+                            .send((buf.clone(), timestamp))
+                            .unwrap_or_else(|e| debug!("Error sending to recording channel: {}",e));
+                    }
                     index += 1;
                     pool.spawn(async move {
                         decode(
