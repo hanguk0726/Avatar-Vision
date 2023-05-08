@@ -40,6 +40,7 @@ pub struct RecordingHandler {
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub encoding_buffer: Arc<Mutex<Vec<u8>>>,
+    final_audio_buffer: Arc<Mutex<Pcm>>,
     uiEvent: (
         Arc<AsyncSender<(String, String)>>,
         Arc<AsyncReceiver<(String, String)>>,
@@ -62,6 +63,7 @@ impl RecordingHandler {
             recording_info,
             channel_handler,
             encoding_buffer,
+            final_audio_buffer: Arc::new(Mutex::new(Pcm::new())),
             uiEvent,
             invoker: Late::new(),
         }
@@ -117,64 +119,75 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_recording_state_on_ui(call.isolate);
 
-                let mut last_time = Instant::now();
+                let mut last_time = None;
 
                 let mut batch =
                     move |list: Vec<(Buffer, Instant)>, encoding_sender: Sender<Buffer>| -> u32 {
+                        if last_time.is_none() {
+                            last_time = Some(list.first().unwrap().1);
+                        }
                         let mut last_on_this_batch = None;
                         let mut count = 0u32;
                         //seek until 1s elapsed from last_time
                         for (_, time) in list.iter() {
-                            count += 1;
-                            if time.duration_since(last_time).as_secs() >= 1 {
+                            if time.duration_since(last_time.unwrap()).as_secs() >= 1 {
                                 last_on_this_batch = Some(time);
 
                                 break;
                             }
+                            count += 1;
                         }
                         if last_on_this_batch.is_none() {
                             return 0;
                         }
-                        let mut step = 1;
+                        let mut step = 0;
                         let mut loop_count = 0;
+                        let mut low_frame = false;
+
+                        if count < 24 {
+                            info!("count is less than 24, count {}", count);
+                            low_frame = true;
+                        }
                         for i in 0..count {
                             let rest_loop = 24 - loop_count;
                             let rest_index = count - i;
+                            debug!("rest_loop {}, rest_index {}", rest_loop, rest_index);
                             if step == 0 {
                                 step = (rest_index as f32 / rest_loop as f32).floor() as u32;
-                                if step == 0 {
-                                    step = 1;
-                                }
                             } else {
                                 step -= 1;
                                 continue;
+                            }
+                            if rest_loop >= rest_index {
+                                step = 0;
                             }
 
                             let (buffer, _) = &list[i as usize];
                             encoding_sender.send(buffer.clone()).unwrap();
                             loop_count += 1;
+                            debug!("loop_count ::{} step:: {}, index {}", loop_count, step, i);
                             if loop_count == 24 {
+                                debug!("Sent 24 frames :: break");
                                 break;
                             }
-                            debug!("rest_loop {}, rest_index {}", rest_loop, rest_index);
-
-                            debug!("loop_count ::{} step:: {}, index {}", loop_count, step, i);
+                            if rest_loop < 1 && loop_count < 24 {
+                                // send additional frame
+                                let (buffer, _) = &list[(count - 1) as usize];
+                                encoding_sender.send(buffer.clone()).unwrap();
+                                loop_count += 1;
+                                debug!("Sent additional frame");
+                            }
                         }
-                        // if sent == 23 && i + step < count {
-                        //     let (buffer, time_) = &list[(i + step) as usize];
-                        //     encoding_sender.send(buffer.clone()).unwrap();
-                        //     sent += 1;
-                        //     debug!("Sent additional frame");
-                        // }
                         debug!("Sent {} frames", loop_count);
                         if loop_count != 24 {
-                            panic!("Sent {} frames", loop_count)
+                            error!("Sent {} frames", loop_count)
                         }
-                        last_time += Duration::from_secs(1);
+                        last_time = Some(last_time.unwrap() + Duration::from_secs(1));
                         count
                     };
                 {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
+                    debug!("**************************** audio data cleared ****************************");
                 }
                 // + 1s on last_time when flush
                 let list: Arc<Mutex<Vec<(Buffer, Instant)>>> = Arc::new(Mutex::new(vec![]));
@@ -245,7 +258,8 @@ impl AsyncMethodHandler for RecordingHandler {
                     self.channel_handler.lock().unwrap().reset_encoding();
                 }
                 let (queue, iter) = new();
-                let queue = Arc::new(queue);
+                let queue: Arc<crate::tools::ordqueue::OrdQueue<Vec<u8>>> = Arc::new(queue);
+                let final_audio = self.final_audio_buffer.clone();
                 let mut worker_count = 2;
                 let mut pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(worker_count)
@@ -255,8 +269,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let writing_state = { self.recording_info.lock().unwrap().writing_state.clone() };
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
-                let audio = Arc::clone(&self.audio);
-                let mut fianl_audio: Option<Pcm> = None;
+
                 thread::spawn(move || {
                     rayon::scope(|s| {
                         s.spawn(|_| {
@@ -289,8 +302,7 @@ impl AsyncMethodHandler for RecordingHandler {
                                     }
                                 }
                             }
-                            let audio = audio.lock().unwrap();
-                            fianl_audio = Some(audio.clone());
+
                             drop(queue);
 
                             debug!("terminate receiving frames on recording");
@@ -317,7 +329,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         &processed[..],
                         file_path,
                         24,
-                        fianl_audio.unwrap(),
+                        final_audio.lock().unwrap().to_owned(),
                         width as u32,
                         height as u32,
                     ) {
@@ -340,6 +352,11 @@ impl AsyncMethodHandler for RecordingHandler {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.stop();
                 }
+                let audio = Arc::clone(&self.audio);
+                let audio = audio.lock().unwrap();
+                let mut final_audio = self.final_audio_buffer.lock().unwrap();
+                *final_audio = audio.to_owned();
+                debug!("**************************** audio data finalized ****************************");
                 self.channel_handler.lock().unwrap().encoding.0.close();
                 self.mark_recording_state_on_ui(call.isolate);
                 self.recording_info

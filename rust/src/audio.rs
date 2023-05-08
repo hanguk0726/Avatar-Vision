@@ -4,6 +4,7 @@ use log::debug;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use crate::channel_audio::{cpal_available_inputs, Pcm};
 
@@ -54,7 +55,6 @@ pub fn open_audio_stream(
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 
     let buffer_clone = Arc::clone(&buffer);
-
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),

@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     mem::ManuallyDrop,
-    sync::{Arc, Mutex, atomic::AtomicBool},
+    sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
 
@@ -17,7 +17,7 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::{audio::{open_audio_stream, AudioStream}};
+use crate::audio::{open_audio_stream, AudioStream};
 
 pub struct AudioHandler {
     pub capture_white_sound: Arc<AtomicBool>,
@@ -31,6 +31,17 @@ pub struct Pcm {
     pub sample_rate: u32,
     pub channels: u16,
     pub bit_rate: usize,
+}
+
+impl Pcm {
+    pub fn new() -> Self {
+        Self {
+            data: Arc::new(Mutex::new(vec![])),
+            sample_rate: 0,
+            channels: 0,
+            bit_rate: 0,
+        }
+    }
 }
 
 #[async_trait(?Send)]
@@ -77,7 +88,7 @@ impl AsyncMethodHandler for AudioHandler {
                 //     thread::current().id()
                 // );
                 let mut data = vec![];
-                
+
                 if let Some(_) = self.current_device.lock().unwrap().as_ref() {
                     let audio = self.audio.lock().unwrap();
                     data = audio.data.lock().unwrap().drain(..).collect::<Vec<u8>>();
@@ -140,8 +151,6 @@ impl AsyncMethodHandler for AudioHandler {
         }
     }
 }
-
-
 
 pub fn init(audio_handler: AudioHandler) {
     thread::spawn(|| {
