@@ -147,7 +147,7 @@ fn debug_time_elasped() {
     if let Ok(elapsed) = TIME_INSTANCE.lock() {
         match elapsed.borrow().as_ref() {
             Some(_elapsed) => {
-                // let duration = elapsed.elapsed().as_millis();
+                // let duration = _elapsed.elapsed().as_millis();
                 // debug!("sending frame {}", duration);
             }
             None => {}

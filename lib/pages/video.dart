@@ -19,6 +19,7 @@ import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
 import '../services/db.dart';
 import '../services/runtime_data.dart';
+import '../tools/time.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
 import '../widgets/texture.dart';
@@ -41,7 +42,7 @@ class _VideoPageState extends State<VideoPage> {
   bool isMovedAway = false;
   final runtimeData = RuntimeData();
   Timer? _timer;
-  DateTime recordingTime = DateTime.now();
+  Duration recordingTime = Duration.zero;
   @override
   void initState() {
     super.initState();
@@ -73,11 +74,9 @@ class _VideoPageState extends State<VideoPage> {
 
   void startTimter() {
     _timer?.cancel();
-    var db = DatabaseService();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        recordingTime =
-            DateTime.now().subtract(Duration(seconds: db.lastestTimestamp));
+        recordingTime = recordingTime + const Duration(seconds: 1);
       });
     });
   }
@@ -131,7 +130,7 @@ class _VideoPageState extends State<VideoPage> {
               Container(), //empty container for the background
               if (rendering) texture(width, height),
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
-              if (recording || true) recordingInfo(),
+              if (recording) recordingInfo(),
               showMessageOnError(errors),
               menuTaps(recording: recording),
               _mediaControlButton(),
@@ -168,6 +167,7 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Widget recordingInfo() {
+    var db = DatabaseService();
     return buildAnimatedPositioned(
       isMovedAway: isMovedAway,
       bottom: 32,
@@ -179,15 +179,13 @@ class _VideoPageState extends State<VideoPage> {
               fontSize: 26,
               fontFamily: subFont,
               fontWeight: FontWeight.w600),
-          text: '',
-          // text: 'TITLE\n',
+          text: 'LOG ENTRY:  ${formatInt(db.pastEntries.length + 1)}\n',
           children: <TextSpan>[
             TextSpan(
-              text: 'TIME:  ${DateFormat('mm:ss').format(recordingTime)}\n',
+              text: 'TIME:  ${formatDuration(recordingTime)}\n',
             ),
             TextSpan(
-              text:
-                  'DATE:  ${DateFormat('MM/dd/yyyy').format(DateTime.now())}',
+              text: 'DATE:  ${DateFormat('MM/dd/yyyy').format(DateTime.now())}',
             ),
           ],
         ),
@@ -221,12 +219,19 @@ class _VideoPageState extends State<VideoPage> {
       {required WritingState writingState,
       required bool recording,
       required bool rendering}) {
-    if (rendering || selectedMetadata != null) {
-      return const SizedBox();
-    } else if (writingState != WritingState.idle) {
-      return messageWidget(writingState.toName(), true, true);
-    }
-    return const SizedBox();
+    bool showMessage = writingState != WritingState.idle && !rendering;
+    return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        child: showMessage
+            ? messageWidget(writingState.toName(), true, true)
+            : const SizedBox());
+
     // return Positioned(
     //     top: 32,
     //     right: 32,

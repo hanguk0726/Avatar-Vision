@@ -28,6 +28,7 @@ class DatabaseService {
     await dir.create(recursive: true);
     var dbPath = join(dir.path, 'video_diary_database');
     store = await openStore(directory: dbPath);
+    sync();
   }
 
   Result<Metadata> findByOsFileName(String fileName) {

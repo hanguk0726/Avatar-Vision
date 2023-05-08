@@ -150,6 +150,11 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           }
           notifyListeners();
           debugPrint('writingState: $writingState');
+          if (writingState == WritingState.idle) {
+            if (!rendering) {
+              startCamera();
+            }
+          }
           return null;
 
         case 'mark_recording_state':
