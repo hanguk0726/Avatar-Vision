@@ -78,7 +78,6 @@ fn init_channels(
     let recording = Arc::new(AtomicBool::new(false));
     let rendering = Arc::new(AtomicBool::new(false));
     let capture_white_sound = Arc::new(AtomicBool::new(false));
-    let encoding_buffer = Arc::new(Mutex::new(Vec::new()));
     let recording_info = Arc::new(Mutex::new(RecordingInfo::new(
         recording.clone(),
         capture_white_sound.clone(),
@@ -94,7 +93,6 @@ fn init_channels(
         render_buffer,
         channel_handler: channel_handler.clone(),
         recording: recording.clone(),
-        encoding_buffer: encoding_buffer.clone(),
     });
 
     channel_camera::init(CameraHandler::new(
@@ -109,7 +107,6 @@ fn init_channels(
         audio.clone(),
         recording_info.clone(),
         channel_handler,
-        encoding_buffer,
     ));
 
     channel_rendering::init(RenderingHandler::new(texture, rendering));

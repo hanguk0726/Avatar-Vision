@@ -39,7 +39,6 @@ pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
-    pub encoding_buffer: Arc<Mutex<Vec<u8>>>,
     final_audio_buffer: Arc<Mutex<Pcm>>,
     uiEvent: (
         Arc<AsyncSender<(String, String)>>,
@@ -53,7 +52,6 @@ impl RecordingHandler {
         audio: Arc<Mutex<Pcm>>,
         recording_info: Arc<Mutex<RecordingInfo>>,
         channel_handler: Arc<Mutex<ChannelHandler>>,
-        encoding_buffer: Arc<Mutex<Vec<u8>>>,
     ) -> Self {
         let (s, r) = kanal::bounded_async(1);
         let uiEvent = (Arc::new(s), Arc::new(r));
@@ -62,7 +60,6 @@ impl RecordingHandler {
             audio,
             recording_info,
             channel_handler,
-            encoding_buffer,
             final_audio_buffer: Arc::new(Mutex::new(Pcm::new())),
             uiEvent,
             invoker: Late::new(),
@@ -108,7 +105,6 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let recording_info = self.recording_info.clone();
                 let channel_handler = self.channel_handler.clone();
-                let encoding_buffer = self.encoding_buffer.clone();
                 let encoding_sender = channel_handler.lock().unwrap().encoding.0.clone();
                 let recording = recording_info.lock().unwrap().recording.clone();
                 let recording_receiver = self.channel_handler.lock().unwrap().recording.1.clone();
@@ -126,18 +122,22 @@ impl AsyncMethodHandler for RecordingHandler {
                         if last_time.is_none() {
                             last_time = Some(list.first().unwrap().1);
                         }
-                        let mut last_on_this_batch = None;
+                        let mut enough = false;
                         let mut count = 0u32;
                         //seek until 1s elapsed from last_time
                         for (_, time) in list.iter() {
                             if time.duration_since(last_time.unwrap()).as_secs() >= 1 {
-                                last_on_this_batch = Some(time);
+                                enough = true;
 
                                 break;
                             }
                             count += 1;
                         }
-                        if last_on_this_batch.is_none() {
+                        // A frame of next 1s(next batch) should start from the last frame before elapsed 1s on this time batch.
+                        // reduce count so that the frame wouldn't be drained.
+                        count -= 1;
+                        if enough.not() {
+                            info!("not enough frame");
                             return 0;
                         }
                         let mut step = 0;
@@ -145,7 +145,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         let mut low_frame = false;
 
                         if count < 24 {
-                            info!("count is less than 24, count {}", count);
+                            info!("count is less than 24, count :: {}", count);
                             low_frame = true;
                         }
                         for i in 0..count {
@@ -165,7 +165,12 @@ impl AsyncMethodHandler for RecordingHandler {
                             let (buffer, _) = &list[i as usize];
                             encoding_sender.send(buffer.clone()).unwrap();
                             loop_count += 1;
-                            debug!("loop_count ::{} step:: {}, index {}", loop_count, step, i);
+                            debug!("loop_count ::{} step:: {}, index {}, count {}", loop_count, step, i, count);
+                            if low_frame {
+                                encoding_sender.send(buffer.clone()).unwrap();
+                                loop_count += 1;
+                                debug!("sent additional frame");
+                            }
                             if loop_count == 24 {
                                 debug!("Sent 24 frames :: break");
                                 break;

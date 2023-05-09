@@ -22,7 +22,6 @@ pub struct TextureHandler {
     pub render_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub recording: Arc<AtomicBool>,
-    pub encoding_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 #[async_trait(?Send)]
@@ -55,7 +54,6 @@ impl AsyncMethodHandler for TextureHandler {
                 while let Ok((buf, timestamp)) = receiver.recv() {
                     let render_buffer_index = render_buffer_index.clone();
                     let pixel_buffer = pixel_buffer.clone();
-                    let encoding = self.encoding_buffer.clone();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         sender
                             .send((buf.clone(), timestamp))
@@ -68,7 +66,6 @@ impl AsyncMethodHandler for TextureHandler {
                             buf,
                             render_buffer_index,
                             pixel_buffer,
-                            encoding,
                             width,
                             height,
                         );
@@ -102,7 +99,6 @@ fn decode(
     buf: Buffer,
     render_buffer: Arc<AtomicUsize>,
     pixel_buffer: Arc<Mutex<Vec<u8>>>,
-    encoding: Arc<Mutex<Vec<u8>>>,
     width: u32,
     height: u32,
 ) {
@@ -124,8 +120,6 @@ fn decode(
     let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
     if index > render_buffer_index.to_owned() {
         let mut pixel_buffer = pixel_buffer.lock().unwrap();
-        let mut encoding_buffer = encoding.lock().unwrap();
-        *encoding_buffer = decoded.clone();
         *pixel_buffer = decoded;
         render_buffer.store(index, std::sync::atomic::Ordering::SeqCst);
     } else {
