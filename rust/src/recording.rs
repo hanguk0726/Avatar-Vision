@@ -128,7 +128,12 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
+                if inner_count < 240 {
                     buf_h264.extend_from_slice(nal);
+                    
+                } else {
+                    debug!("40min done {:?} ####################################################",inner_count);
+                }
             }
         }
         // debug!("encoding to h264 recv {} ", inner_count);

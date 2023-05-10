@@ -131,7 +131,7 @@ class _VideoPageState extends State<VideoPage> {
               AnimatedOpacity(
                   duration: const Duration(milliseconds: 700),
                   opacity: rendering ? 1 : 0,
-                  child:  texture(width, height)),
+                  child: texture(width, height)),
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               showMessageOnError(errors),
@@ -262,6 +262,7 @@ class _VideoPageState extends State<VideoPage> {
         child: recording
             ? recordingIndicator()
             : SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,

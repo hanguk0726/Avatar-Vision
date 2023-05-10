@@ -115,79 +115,55 @@ impl AsyncMethodHandler for RecordingHandler {
                 }
                 self.mark_recording_state_on_ui(call.isolate);
 
-                let mut last_time = None;
+                let mut timestamp = None;
 
                 let mut batch =
                     move |list: Vec<(Buffer, Instant)>, encoding_sender: Sender<Buffer>| -> u32 {
-                        if last_time.is_none() {
-                            last_time = Some(list.first().unwrap().1);
+                        let fps = 24;
+                        let one_second = Duration::from_millis(1000);
+                        let frame_interval = Duration::from_millis(1000 / fps);
+                        if timestamp.is_none() {
+                            timestamp = Some(list.first().unwrap().1 + one_second);
                         }
                         let mut enough = false;
                         let mut count = 0u32;
-                        //seek until 1s elapsed from last_time
                         for (_, time) in list.iter() {
-                            if time.duration_since(last_time.unwrap()).as_secs() >= 1 {
+                            if time > &timestamp.unwrap() {
                                 enough = true;
-
                                 break;
                             }
                             count += 1;
                         }
-                        // A frame of next 1s(next batch) should start from the last frame before elapsed 1s on this time batch.
-                        // reduce count so that the frame wouldn't be drained.
-                        count -= 1;
                         if enough.not() {
-                            info!("not enough frame");
+                            info!("not enough frame, wait and retry");
+                            thread::sleep(Duration::from_millis(400));
                             return 0;
                         }
-                        let mut step = 0;
                         let mut loop_count = 0;
-                        let mut low_frame = false;
 
-                        if count < 24 {
-                            info!("count is less than 24, count :: {}", count);
-                            low_frame = true;
-                        }
+                        let mut last_tick = list.first().unwrap().1;
                         for i in 0..count {
-                            let rest_loop = 24 - loop_count;
-                            let rest_index = count - i;
-                            debug!("rest_loop {}, rest_index {}", rest_loop, rest_index);
-                            if step == 0 {
-                                step = (rest_index as f32 / rest_loop as f32).floor() as u32;
-                            } else {
-                                step -= 1;
-                                continue;
-                            }
-                            if rest_loop >= rest_index {
-                                step = 0;
+                            let (buffer, time) = &list[i as usize];
+                            if i != 0 {
+                                let diff = time.saturating_duration_since(last_tick);
+                                debug!("diff: {:?}, i {:?} ,time {:?}", diff, i, time);
+                                if diff < frame_interval {
+                                    continue;
+                                }
                             }
 
-                            let (buffer, _) = &list[i as usize];
                             encoding_sender.send(buffer.clone()).unwrap();
+                            last_tick += frame_interval;
                             loop_count += 1;
-                            debug!("loop_count ::{} step:: {}, index {}, count {}", loop_count, step, i, count);
-                            if low_frame {
-                                encoding_sender.send(buffer.clone()).unwrap();
-                                loop_count += 1;
-                                debug!("sent additional frame");
-                            }
-                            if loop_count == 24 {
-                                debug!("Sent 24 frames :: break");
-                                break;
-                            }
-                            if rest_loop < 1 && loop_count < 24 {
-                                // send additional frame
-                                let (buffer, _) = &list[(count - 1) as usize];
-                                encoding_sender.send(buffer.clone()).unwrap();
-                                loop_count += 1;
-                                debug!("Sent additional frame");
-                            }
                         }
-                        debug!("Sent {} frames", loop_count);
-                        if loop_count != 24 {
-                            error!("Sent {} frames", loop_count)
+                        debug!("{} frames filtered", loop_count);
+                        while (fps - loop_count) > 0 {
+                            encoding_sender
+                                .send(list[(count - 1) as usize].0.clone())
+                                .unwrap();
+                            loop_count += 1;
                         }
-                        last_time = Some(last_time.unwrap() + Duration::from_secs(1));
+                        timestamp = Some(timestamp.unwrap() + one_second);
                         count
                     };
                 {
@@ -203,9 +179,6 @@ impl AsyncMethodHandler for RecordingHandler {
                             while let Ok(el) = recording_receiver.recv() {
                                 list.lock().unwrap().push(el);
                             }
-                            if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                                recording_receiver.close();
-                            }
                         });
                         s.spawn(|_| {
                             loop {
@@ -216,9 +189,6 @@ impl AsyncMethodHandler for RecordingHandler {
                                         //remove all flushed elements from origin
                                         let mut list = list.lock().unwrap();
                                         list.drain(0..flushed_length as usize);
-                                        if recording_receiver.is_closed() {
-                                            break;
-                                        }
                                     }
                                 } else {
                                     thread::sleep(Duration::from_millis(400));

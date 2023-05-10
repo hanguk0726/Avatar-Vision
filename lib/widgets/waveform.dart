@@ -143,9 +143,9 @@ class _WaveformPainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        customSky.withOpacity(0.6),
-        customSky.withOpacity(0.8),
-        customSky.withOpacity(0.6),
+        customSky.withOpacity(0.5),
+        customSky.withOpacity(0.7),
+        customSky.withOpacity(0.5),
       ],
     );
 

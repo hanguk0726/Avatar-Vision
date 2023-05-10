@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
@@ -127,8 +126,11 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   build(BuildContext context) {
-    return ClipRRect(
-        child: BackdropFilter(
+    double screenHeight = window.physicalSize.height / window.devicePixelRatio;
+    return ConstrainedBox(
+      constraints:   BoxConstraints(maxHeight: screenHeight - 100),
+        child: ClipRRect(
+            child: BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
       child: Container(
           decoration: BoxDecoration(
@@ -178,6 +180,6 @@ class PastEntriesState extends State<PastEntries> {
                                       files[index], selectedIndex == index))));
                     },
                   )))),
-    ));
+    )));
   }
 }
