@@ -11,7 +11,7 @@ use std::{
 use log::debug;
 use minimp4::Mp4Muxer;
 use openh264::{
-    encoder::{Encoder, EncoderConfig},
+    encoder::{Encoder, EncoderConfig, RateControlMode},
     Error,
 };
 
@@ -97,6 +97,9 @@ impl RecordingInfo {
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height);
+    config.rate_control_mode(RateControlMode::Timestamp);
+    config.enable_skip_frame(false);
+    config.max_frame_rate(24.0);
     Encoder::with_config(config)
 }
 
@@ -123,16 +126,17 @@ pub fn encode_to_h264(
             height,
         };
         let bitstream = encoder.encode(&yuv).unwrap();
-
         for l in 0..bitstream.num_layers() {
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                if inner_count < 240 {
+                if inner_count < 10080 {
                     buf_h264.extend_from_slice(nal);
-                    
                 } else {
-                    debug!("40min done {:?} ####################################################",inner_count);
+                    debug!(
+                        "encoding done {:?} ##",
+                        inner_count
+                    );
                 }
             }
         }

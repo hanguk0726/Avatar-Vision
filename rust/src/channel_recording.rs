@@ -128,11 +128,11 @@ impl AsyncMethodHandler for RecordingHandler {
                         let mut enough = false;
                         let mut count = 0u32;
                         for (_, time) in list.iter() {
+                            count += 1;
                             if time > &timestamp.unwrap() {
                                 enough = true;
                                 break;
                             }
-                            count += 1;
                         }
                         if enough.not() {
                             info!("not enough frame, wait and retry");
@@ -146,7 +146,7 @@ impl AsyncMethodHandler for RecordingHandler {
                             let (buffer, time) = &list[i as usize];
                             if i != 0 {
                                 let diff = time.saturating_duration_since(last_tick);
-                                debug!("diff: {:?}, i {:?} ,time {:?}", diff, i, time);
+                                // debug!("diff: {:?}, i {:?} ,time {:?}", diff, i, time);
                                 if diff < frame_interval {
                                     continue;
                                 }
