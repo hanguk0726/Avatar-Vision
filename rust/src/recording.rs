@@ -1,5 +1,5 @@
 use std::{
-    io::{Cursor, Read, Seek, SeekFrom},
+    io::{Cursor, Read, Seek, SeekFrom, Write},
     ops::Not,
     path::Path,
     sync::{
@@ -97,9 +97,9 @@ impl RecordingInfo {
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height);
-    config.rate_control_mode(RateControlMode::Timestamp);
-    config.enable_skip_frame(false);
-    config.max_frame_rate(24.0);
+    config.rate_control_mode(RateControlMode::Bufferbased);
+    config.enable_skip_frame(true);
+    config.max_frame_rate(30.0);
     Encoder::with_config(config)
 }
 
@@ -114,7 +114,7 @@ pub fn encode_to_h264(
     let mut inner_count = 0;
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
-
+    let mut once = false;
     while let Some(el) = yuv_iter.next() {
         if timer.elapsed().as_secs() > 3 {
             debug!("encoding...");
@@ -125,18 +125,39 @@ pub fn encode_to_h264(
             width,
             height,
         };
+
+        //30.32 의 배수만 flush  아니면 싱크오류 
         let bitstream = encoder.encode(&yuv).unwrap();
         for l in 0..bitstream.num_layers() {
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                if inner_count < 10080 {
+                // need extra frame to encoding => 30.32 needed to encoding 30fps
+                // 1920
+                // 336  == 11s // skip
+                // 334 == 11s // no skip
+                // 333 == 10s // no skip
+                // 3333 ==1 m 50s , 3327 // 110s
+                // 3339 ==1 m 51s , 3325
+                // 3334 ==1 m 51s , 3331 // 111s
+                // 1280
+                // 334 == 11s
+                // 333 == 11s
+                // 332 == 10s
+                //667 == 20s
+                // 3031 = 1.40
+                //3032 ==1.41
+                if inner_count < 30308 { //1hr 33s
                     buf_h264.extend_from_slice(nal);
                 } else {
-                    debug!(
-                        "encoding done {:?} ##",
-                        inner_count
-                    );
+                    if once.not() {
+                        //write file to disk
+                        once = true;
+                        let mut file = std::fs::File::create("test.h264").unwrap();
+                        file.write(buf_h264).unwrap();
+                        file.flush().unwrap();
+                    }
+                    debug!("encoding done {:?} ##", inner_count);
                 }
             }
         }

@@ -46,3 +46,6 @@ app.*.map.json
 /rust/target/
 
 data/
+rust/target/.rustc_info.json
+rust/Cargo.lock
+video_diary_database/data.mdb

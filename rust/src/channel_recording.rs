@@ -35,6 +35,8 @@ use crate::{
     tools::ordqueue::{new, OrdQueueIter},
 };
 
+// FPS of the openh264 crate is 30
+const FPS: u32 = 30;
 pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
@@ -117,22 +119,21 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let mut timestamp = None;
 
+                let one_second = Duration::from_millis(1000);
+                let frame_interval = Duration::from_millis(1000 / FPS as u64);
                 let mut batch =
                     move |list: Vec<(Buffer, Instant)>, encoding_sender: Sender<Buffer>| -> u32 {
-                        let fps = 24;
-                        let one_second = Duration::from_millis(1000);
-                        let frame_interval = Duration::from_millis(1000 / fps);
                         if timestamp.is_none() {
                             timestamp = Some(list.first().unwrap().1 + one_second);
                         }
                         let mut enough = false;
                         let mut count = 0u32;
                         for (_, time) in list.iter() {
-                            count += 1;
                             if time > &timestamp.unwrap() {
                                 enough = true;
                                 break;
                             }
+                            count += 1;
                         }
                         if enough.not() {
                             info!("not enough frame, wait and retry");
@@ -157,7 +158,7 @@ impl AsyncMethodHandler for RecordingHandler {
                             loop_count += 1;
                         }
                         debug!("{} frames filtered", loop_count);
-                        while (fps - loop_count) > 0 {
+                        while (FPS - loop_count) > 0 {
                             encoding_sender
                                 .send(list[(count - 1) as usize].0.clone())
                                 .unwrap();
@@ -303,7 +304,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     if let Err(e) = to_mp4(
                         &processed[..],
                         file_path,
-                        24,
+                        FPS,
                         final_audio.lock().unwrap().to_owned(),
                         width as u32,
                         height as u32,

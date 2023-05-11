@@ -21,7 +21,6 @@ image = { version = "0.24.5", features = ["png", "jpeg"] }
 nokhwa-core = "0.1.0"
 nokhwa = { version =  "0.10.3", features = ["input-native",  "output-threaded"] }
 kanal = "0.1.0-pre8"
-openh264 = "0.4.0"
 cpal = "0.15.2"
 anyhow = "1.0.40"
 hound = "3.5.0"
@@ -32,3 +31,4 @@ simple_logger = "4.0.0"
 fastrand = "1.8"
 spin_sleep = "1.1.1"
 rayon = "1.5.1"
+openh264 = "0.4.0"
