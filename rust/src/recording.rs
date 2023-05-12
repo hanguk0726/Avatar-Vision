@@ -141,11 +141,12 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
+                debug!("nal len {}", nal.len());
                 buffer.extend_from_slice(nal);
             }
         }
-        let flush =  inner_count as f32 == required_frames.ceil(); 
-        debug!("inner count {}, required frames {}, flush {}", inner_count, required_frames.ceil(), flush);
+        let flush =  inner_count as f32 == required_frames.round(); 
+        // debug!("inner count {}, required frames {}, flush {}", inner_count, required_frames.round(), flush);
         if flush {
             buf_h264.extend_from_slice(&buffer);
             buffer.clear();
