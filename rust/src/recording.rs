@@ -96,7 +96,11 @@ impl RecordingInfo {
 }
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
-    let config = EncoderConfig::new(width, height);
+    let config = EncoderConfig::new(width, height)
+    .rate_control_mode(RateControlMode::Timestamp)
+    .enable_skip_frame(false)
+    .debug(true);
+
     Encoder::with_config(config)
 }
 
@@ -107,19 +111,12 @@ pub fn encode_to_h264(
     height: usize,
 ) {
     debug!("encoding to h264");
-    // the openh264 crate requires 30.309 frame to encoding 30 fps.
-    // so we need to flush every 30.309 frames,
-    // or actual video misses few seconds which leads to audio and video out of sync.
-    const FRMAE_REQUIRED: f32 = 24.0;
     let mut inner_count = 0;
-    let mut last_flush = 0;
-    let mut required_frames = FRMAE_REQUIRED;
 
     let mut encoder = encoder(width as u32, height as u32).unwrap();
 
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
-    let mut buffer = Vec::new();
 
     while let Some(el) = yuv_iter.next() {
         inner_count += 1;
@@ -138,16 +135,8 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                buffer.extend_from_slice(nal);
+                buf_h264.extend_from_slice(nal);
             }
-        }
-        let flush =  inner_count as f32 == required_frames.round(); 
-        // debug!("inner count {}, required frames {}, flush {}", inner_count, required_frames.round(), flush);
-        if flush {
-            buf_h264.extend_from_slice(&buffer);
-            buffer.clear();
-            last_flush = inner_count;
-            required_frames += FRMAE_REQUIRED;
         }
     }
     // DEBUG ONLY
@@ -159,10 +148,9 @@ pub fn encode_to_h264(
     }
 
     debug!(
-        "encoding h264 done: {:?}, count {}, last flushed {}",
+        "encoding h264 done: {:?}, count {}",
         started.elapsed(),
         inner_count,
-        last_flush
     );
 }
 
