@@ -36,7 +36,7 @@ use crate::{
 };
 
 // FPS of the openh264 crate is 30
-const FPS: u32 = 30;
+const FPS: u32 = 24;
 pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,

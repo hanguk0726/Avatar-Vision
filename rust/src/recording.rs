@@ -97,9 +97,6 @@ impl RecordingInfo {
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height);
-    config.rate_control_mode(RateControlMode::Bufferbased);
-    config.enable_skip_frame(true);
-    config.max_frame_rate(30.0);
     Encoder::with_config(config)
 }
 
@@ -113,7 +110,7 @@ pub fn encode_to_h264(
     // the openh264 crate requires 30.309 frame to encoding 30 fps.
     // so we need to flush every 30.309 frames,
     // or actual video misses few seconds which leads to audio and video out of sync.
-    const FRMAE_REQUIRED: f32 = 30.309;
+    const FRMAE_REQUIRED: f32 = 24.0;
     let mut inner_count = 0;
     let mut last_flush = 0;
     let mut required_frames = FRMAE_REQUIRED;
@@ -141,7 +138,6 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                debug!("nal len {}", nal.len());
                 buffer.extend_from_slice(nal);
             }
         }
