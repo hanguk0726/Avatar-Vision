@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -47,8 +48,15 @@ class _VideoPageState extends State<VideoPage> {
   void initState() {
     super.initState();
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (event.key != "pastEntries") {
+      if (event.key != "pastEntries" && event.key != "tab") {
         return;
+      }
+      if (event.event is KeyboardEvent) {
+        if (event.event == KeyboardEvent.keyboardControlSpace) {
+          final recording = context.read<Native>().recording;
+          clearUi(recording, !isMovedAway);
+          return;
+        }
       }
       if (event.event is MetadataEvent) {
         MetadataEvent casted = event.event as MetadataEvent;
@@ -66,7 +74,6 @@ class _VideoPageState extends State<VideoPage> {
             selectedMetadata = null;
             metadataQueryErrorMessage = (queryResult as Error).message;
           });
-          return;
         }
       }
     });
@@ -121,7 +128,7 @@ class _VideoPageState extends State<VideoPage> {
         key: _scaffoldKey,
         backgroundColor: customBlack,
         drawerScrimColor: Colors.transparent,
-        body: GestureDetector(
+        body: Listener(
           child: Center(
               child: SizedBox(
             width: width,
@@ -144,15 +151,26 @@ class _VideoPageState extends State<VideoPage> {
                   rendering: rendering),
             ]),
           )),
-          onTap: () {
-            setState(() {
-              if (runtimeData.tabIndex == 0 || recording) {
-                isMovedAway = !isMovedAway;
-                EventBus().off = isMovedAway;
+          onPointerSignal: (PointerSignalEvent event) {
+            if (event is PointerScrollEvent) {
+              if (event.scrollDelta.dy < 0) {
+                clearUi(recording, true);
+              } else {
+                // scrolled up
+                clearUi(recording, false);
               }
-            });
+            }
           },
         ));
+  }
+
+  void clearUi(bool recording, bool isMovedAway) {
+    setState(() {
+      if (runtimeData.tabIndex == 0 || recording) {
+        this.isMovedAway = isMovedAway;
+        EventBus().clearUiMode = isMovedAway;
+      }
+    });
   }
 
   Widget _mediaControlButton() {

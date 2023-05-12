@@ -17,7 +17,7 @@ import '../tools/time.dart';
 class MetadataWidget extends StatefulWidget {
   final Metadata metadata;
 
-  const MetadataWidget({super.key, required this.metadata});
+  MetadataWidget({required this.metadata}) : super(key: ValueKey(metadata));
 
   @override
   MetadataWidgetState createState() => MetadataWidgetState();
@@ -80,61 +80,68 @@ class MetadataWidgetState extends State<MetadataWidget> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 170,
-                              height: 32,
-                              child: TextField(
-                                readOnly: true,
-                                controller: datatimeEditingController,
-                                style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 16,
-                                    fontFamily: mainFont),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
+                        SizedBox(
+                          height: 32,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 170,
+                                height: 20,
+                                child: TextField(
+                                  readOnly: true,
+                                  controller: datatimeEditingController,
+                                  style: TextStyle(
+                                      color: textColor,
+                                      fontSize: 16,
+                                      fontFamily: mainFont),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const Spacer(),
-                            StreamBuilder<bool>(
-                                stream: isDirtySubject.stream,
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    if (snapshot.data!) {
-                                      return customButton(
-                                          customSky, Colors.white, "Apply", () {
-                                        model.flush();
-                                        isDirtySubject.add(false);
-                                      },
-                                          height: 32.0,
-                                          backgroundColorOpacity: 0.6,
-                                          borderOpacity: 0.8,
-                                          fontSize: 16.0);
+                              const Spacer(),
+                              StreamBuilder<bool>(
+                                  stream: isDirtySubject.stream,
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      if (snapshot.data!) {
+                                        return customButton(
+                                            customSky, Colors.white, "Apply",
+                                            () {
+                                          model.flush();
+                                          isDirtySubject.add(false);
+                                        },
+                                            height: 32.0,
+                                            backgroundColorOpacity: 0.6,
+                                            borderOpacity: 0.8,
+                                            fontSize: 16.0);
+                                      }
                                     }
-                                  }
-                                  return const SizedBox();
-                                }),
-                          ],
+                                    return const SizedBox();
+                                  }),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
                         TextField(
-                          controller: titleEditingController,
-                          cursorColor: Colors.white,
-                          onChanged: (value) {
-                            model.title = value;
-                            isDirtySubject.add(model.isDirty);
-                          },
-                          onSubmitted: (value) {
-                            onSubmitted();
-                          },
-                          style: TextStyle(
-                              color: textColor,
-                              fontSize: 16,
-                              fontFamily: mainFont),
-                        ),
+                            controller: titleEditingController,
+                            cursorColor: Colors.white,
+                            onChanged: (value) {
+                              model.title = value;
+                              isDirtySubject.add(model.isDirty);
+                            },
+                            onSubmitted: (value) {
+                              onSubmitted();
+                            },
+                            style: TextStyle(
+                                color: textColor,
+                                fontSize: 16,
+                                fontFamily: mainFont),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            )),
                         Divider(
                           color: borderColor,
                         ),

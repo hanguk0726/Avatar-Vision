@@ -7,6 +7,7 @@ import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
 import 'package:video_diary/services/db.dart';
 import 'package:video_diary/widgets/key_listener.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
 import '../services/event_bus.dart';
@@ -18,7 +19,7 @@ class PastEntries extends StatefulWidget {
   PastEntriesState createState() => PastEntriesState();
 }
 
-class PastEntriesState extends State<PastEntries> {
+class PastEntriesState extends State<PastEntries> with WindowListener {
   final selectedIndexSubject = BehaviorSubject<int>.seeded(0);
 
   // Color backgroundColor = customBlack;
@@ -33,9 +34,25 @@ class PastEntriesState extends State<PastEntries> {
   String allowedEventKey = 'tab';
   Timer? _timer;
   List<String> files = [];
+  double screenHeight = window.physicalSize.height / window.devicePixelRatio;
+
+  @override
+  void onWindowResize() async {
+    await setWindowSize();
+  }
+
+  Future<void> setWindowSize() async {
+    var size = await windowManager.getSize();
+    setState(() {
+      screenHeight = size.height;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
+    setWindowSize();
     DatabaseService db = DatabaseService();
     db.sync();
     files = db.pastEntries;
@@ -85,6 +102,7 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   void dispose() {
+    windowManager.removeListener(this);
     focusNode.dispose();
     _eventSubscription.cancel();
     _selectedIndexSubscription.cancel();
@@ -126,60 +144,60 @@ class PastEntriesState extends State<PastEntries> {
 
   @override
   build(BuildContext context) {
-    double screenHeight = window.physicalSize.height / window.devicePixelRatio;
     return ConstrainedBox(
-      constraints:   BoxConstraints(maxHeight: screenHeight - 100),
+        constraints: BoxConstraints(maxHeight: screenHeight - 150),
         child: ClipRRect(
             child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-      child: Container(
-          decoration: BoxDecoration(
-            color: backgroundColor.withOpacity(0.2),
-          ),
-          constraints: const BoxConstraints(
-            minHeight: 580,
-          ),
-          child: Padding(
-              padding: const EdgeInsets.only(bottom: 16, top: 16),
-              child: keyListener(
-                  eventKey,
-                  focusNode,
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: files.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                          // # Reference note
-                          // When GestureDetector has a onDoubleTap, it will add a short delay to wait for the potential second tap before deciding what to do. This is because tapping and double tapping are treated as exclusive actions. Unfortunatey, GestureDetector does not have a parameter to change this behaviour.
-                          // There are some other issues where this problem is also discussed, though I can't find them right now.
-                          // https://github.com/flutter/flutter/issues/121926
-                          // so keyboard is faster.
+          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+          child: Container(
+              decoration: BoxDecoration(
+                color: backgroundColor.withOpacity(0.2),
+              ),
+              constraints: const BoxConstraints(
+                minHeight: 580,
+              ),
+              child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16, top: 16),
+                  child: keyListener(
+                      eventKey,
+                      focusNode,
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: files.length,
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                              // # Reference note
+                              // When GestureDetector has a onDoubleTap, it will add a short delay to wait for the potential second tap before deciding what to do. This is because tapping and double tapping are treated as exclusive actions. Unfortunatey, GestureDetector does not have a parameter to change this behaviour.
+                              // There are some other issues where this problem is also discussed, though I can't find them right now.
+                              // https://github.com/flutter/flutter/issues/121926
+                              // so keyboard is faster.
 
-                          onTap: () {
-                            setState(() {
-                              selectedIndex = index;
-                            });
-                          },
-                          onDoubleTap: () {
-                            setState(() {
-                              selectedIndex = index;
-                            });
-                            play();
-                          },
-                          child: Container(
-                              color: selectedIndex == index
-                                  ? customSky.withOpacity(0.3)
-                                  : Colors.transparent,
-                              child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 32,
-                                    right: 32,
-                                  ),
-                                  child: pastEntry(
-                                      files[index], selectedIndex == index))));
-                    },
-                  )))),
-    )));
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = index;
+                                });
+                              },
+                              onDoubleTap: () {
+                                setState(() {
+                                  selectedIndex = index;
+                                });
+                                play();
+                              },
+                              child: Container(
+                                  color: selectedIndex == index
+                                      ? customSky.withOpacity(0.3)
+                                      : Colors.transparent,
+                                  child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 32,
+                                        right: 32,
+                                      ),
+                                      child: pastEntry(files[index],
+                                          selectedIndex == index)
+                                      )));
+                        },
+                      )))),
+        )));
   }
 }
