@@ -1512,18 +1512,18 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "openh264"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aedc684429ad0d63b0b71e2f561455e7b19a69349fd89f61fce55cb5b1e5b76"
+checksum = "600b99d1e0c3fa646809ae2da366f40d3d25471f6d778d580ccf8bc1bd2804dc"
 dependencies = [
  "openh264-sys2",
 ]
 
 [[package]]
 name = "openh264-sys2"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "785e8ba399fb05ec6bfb0036f560e7033fbdc91f88bba516eb7ffc5d41eb2c9d"
+checksum = "c26c99dead917099fc399282c348e7165edf68761dbcf850c79b3a1a60fda322"
 dependencies = [
  "cc",
  "nasm-rs",

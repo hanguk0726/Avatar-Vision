@@ -169,16 +169,20 @@ impl AsyncMethodHandler for RecordingHandler {
                     };
                 {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
-                    debug!("**************************** audio data cleared ****************************");
                 }
                 // + 1s on last_time when flush
                 let list: Arc<Mutex<Vec<(Buffer, Instant)>>> = Arc::new(Mutex::new(vec![]));
-
                 thread::spawn(move || {
                     rayon::scope(|s| {
                         s.spawn(|_| {
                             while let Ok(el) = recording_receiver.recv() {
                                 list.lock().unwrap().push(el);
+                                if recording.load(std::sync::atomic::Ordering::Relaxed).not()
+                                    && recording_receiver.is_empty()
+                                {
+                                    recording_receiver.close();
+                                    break;
+                                }
                             }
                         });
                         s.spawn(|_| {
@@ -193,6 +197,9 @@ impl AsyncMethodHandler for RecordingHandler {
                                     }
                                 } else {
                                     thread::sleep(Duration::from_millis(400));
+                                }
+                                if recording_receiver.is_closed() {
+                                    break;
                                 }
                             }
                         });
