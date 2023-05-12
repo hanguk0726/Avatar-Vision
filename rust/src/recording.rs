@@ -116,6 +116,7 @@ pub fn encode_to_h264(
     const FRMAE_REQUIRED: f32 = 30.309;
     let mut inner_count = 0;
     let mut last_flush = 0;
+    let mut required_frames = FRMAE_REQUIRED;
 
     let mut encoder = encoder(width as u32, height as u32).unwrap();
 
@@ -143,12 +144,13 @@ pub fn encode_to_h264(
                 buffer.extend_from_slice(nal);
             }
         }
-        let flush =
-            (inner_count as f32) % FRMAE_REQUIRED < 1.0 && (inner_count as f32) > FRMAE_REQUIRED;
+        let flush =  inner_count as f32 == required_frames.ceil(); 
+        debug!("inner count {}, required frames {}, flush {}", inner_count, required_frames.ceil(), flush);
         if flush {
             buf_h264.extend_from_slice(&buffer);
             buffer.clear();
-            last_flush = inner_count; 
+            last_flush = inner_count;
+            required_frames += FRMAE_REQUIRED;
         }
     }
     // DEBUG ONLY
@@ -163,7 +165,7 @@ pub fn encode_to_h264(
         "encoding h264 done: {:?}, count {}, last flushed {}",
         started.elapsed(),
         inner_count,
-        last_flush 
+        last_flush
     );
 }
 
