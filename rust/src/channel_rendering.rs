@@ -1,7 +1,8 @@
 use std::{
     mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
-    thread, time::Duration,
+    thread,
+    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -32,20 +33,15 @@ impl RenderingHandler {
         }
     }
 
-    async fn mark_rendering_state_on_ui(&self, target_isolate: IsolateId) {
+    fn mark_rendering_state_on_ui(&self, target_isolate: IsolateId) {
         let rendering = self.rendering.load(std::sync::atomic::Ordering::Relaxed);
 
-        if let Err(e) = self
-            .invoker
-            .call_method(
-                target_isolate,
-                "mark_rendering_state",
-                Value::Bool(rendering),
-            )
-            .await
-        {
-            error!("Error while marking rendering state on UI: {:?}", e);
-        }
+        self.invoker.call_method_sync(
+            target_isolate,
+            "mark_rendering_state",
+            Value::Bool(rendering),
+            |_| {},
+        );
     }
 }
 
@@ -65,7 +61,7 @@ impl AsyncMethodHandler for RenderingHandler {
 
                 self.rendering
                     .store(true, std::sync::atomic::Ordering::Relaxed);
-                self.mark_rendering_state_on_ui(call.isolate).await;
+                self.mark_rendering_state_on_ui(call.isolate);
                 let texture_provider = Arc::clone(&self.texture);
 
                 let rendering: Arc<AtomicBool> = self.rendering.clone();
@@ -90,7 +86,7 @@ impl AsyncMethodHandler for RenderingHandler {
 
                 self.rendering
                     .store(false, std::sync::atomic::Ordering::Relaxed);
-                self.mark_rendering_state_on_ui(call.isolate).await;
+                self.mark_rendering_state_on_ui(call.isolate);
                 Ok("ok".into())
             }
             _ => Err(PlatformError {

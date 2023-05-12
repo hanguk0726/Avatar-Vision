@@ -115,6 +115,7 @@ pub fn encode_to_h264(
     // or actual video misses few seconds which leads to audio and video out of sync.
     const FRMAE_REQUIRED: f32 = 30.309;
     let mut inner_count = 0;
+    let mut last_flush = 0;
 
     let mut encoder = encoder(width as u32, height as u32).unwrap();
 
@@ -147,13 +148,22 @@ pub fn encode_to_h264(
         if flush {
             buf_h264.extend_from_slice(&buffer);
             buffer.clear();
+            last_flush = inner_count; 
         }
+    }
+    // DEBUG ONLY
+    {
+        debug!("writing h264 to file");
+        use std::fs::File;
+        let mut file = File::create("test.h264").unwrap();
+        file.write_all(&buf_h264).unwrap();
     }
 
     debug!(
-        "encoding h264 done: {:?}, count {}",
+        "encoding h264 done: {:?}, count {}, last flushed {}",
         started.elapsed(),
-        buf_h264.len()
+        inner_count,
+        last_flush 
     );
 }
 

@@ -123,7 +123,7 @@ class _VideoPageState extends State<VideoPage> {
         subMessage: "path: ${native.filePathPrefix}",
       ),
     ];
-
+    
     return Scaffold(
         key: _scaffoldKey,
         backgroundColor: customBlack,

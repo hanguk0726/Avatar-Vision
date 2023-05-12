@@ -177,12 +177,6 @@ impl AsyncMethodHandler for RecordingHandler {
                         s.spawn(|_| {
                             while let Ok(el) = recording_receiver.recv() {
                                 list.lock().unwrap().push(el);
-                                if recording.load(std::sync::atomic::Ordering::Relaxed).not()
-                                    && recording_receiver.is_empty()
-                                {
-                                    recording_receiver.close();
-                                    break;
-                                }
                             }
                         });
                         s.spawn(|_| {
@@ -198,7 +192,10 @@ impl AsyncMethodHandler for RecordingHandler {
                                 } else {
                                     thread::sleep(Duration::from_millis(400));
                                 }
-                                if recording_receiver.is_closed() {
+                                if recording.load(std::sync::atomic::Ordering::Relaxed).not()
+                                    && recording_receiver.is_empty()
+                                {
+                                    recording_receiver.close();
                                     break;
                                 }
                             }
