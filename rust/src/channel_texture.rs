@@ -23,12 +23,12 @@ pub struct TextureHandler {
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     pub recording: Arc<AtomicBool>,
 }
-
 #[async_trait(?Send)]
 impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
             "open_texture_stream" => {
+           
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,
@@ -55,20 +55,13 @@ impl AsyncMethodHandler for TextureHandler {
                     let render_buffer_index = render_buffer_index.clone();
                     let pixel_buffer = pixel_buffer.clone();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        sender
-                            .send((buf.clone(), timestamp))
-                            .unwrap_or_else(|e| debug!("Error sending to recording channel: {}",e));
+                        sender.send((buf.clone(), timestamp)).unwrap_or_else(|e| {
+                            debug!("Error sending to recording channel: {}", e)
+                        });
                     }
                     index += 1;
                     pool.spawn(async move {
-                        decode(
-                            index,
-                            buf,
-                            render_buffer_index,
-                            pixel_buffer,
-                            width,
-                            height,
-                        );
+                        decode(index, buf, render_buffer_index, pixel_buffer, width, height);
                     });
                 }
                 Ok("ok".into())

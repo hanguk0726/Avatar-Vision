@@ -99,7 +99,7 @@ pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height)
     .rate_control_mode(RateControlMode::Timestamp)
     .enable_skip_frame(false)
-    .debug(true);
+    .debug(false);
 
     Encoder::with_config(config)
 }

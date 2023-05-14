@@ -18,7 +18,7 @@ use tools::log_::init_logging;
 use crate::{
     camera::Camera, channel::ChannelHandler, channel_audio::AudioHandler,
     channel_camera::CameraHandler, channel_recording::RecordingHandler,
-    channel_rendering::RenderingHandler, channel_textrue::TextureHandler, recording::RecordingInfo,
+    channel_rendering::RenderingHandler, channel_texture::TextureHandler, recording::RecordingInfo,
     resolution_settings::ResolutionSettings,
 };
 
@@ -29,7 +29,7 @@ mod channel_audio;
 mod channel_camera;
 mod channel_recording;
 mod channel_rendering;
-mod channel_textrue;
+mod channel_texture;
 mod domain;
 mod recording;
 mod resolution_settings;
@@ -53,7 +53,6 @@ pub extern "C" fn rust_init_message_channel_context(data: *mut c_void) -> Functi
 
 fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     assert!(RunLoop::is_main_thread());
-
     let resolution_settings = Arc::new(ResolutionSettings::new());
     let provider = Arc::new(PixelBufferSource::new(resolution_settings.clone()));
     let render_buffer: Arc<Mutex<Vec<u8>>> = provider.pixel_buffer.clone();
@@ -89,7 +88,7 @@ fn init_channels(
         bit_rate: 0,
     }));
 
-    channel_textrue::init(TextureHandler {
+    channel_texture::init(TextureHandler {
         render_buffer,
         channel_handler: channel_handler.clone(),
         recording: recording.clone(),
