@@ -1,19 +1,13 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:video_diary/tools/time.dart';
-import 'package:video_diary/widgets/hover_button.dart';
-import 'package:video_diary/widgets/tabItem.dart';
 import 'package:video_diary/widgets/waveform.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
-import '../services/setting.dart';
 import '../services/native.dart';
-import '../tools/compare.dart';
-import 'button.dart';
+import '../services/setting.dart';
 import 'dropdown.dart';
 
 Widget settings(BuildContext context) {
@@ -140,7 +134,8 @@ Widget settings(BuildContext context) {
                       ),
                       const SizedBox(
                         height: 32,
-                      )
+                      ),
+                     
                     ],
                   )))));
 }

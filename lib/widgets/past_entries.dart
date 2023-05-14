@@ -56,15 +56,15 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     windowManager.addListener(this);
     setWindowSize();
     DatabaseService db = DatabaseService();
-    // FIXME : Isolate this
+    // FIXME 
     db.sync();
     entries = db.pastEntries;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      db.sync();
-      setState(() {
-        entries = db.pastEntries;
-      });
-    });
+    // _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    //   db.sync();
+    //   setState(() {
+    //     entries = db.pastEntries;
+    //   });
+    // });
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       if (entries.isNotEmpty) {
         int timestamp = entries[selectedIndex].timestamp;

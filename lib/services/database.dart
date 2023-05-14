@@ -11,6 +11,7 @@ import '../domain/result.dart';
 import '../generated/objectbox.g.dart';
 import '../tools/time.dart';
 
+
 //(for objectbox.g) cmd : flutter pub run build_runner build
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -86,27 +87,28 @@ class DatabaseService {
     debugPrint('getEntries: ${result.length}');
     return result;
   }
+//FIXME
+  // void clearOutdatedRecords() {
+  //   var entries = getEntries();
 
-  void clearOutdatedRecords() {
-    var entries = getEntries();
+  //   final query = store.box<Metadata>().query().build();
+  //   final dataInDB = query.find();
 
-    final query = store.box<Metadata>().query().build();
-    final dataInDB = query.find();
+  //  debugPrint('dataInDB: ${dataInDB.length}');
+  //   for (var el in dataInDB) {
+  //     // the data inserted when start, but actual file could be writing now.
+  //     bool isTheDataJustAdded =
+  //         DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
 
-    for (var el in dataInDB) {
-      // the data inserted when start, but actual file could be writing now.
-      bool isTheDataJustAdded =
-          DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
+  //     if (!entries.contains(el) && !isTheDataJustAdded) {
+  //       store.box<Metadata>().remove(el.id);
+  //     }
+  //   }
+  // }
 
-      if (!entries.contains(el) && !isTheDataJustAdded) {
-        store.box<Metadata>().remove(el.id);
-      }
-    }
-  }
-
-  sync() {
+  Future<void> sync() async {
     pastEntries = getEntries();
-    clearOutdatedRecords();
+    // clearOutdatedRecords();
     debugPrint('DB Synced');
   }
 }

@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/widgets/key_listener.dart';
-import 'package:video_diary/widgets/tabItem.dart';
 
 import '../domain/event.dart';
 import '../domain/tab_item.dart';
@@ -38,6 +36,7 @@ class TabsState extends State<Tabs> {
   void initState() {
     super.initState();
     selectedIndex = RuntimeData().tabIndex;
+
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (event.key != eventKey && event.key != allowedEventKey) {
         return;
@@ -46,7 +45,7 @@ class TabsState extends State<Tabs> {
         case KeyboardEvent.keyboardControlArrowLeft:
           if (selectedIndex > 0) {
             setState(() {
-              selectedIndex--;
+              selectedIndex = selectedIndex - 1;
               RuntimeData().tabIndex = selectedIndex;
               widget.onTabSelected(widget.buttonLabels[selectedIndex]);
             });
@@ -56,7 +55,7 @@ class TabsState extends State<Tabs> {
         case KeyboardEvent.keyboardControlArrowRight:
           if (selectedIndex < widget.buttonLabels.length - 1) {
             setState(() {
-              selectedIndex++;
+              selectedIndex = selectedIndex + 1;
               RuntimeData().tabIndex = selectedIndex;
               widget.onTabSelected(widget.buttonLabels[selectedIndex]);
             });

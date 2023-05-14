@@ -12,6 +12,7 @@ import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
 
+import '../domain/app.dart';
 import '../domain/error.dart';
 import '../domain/event.dart';
 import '../domain/metadata.dart';
@@ -123,7 +124,7 @@ class _VideoPageState extends State<VideoPage> {
         subMessage: "path: ${native.filePathPrefix}",
       ),
     ];
-    
+
     return Scaffold(
         key: _scaffoldKey,
         backgroundColor: customBlack,
@@ -141,6 +142,7 @@ class _VideoPageState extends State<VideoPage> {
                   child: texture(width, height)),
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
+              about(),
               showMessageOnError(errors),
               menuTaps(recording: recording),
               _mediaControlButton(),
@@ -171,6 +173,27 @@ class _VideoPageState extends State<VideoPage> {
         EventBus().clearUiMode = isMovedAway;
       }
     });
+  }
+
+  Widget about() {
+    //stream builder for tabImdex
+    return StreamBuilder<TabItem>(
+        stream: tabItem,
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data == TabItem.settings) {
+            return Positioned(
+        bottom: 8,
+        left: 8,
+        child: Tooltip(
+            message: "Version",
+            preferBelow: false,
+            child: Text(version,
+                style: TextStyle(
+                    color: Colors.grey.withOpacity(0.8), fontSize: 16, fontFamily: mainFont))));
+          } else {
+            return Container();
+          }
+        });
   }
 
   Widget _mediaControlButton() {
