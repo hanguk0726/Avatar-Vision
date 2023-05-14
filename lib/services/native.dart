@@ -90,6 +90,13 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         await targetDirectory.create(recursive: true);
         // debugPrint('Directory created at: ${targetDirectory.path}');
       }
+      final thumbnailDirectory = Directory('${appDataDir.path}\\data\\thumbnails');
+      if (await thumbnailDirectory.exists()) {
+        // debugPrint('Directory already exists');
+      } else {
+        await thumbnailDirectory.create(recursive: true);
+        // debugPrint('Directory created at: ${thumbnailDirectory.path}');
+      }
       if (targetDirectory.existsSync()) {
         var result = targetDirectory.statSync();
         var isWritable = result.mode & 0x92 != 0; // 0x92 = 10010010 in binary
@@ -230,7 +237,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
     DatabaseService().insert(timestamp);
     final res = await recordingChannel.invokeMethod('start_encording', {
-      'file_path': "$filePathPrefix\\$fileName",
+      'file_path_prefix': filePathPrefix,
+      'file_name': fileName,
       'resolution': currentResolution,
     });
     _showResult(res);

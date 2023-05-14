@@ -4,6 +4,7 @@ use std::{
     io::Read,
     mem::ManuallyDrop,
     ops::Not,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
@@ -13,6 +14,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use image::{ImageBuffer, Rgba};
 use irondash_message_channel::{
     AsyncMethodHandler, AsyncMethodInvoker, IsolateId, Late, MethodCall, PlatformError,
     PlatformResult, Value,
@@ -37,6 +39,7 @@ use crate::{
 
 // FPS of the openh264 crate is 30
 const FPS: u32 = 24;
+const THUMBNAIL_DIR_NAME: &str = "thumbnails";
 pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
     pub recording_info: Arc<Mutex<RecordingInfo>>,
@@ -214,8 +217,9 @@ impl AsyncMethodHandler for RecordingHandler {
                 );
                 let started = std::time::Instant::now();
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
-                let file_path = map.get("file_path").unwrap().to_string();
-                debug!("file_path: {:?}", file_path);
+                let file_path_prefix = map.get("file_path_prefix").unwrap().to_string();
+                let file_name = map.get("file_name").unwrap().to_string();
+                debug!("file_path_prefix: {:?}", file_path_prefix);
                 let resolution = map.get("resolution").unwrap().as_str();
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<usize>().unwrap();
@@ -231,7 +235,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         error!("uiEvent sending failed");
                     }
                 };
-
+                let mut thumbnail_rgba: Vec<u8> = vec![];
                 let mut count = 0;
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 if encoding_receiver.is_closed() {
@@ -254,6 +258,17 @@ impl AsyncMethodHandler for RecordingHandler {
                     rayon::scope(|s| {
                         s.spawn(|_| {
                             while let Ok(buf) = encoding_receiver.recv() {
+                                if count == 0 {
+                                    let rgba = decode_to_rgb(
+                                        buf.buffer(),
+                                        &buf.source_frame_format(),
+                                        true,
+                                        width as u32,
+                                        height as u32,
+                                    )
+                                    .unwrap();
+                                    thumbnail_rgba.extend_from_slice(&rgba[..]);
+                                }
                                 let queue = queue.clone();
                                 pool.spawn(async move {
                                     let rgba = decode_to_rgb(
@@ -264,6 +279,7 @@ impl AsyncMethodHandler for RecordingHandler {
                                         height as u32,
                                     )
                                     .unwrap();
+
                                     let yuv = rgba_to_yuv(&rgba[..], width, height);
                                     queue.push(count, yuv).unwrap_or_else(|e| {
                                         error!("queue push failed: {:?}", e);
@@ -304,10 +320,11 @@ impl AsyncMethodHandler for RecordingHandler {
                     debug!("*********** saving... ***********");
 
                     let processed = processed.lock().unwrap();
-
+                    let mut video_path = PathBuf::from(&file_path_prefix);
+                    video_path.push(&file_name);
                     if let Err(e) = to_mp4(
                         &processed[..],
-                        file_path,
+                        video_path,
                         FPS,
                         final_audio.lock().unwrap().to_owned(),
                         width as u32,
@@ -315,6 +332,21 @@ impl AsyncMethodHandler for RecordingHandler {
                     ) {
                         error!("Failed to save video {:?}", e);
                     }
+
+                    //THUMBNAIL_DIR_NAME
+                    // create an ImageBuffer from the RGBA data
+                    let imgbuf = ImageBuffer::<Rgba<u8>, _>::from_raw(
+                        width as u32,
+                        height as u32,
+                        thumbnail_rgba,
+                    )
+                    .unwrap();
+                    let mut thumbnail_path = PathBuf::from(&file_path_prefix);
+                    thumbnail_path.push(THUMBNAIL_DIR_NAME);
+                    thumbnail_path.push(&file_name);
+                    thumbnail_path.set_extension("png");
+                    imgbuf.save(thumbnail_path).unwrap();
+
                     debug!("*********** saved! ***********");
                     update_writing_state(WritingState::Idle);
                 });
