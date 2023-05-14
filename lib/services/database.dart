@@ -19,8 +19,7 @@ class DatabaseService {
 
   late final Store store;
 
-  List<int> pastEntriesTimestamp = [];
-  List<String> pastEntries = [];
+  List<Metadata> pastEntries = [];
   int lastestTimestamp = 0;
 
   Future<void> init() async {
@@ -75,37 +74,38 @@ class DatabaseService {
     store.box<Metadata>().put(metadata);
   }
 
-  List<int> getEntriesTimestamp() {
+  List<Metadata> getEntries() {
     Native native = Native();
     native.checkFileDirectoryAndSetFiles();
-    return native.files
+    List<Metadata> result = native.files
         .map((el) => findByOsFileName(el))
         .whereType<Success>()
-        .map((el) => (el.value as Metadata).timestamp)
-        .toList();
+        .map((el) => el.value)
+        .toList()
+        .cast<Metadata>();
+    debugPrint('getEntries: ${result.length}');
+    return result;
   }
 
   void clearOutdatedRecords() {
-    var files = getEntriesTimestamp();
+    var entries = getEntries();
 
     final query = store.box<Metadata>().query().build();
-    final result = query.find();
+    final dataInDB = query.find();
 
-    for (var el in result) {
+    for (var el in dataInDB) {
       // the data inserted when start, but actual file could be writing now.
       bool isTheDataJustAdded =
           DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
-      if (!files.contains(el.timestamp) && !isTheDataJustAdded) {
+
+      if (!entries.contains(el) && !isTheDataJustAdded) {
         store.box<Metadata>().remove(el.id);
       }
     }
   }
 
   sync() {
-    var timestampList = getEntriesTimestamp();
-    pastEntriesTimestamp = timestampList;
-    pastEntries =
-        getEntriesTimestamp().map((el) => gererateFileName(el)).toList();
+    pastEntries = getEntries();
     clearOutdatedRecords();
     debugPrint('DB Synced');
   }

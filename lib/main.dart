@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:video_diary/pages/video.dart';
-import 'package:video_diary/services/db.dart';
+import 'package:video_diary/services/database.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/tools/custom_scroll_behavior.dart';
 import 'package:window_manager/window_manager.dart';

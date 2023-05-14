@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
-import 'package:video_diary/services/db.dart';
+import 'package:video_diary/services/database.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/widgets/button.dart';
 

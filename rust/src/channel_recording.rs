@@ -14,7 +14,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use image::{ImageBuffer, Rgba};
+use image::{DynamicImage, ImageBuffer, Rgba};
 use irondash_message_channel::{
     AsyncMethodHandler, AsyncMethodInvoker, IsolateId, Late, MethodCall, PlatformError,
     PlatformResult, Value,
@@ -341,11 +341,22 @@ impl AsyncMethodHandler for RecordingHandler {
                         thumbnail_rgba,
                     )
                     .unwrap();
+                    // Convert the image buffer to a dynamic image
+                    let image = DynamicImage::ImageRgba8(imgbuf);
+
+                    // Resize the dynamic image
+                    let resized_image =
+                        image.resize(320, 180, image::imageops::FilterType::Lanczos3);
+
+                    // Convert the resized dynamic image back to an image buffer
+                    let resized_imgbuf = resized_image.into_rgba8();
+                    
                     let mut thumbnail_path = PathBuf::from(&file_path_prefix);
                     thumbnail_path.push(THUMBNAIL_DIR_NAME);
                     thumbnail_path.push(&file_name);
                     thumbnail_path.set_extension("png");
-                    imgbuf.save(thumbnail_path).unwrap();
+
+                    resized_imgbuf.save(thumbnail_path).unwrap();
 
                     debug!("*********** saved! ***********");
                     update_writing_state(WritingState::Idle);

@@ -18,7 +18,7 @@ import '../domain/metadata.dart';
 import '../domain/result.dart';
 import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
-import '../services/db.dart';
+import '../services/database.dart';
 import '../services/runtime_data.dart';
 import '../tools/time.dart';
 import '../widgets/tab.dart';

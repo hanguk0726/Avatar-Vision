@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:video_diary/services/db.dart';
+import 'package:video_diary/services/database.dart';
 import 'package:wakelock/wakelock.dart';
 
 import '../tools/time.dart';
@@ -122,6 +122,17 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
       }
     } else {
       debugPrint('This function is only implemented for Windows');
+    }
+  }
+
+  Uint8List getThumbnail(int timestamp) {
+    final fileName = gererateFileName(timestamp);
+    final thumbnailPath = '$filePathPrefix\\thumbnails\\$fileName.png';
+    File file = File(thumbnailPath);
+    if (file.existsSync()) {
+      return file.readAsBytesSync();
+    } else {
+      return Uint8List(0);
     }
   }
 
