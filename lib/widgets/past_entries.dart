@@ -56,7 +56,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     windowManager.addListener(this);
     setWindowSize();
     DatabaseService db = DatabaseService();
-    // FIXME 
+    // FIXME
     db.sync();
     entries = db.pastEntries;
     // _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -79,15 +79,15 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
         case KeyboardEvent.keyboardControlArrowUp:
           if (selectedIndex > 0) {
             setState(() {
-              selectedIndex--;
+              selectedIndex = selectedIndex - 1;
             });
             return;
           }
           break;
         case KeyboardEvent.keyboardControlArrowDown:
-          if (selectedIndex < Native().files.length - 1) {
+          if (selectedIndex < Native().files.length - 2) {
             setState(() {
-              selectedIndex++;
+              selectedIndex = selectedIndex + 1;
             });
             return;
           }
@@ -182,13 +182,14 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   Widget thumbnailView() {
     var native = Native();
     return GridView.builder(
+      padding: const EdgeInsets.only(left: 16, right: 16),
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
       itemCount: entries.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
       ),
       itemBuilder: (context, index) {
         return GestureDetector(
@@ -204,30 +205,36 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
               play();
             },
             child: Container(
-                color: selectedIndex == index ? customSky : Colors.transparent,
+                color: selectedIndex == index
+                    ? customSky.withOpacity(0.3)
+                    : Colors.transparent,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     Image.memory(
-                          native.getThumbnail(entries[index].timestamp),
-                          fit: BoxFit.fitWidth,
-                        ),
-                    Text(entries[index].title,
-                        style: TextStyle(
-                            color: selectedIndex == index
-                                ? Colors.white
-                                : textColor,
-                            fontFamily: mainFont,
-                            fontSize: 16)),
+                    native.getThumbnail(entries[index].timestamp),
+                    const SizedBox(height: 16),
+                    Padding(
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        child: Text(entries[index].title,
+                            style: TextStyle(
+                                color: selectedIndex == index
+                                    ? Colors.white
+                                    : textColor,
+                                fontFamily: mainFont,
+                                fontSize: 16))),
+                    const SizedBox(height: 8),
                     if (entries[index].note?.isNotEmpty ?? false)
-                      Text(entries[index].note!,
-                          maxLines: 1,
-                          style: TextStyle(
-                              color: selectedIndex == index
-                                  ? Colors.white
-                                  : textColor,
-                              fontFamily: mainFont,
-                              fontSize: 16,
-                              overflow: TextOverflow.ellipsis)),
+                      Padding(
+                          padding: const EdgeInsets.only(left: 16, right: 16),
+                          child: Text(entries[index].note!,
+                              maxLines: 2,
+                              style: TextStyle(
+                                  color: selectedIndex == index
+                                      ? Colors.white
+                                      : textColor,
+                                  fontFamily: mainFont,
+                                  fontSize: 16,
+                                  overflow: TextOverflow.ellipsis))),
                   ],
                 )));
       },

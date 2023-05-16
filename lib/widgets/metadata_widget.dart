@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/database.dart';
-import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/widgets/button.dart';
 
 import '../domain/metadata.dart';
@@ -63,6 +59,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
         child: ConstrainedBox(
       constraints: const BoxConstraints(
         maxWidth: 550,
+        maxHeight: 500,
       ),
       child: ClipRRect(
         child: BackdropFilter(
@@ -79,6 +76,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
                 child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         SizedBox(
                           height: 32,
@@ -148,6 +146,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
                         TextField(
                             cursorColor: Colors.white,
                             controller: noteEditingController,
+                            maxLines: 10,
                             style: TextStyle(
                               color: textColor,
                               fontFamily: mainFont,
@@ -165,6 +164,8 @@ class MetadataWidgetState extends State<MetadataWidget> {
                                 color: Colors.white54,
                                 fontFamily: mainFont,
                               ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 8.0),
                               border: InputBorder.none,
                             )),
                       ],

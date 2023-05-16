@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:irondash_engine_context/irondash_engine_context.dart';
 import 'package:irondash_message_channel/irondash_message_channel.dart';
@@ -9,9 +10,8 @@ import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/services/database.dart';
 import 'package:wakelock/wakelock.dart';
 
-import '../tools/time.dart';
-import 'setting.dart';
 import '../domain/writing_state.dart';
+import 'setting.dart';
 
 class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Native._privateConstructor();
@@ -90,7 +90,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         await targetDirectory.create(recursive: true);
         // debugPrint('Directory created at: ${targetDirectory.path}');
       }
-      final thumbnailDirectory = Directory('${appDataDir.path}\\data\\thumbnails');
+      final thumbnailDirectory =
+          Directory('${appDataDir.path}\\data\\thumbnails');
       if (await thumbnailDirectory.exists()) {
         // debugPrint('Directory already exists');
       } else {
@@ -125,15 +126,10 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
-  Uint8List getThumbnail(int timestamp) {
+  Widget getThumbnail(int timestamp) {
     final fileName = gererateFileName(timestamp);
     final thumbnailPath = '$filePathPrefix\\thumbnails\\$fileName.png';
-    File file = File(thumbnailPath);
-    if (file.existsSync()) {
-      return file.readAsBytesSync();
-    } else {
-      return Uint8List(0);
-    }
+    return Image.file(File(thumbnailPath), fit: BoxFit.fitWidth);
   }
 
   Future<void> init() async {
@@ -309,8 +305,15 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void availableResolution() async {
     final res = await cameraChannel.invokeMethod('available_resolution', {});
-    resolutions = res.cast<String>();
-    resolutions.sort((a, b) {
+    var buffer = res.cast<String>();
+    var buffer2 = buffer.where((element) {
+      var resolution = element.split('x');
+      int width = int.parse(resolution[0]);
+      return width >= 1280;
+    });
+
+    buffer2 = buffer2.toList();
+    buffer2.sort((a, b) {
       List<String> aResolution = a.split('x');
       List<String> bResolution = b.split('x');
 
@@ -325,6 +328,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
         return bWidth.compareTo(aWidth);
       }
     });
+    resolutions = buffer2.toList();
 
     notifyListeners();
   }
