@@ -13,6 +13,8 @@ import '../domain/event.dart';
 import '../domain/metadata.dart';
 import '../services/event_bus.dart';
 import '../services/native.dart';
+import '../services/setting.dart';
+import '../tools/time.dart';
 
 class PastEntries extends StatefulWidget {
   const PastEntries({super.key});
@@ -36,7 +38,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   Timer? _timer;
   List<Metadata> entries = [];
   double? screenHeight;
-  bool thumbnailViewMode = true;
 
   @override
   void onWindowResize() async {
@@ -128,7 +129,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   }
 
   void play() async {
-    var db = DatabaseService();
     var native = Native();
     int timestamp = entries[selectedIndex].timestamp;
     String fileName = gererateFileName(timestamp);
@@ -174,7 +174,9 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                       : keyListener(
                           eventKey,
                           focusNode,
-                          thumbnailViewMode ? thumbnailView() : listView(),
+                          Setting().thumbnailView
+                              ? thumbnailView()
+                              : listView(),
                         ))),
         )));
   }
@@ -211,7 +213,22 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    native.getThumbnail(entries[index].timestamp),
+                    Stack(
+                      children: [
+                        native.getThumbnail(entries[index].timestamp),
+                        Positioned(
+                          top: 4,
+                          left: 4,
+                          child: Text(
+                              timestampToMonthDay(
+                                  entries[index].timestamp, true),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: subFont,
+                                  fontSize: 22)),
+                        )
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     Padding(
                         padding: const EdgeInsets.only(left: 16, right: 16),
@@ -271,11 +288,22 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                     : Colors.transparent,
                 child: Padding(
                     padding: const EdgeInsets.only(
-                      left: 32,
+                      left: 16,
                       right: 32,
                     ),
-                    child: pastEntry(
-                        entries[index].title, selectedIndex == index))));
+                    child: Row(
+                      children: [
+                        Text(
+                            timestampToMonthDay(
+                                entries[index].timestamp, false),
+                            style: TextStyle(
+                                color: textColor,
+                                fontFamily: mainFont,
+                                fontSize: 16)),
+                        const SizedBox(width: 16),
+                        pastEntry(entries[index].title, selectedIndex == index)
+                      ],
+                    ))));
       },
     );
   }

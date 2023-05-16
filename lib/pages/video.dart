@@ -182,14 +182,23 @@ class _VideoPageState extends State<VideoPage> {
         builder: (context, snapshot) {
           if (snapshot.hasData && snapshot.data == TabItem.settings) {
             return Positioned(
-        bottom: 8,
-        left: 8,
-        child: Tooltip(
-            message: "Version",
-            preferBelow: false,
-            child: Text(version,
-                style: TextStyle(
-                    color: Colors.grey.withOpacity(0.8), fontSize: 16, fontFamily: mainFont))));
+                bottom: 8,
+                left: 8,
+                child: Tooltip(
+                    message: "Version $version",
+                    decoration: BoxDecoration(
+                      color: customOcean.withOpacity(0.8),
+                    ),
+                    textStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: mainFont),
+                    preferBelow: false,
+                    child: Text(version,
+                        style: TextStyle(
+                            color: Colors.grey.withOpacity(0.8),
+                            fontSize: 16,
+                            fontFamily: mainFont))));
           } else {
             return Container();
           }

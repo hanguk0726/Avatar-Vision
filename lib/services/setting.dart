@@ -13,17 +13,18 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   }
   final fileName = 'diary_app_setting.json';
   String lastPreferredResolution = '';
+  bool thumbnailView = true;
 
   Map<String, dynamic> _toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['lastPreferredResolution'] = lastPreferredResolution;
+    data['thumbnailView'] = thumbnailView;
     return data;
   }
 
   void setLastPreferredResolution(String resolution) {
     lastPreferredResolution = resolution;
     save();
-    notifyListeners();
   }
 
   void save() {
@@ -49,6 +50,9 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
     String jsonString = file.readAsStringSync();
     final Map<String, dynamic> data = jsonDecode(jsonString);
     lastPreferredResolution = data['lastPreferredResolution'] as String? ?? '';
+    thumbnailView = data['thumbnailView'] as bool? ?? true;
+    print("thumbnailView $thumbnailView");
+
     return;
   }
 }

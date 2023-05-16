@@ -27,10 +27,20 @@ String formatDuration(Duration duration) {
   }
   return formattedDuration;
 }
+
 String formatInt(int number) {
   if (number < 100) {
     return number.toString().padLeft(2, '0');
   } else {
     return number.toString();
   }
+}
+
+String timestampToMonthDay(int timestamp, bool monthAsLetter) {
+  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+  // 15 OCT or 15/10
+  DateFormat monthFormat = monthAsLetter ? DateFormat.MMM() : DateFormat.M();
+  String month = monthFormat.format(dateTime).toUpperCase();
+  String day = DateFormat.d().format(dateTime);
+  return monthAsLetter ? '$day $month' : '$month/$day';
 }

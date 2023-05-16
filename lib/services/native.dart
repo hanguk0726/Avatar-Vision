@@ -129,7 +129,21 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   Widget getThumbnail(int timestamp) {
     final fileName = gererateFileName(timestamp);
     final thumbnailPath = '$filePathPrefix\\thumbnails\\$fileName.png';
-    return Image.file(File(thumbnailPath), fit: BoxFit.fitWidth);
+    return Image(
+      image: FileImage(File(thumbnailPath)),
+      fit: BoxFit.fitWidth,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) {
+          return child;
+        }
+        return const Opacity(
+          opacity: 0.7,
+          child: Image(
+            image: AssetImage('assets/placeholder.png'),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> init() async {

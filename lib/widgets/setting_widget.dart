@@ -135,7 +135,57 @@ Widget settings(BuildContext context) {
                       const SizedBox(
                         height: 32,
                       ),
-                     
+                      Padding(
+                          padding:
+                              const EdgeInsets.only(left: 16.0, right: 8.0),
+                          child: Row(
+                            children: [
+                              Text("Thumbnail view",
+                                  style: TextStyle(
+                                      color: color,
+                                      fontSize: 16,
+                                      fontFamily: mainFont)),
+                              const Spacer(),
+                              Switch(
+                                value: setting.thumbnailView,
+                                onChanged: (value) {
+                                  setting.thumbnailView = value;
+                                 setting.save();
+                                },
+                                activeTrackColor: customSky.withOpacity(0.6),
+                                activeColor: Colors.white,
+                              ),
+                            ],
+                          )),
+                      const SizedBox(
+                        height: 32,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0, right: 8.0),
+                        child: Row(
+                          children: [
+                            Tooltip(
+                                message:
+                                    "Scroll up or down to toggle a clear view on the mainCam.",
+                                decoration: BoxDecoration(
+                                  color: customOcean.withOpacity(0.8),
+                                ),
+                                textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontFamily: mainFont),
+                                child: Text("Tip",
+                                    style: TextStyle(
+                                        color: color,
+                                        fontSize: 16,
+                                        fontFamily: mainFont))),
+                            const Spacer(),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 32,
+                      ),
                     ],
                   )))));
 }
