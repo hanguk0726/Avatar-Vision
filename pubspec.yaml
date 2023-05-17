@@ -55,7 +55,6 @@ dependencies:
   audio_video_progress_bar: ^1.0.1
   intl: ^0.18.1
   wakelock: ^0.6.2
-  f_glitch: ^0.1.1
   
 dev_dependencies:
   flutter_test:

@@ -16,12 +16,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => Native()),
         ChangeNotifierProvider(create: (_) => Setting()),
+        ChangeNotifierProvider(create: (_) => DatabaseService()),
       ],
       child: const App(),
     ),
   );
-
 }
+
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
 

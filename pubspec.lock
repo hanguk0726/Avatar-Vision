@@ -193,14 +193,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
-  f_glitch:
-    dependency: "direct main"
-    description:
-      name: f_glitch
-      sha256: d682bc7e449f9c155e64f07028b19e5eeff463682d5d26f728f20e2d2e1fdca1
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.2"
   fake_async:
     dependency: transitive
     description:

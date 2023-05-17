@@ -6,6 +6,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/database.dart';
 import 'package:video_diary/widgets/button.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../domain/metadata.dart';
 import '../tools/time.dart';
@@ -19,13 +20,14 @@ class MetadataWidget extends StatefulWidget {
   MetadataWidgetState createState() => MetadataWidgetState();
 }
 
-class MetadataWidgetState extends State<MetadataWidget> {
+class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
   Color borderColor = customSky;
   Color backgroundColor = customOcean;
   Color textColor = customSky;
   late MetadataModel model;
   final isDirtySubject = BehaviorSubject<bool>.seeded(false);
-
+  double? screenHeight;
+  int maxLines = 14;
   Timer? _timer;
   final titleEditingController = TextEditingController();
   final datatimeEditingController = TextEditingController();
@@ -35,7 +37,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
   @override
   void initState() {
     super.initState();
-
+    windowManager.addListener(this);
     model = MetadataModel(widget.metadata);
     onSubmitted = () {
       model.flush();
@@ -48,8 +50,22 @@ class MetadataWidgetState extends State<MetadataWidget> {
   }
 
   @override
+  void onWindowResize() async {
+    await setWindowSize();
+  }
+
+  Future<void> setWindowSize() async {
+    var size = await windowManager.getSize();
+    setState(() {
+      screenHeight = size.height;
+      maxLines = 14 + ((screenHeight! - 720) ~/ 24);
+    });
+  }
+
+  @override
   void dispose() {
     super.dispose();
+    windowManager.removeListener(this);
     _timer?.cancel();
   }
 
@@ -57,10 +73,8 @@ class MetadataWidgetState extends State<MetadataWidget> {
   Widget build(BuildContext context) {
     return FocusScope(
         child: ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxWidth: 550,
-        maxHeight: 500,
-      ),
+      constraints:
+          BoxConstraints(maxWidth: 550, maxHeight: (screenHeight ?? 720) - 200),
       child: ClipRRect(
         child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
@@ -71,12 +85,15 @@ class MetadataWidgetState extends State<MetadataWidget> {
                     color: borderColor.withOpacity(0.8),
                     width: 2,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(0),
+                ),
+                constraints: const BoxConstraints(
+                  minHeight: 520,
                 ),
                 child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.max,
                       children: [
                         SizedBox(
                           height: 32,
@@ -146,7 +163,7 @@ class MetadataWidgetState extends State<MetadataWidget> {
                         TextField(
                             cursorColor: Colors.white,
                             controller: noteEditingController,
-                            maxLines: 10,
+                            maxLines: maxLines,
                             style: TextStyle(
                               color: textColor,
                               fontFamily: mainFont,
@@ -164,8 +181,6 @@ class MetadataWidgetState extends State<MetadataWidget> {
                                 color: Colors.white54,
                                 fontFamily: mainFont,
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0, vertical: 8.0),
                               border: InputBorder.none,
                             )),
                       ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
@@ -35,10 +36,8 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   set selectedIndex(int value) => selectedIndexSubject.add(value);
   String eventKey = 'pastEntries';
   String allowedEventKey = 'tab';
-  Timer? _timer;
-  List<Metadata> entries = [];
   double? screenHeight;
-
+  final ScrollController _thumbnailViewScrollController = ScrollController();
   @override
   void onWindowResize() async {
     await setWindowSize();
@@ -56,20 +55,16 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     setWindowSize();
-    DatabaseService db = DatabaseService();
-    // FIXME
-    db.sync();
-    entries = db.pastEntries;
-    // _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-    //   db.sync();
-    //   setState(() {
-    //     entries = db.pastEntries;
-    //   });
-    // });
+    var db = context.read<DatabaseService>();
+    List<Metadata> entries = db.pastEntries;
+
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       if (entries.isNotEmpty) {
-        int timestamp = entries[selectedIndex].timestamp;
+        int timestamp = entries[index].timestamp;
         EventBus().fire(MetadataEvent(timestamp), eventKey);
+        double offset = (index ~/ 2) * 250.0 ;
+        _thumbnailViewScrollController.animateTo(offset,
+            duration: const Duration(milliseconds: 500), curve: Curves.ease);
       }
     });
     _eventSubscription = EventBus().onEvent.listen((event) {
@@ -110,7 +105,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     focusNode.dispose();
     _eventSubscription.cancel();
     _selectedIndexSubscription.cancel();
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -130,6 +124,8 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
 
   void play() async {
     var native = Native();
+    var db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.pastEntries;
     int timestamp = entries[selectedIndex].timestamp;
     String fileName = gererateFileName(timestamp);
     String filePath = "${native.filePathPrefix}/$fileName.mp4";
@@ -147,6 +143,9 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
 
   @override
   build(BuildContext context) {
+    DatabaseService db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.pastEntries;
+
     return ConstrainedBox(
         constraints: BoxConstraints(maxHeight: (screenHeight ?? 720) - 150),
         child: ClipRRect(
@@ -183,16 +182,19 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
 
   Widget thumbnailView() {
     var native = Native();
+    var db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.pastEntries;
     return GridView.builder(
+      controller: _thumbnailViewScrollController,
       padding: const EdgeInsets.only(left: 16, right: 16),
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
       itemCount: entries.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-      ),
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          mainAxisExtent: 250),
       itemBuilder: (context, index) {
         return GestureDetector(
             onTap: () {
@@ -207,9 +209,19 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
               play();
             },
             child: Container(
-                color: selectedIndex == index
+                // color: selectedIndex == index
+                //     ? customSky.withOpacity(0.3)
+                //     : Colors.grey.withOpacity(0.1),
+                     decoration: BoxDecoration(
+                  color: selectedIndex == index
                     ? customSky.withOpacity(0.3)
-                    : Colors.transparent,
+                    : Colors.grey.withOpacity(0.1),
+                  border:  selectedIndex == index ?Border.all(
+                    color:  customSky.withOpacity(0.6),
+                    width: 2,
+                  ) : null,
+                  // borderRadius: BorderRadius.circular(10),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -259,6 +271,8 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   }
 
   Widget listView() {
+    var db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.pastEntries;
     return ListView.builder(
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),

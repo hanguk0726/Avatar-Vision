@@ -1,7 +1,5 @@
-import 'dart:ffi';
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:video_diary/services/native.dart';
@@ -11,9 +9,8 @@ import '../domain/result.dart';
 import '../generated/objectbox.g.dart';
 import '../tools/time.dart';
 
-
 //(for objectbox.g) cmd : flutter pub run build_runner build
-class DatabaseService {
+class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
   DatabaseService._internal();
@@ -75,9 +72,9 @@ class DatabaseService {
     store.box<Metadata>().put(metadata);
   }
 
-  List<Metadata> getEntries() {
+  Future<List<Metadata>> getEntries() async {
     Native native = Native();
-    native.checkFileDirectoryAndSetFiles();
+    await native.checkFileDirectoryAndSetFiles();
     List<Metadata> result = native.files
         .map((el) => findByOsFileName(el))
         .whereType<Success>()
@@ -107,9 +104,9 @@ class DatabaseService {
   // }
 
   Future<void> sync() async {
-    pastEntries = getEntries();
+    pastEntries = await getEntries();
     // clearOutdatedRecords();
-    debugPrint('DB Synced');
+    notifyListeners();
   }
 }
 

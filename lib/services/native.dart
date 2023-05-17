@@ -181,6 +181,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           if (writingState == WritingState.idle) {
             if (!rendering) {
               startCamera();
+              DatabaseService().sync();
             }
           }
           return null;
