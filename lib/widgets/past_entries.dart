@@ -8,6 +8,7 @@ import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/pages/play.dart';
 import 'package:video_diary/services/database.dart';
 import 'package:video_diary/widgets/key_listener.dart';
+import 'package:video_diary/widgets/search.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
@@ -37,9 +38,21 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   String eventKey = 'pastEntries';
   String allowedEventKey = 'tab';
   double? screenHeight;
+  double? screenWidth;
   final ScrollController _thumbnailViewScrollController = ScrollController();
+
   @override
   void onWindowResize() async {
+    await setWindowSize();
+  }
+
+  @override
+  void onWindowMaximize() async {
+    await setWindowSize();
+  }
+
+  @override
+  void onWindowUnmaximize() async {
     await setWindowSize();
   }
 
@@ -47,6 +60,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     var size = await windowManager.getSize();
     setState(() {
       screenHeight = size.height;
+      screenWidth = size.width;
     });
   }
 
@@ -56,15 +70,18 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     windowManager.addListener(this);
     setWindowSize();
     var db = context.read<DatabaseService>();
-    List<Metadata> entries = db.pastEntries;
-
+    List<Metadata> entries = db.uiStatePastEntries;
+    var setting = context.read<Setting>();
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       if (entries.isNotEmpty) {
         int timestamp = entries[index].timestamp;
         EventBus().fire(MetadataEvent(timestamp), eventKey);
-        double offset = (index ~/ 2) * 250.0 ;
-        _thumbnailViewScrollController.animateTo(offset,
-            duration: const Duration(milliseconds: 500), curve: Curves.ease);
+        //FIXME
+        if (setting.thumbnailView) {
+          double offset = (index ~/ 2) * 250.0;
+          _thumbnailViewScrollController.animateTo(offset,
+              duration: const Duration(milliseconds: 500), curve: Curves.ease);
+        }
       }
     });
     _eventSubscription = EventBus().onEvent.listen((event) {
@@ -108,14 +125,14 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     super.dispose();
   }
 
-  Widget pastEntry(String file, bool selected) {
+  Widget pastEntry(String text, bool selected) {
     if (selected) {
-      return Text(file,
+      return Text(text,
           style:
               TextStyle(color: textColor, fontFamily: mainFont, fontSize: 16));
     }
     return Text(
-      file,
+      text,
       style: TextStyle(color: textColor, fontFamily: mainFont, fontSize: 16),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -125,7 +142,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   void play() async {
     var native = Native();
     var db = context.watch<DatabaseService>();
-    List<Metadata> entries = db.pastEntries;
+    List<Metadata> entries = db.uiStatePastEntries;
     int timestamp = entries[selectedIndex].timestamp;
     String fileName = gererateFileName(timestamp);
     String filePath = "${native.filePathPrefix}/$fileName.mp4";
@@ -144,135 +161,175 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   @override
   build(BuildContext context) {
     DatabaseService db = context.watch<DatabaseService>();
-    List<Metadata> entries = db.pastEntries;
-
+    List<Metadata> entries = db.uiStatePastEntries;
+    int itemsPerRow = ((screenWidth ?? 1280) * 0.43) ~/ 250;
+    double width;
+    if (itemsPerRow == 2) {
+      width = 550;
+    } else {
+      width = 816;
+    }
     return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: (screenHeight ?? 720) - 150),
+        constraints: BoxConstraints(
+            maxHeight: (screenHeight ?? 720) - 150, maxWidth: width),
         child: ClipRRect(
             child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-          child: Container(
-              decoration: BoxDecoration(
-                color: backgroundColor.withOpacity(0.2),
-              ),
-              constraints: const BoxConstraints(
-                minHeight: 570,
-              ),
-              child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16, top: 16),
-                  child: entries.isEmpty
-                      ? SizedBox.expand(
-                          child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text('No entries yet',
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontFamily: mainFont,
-                                  fontSize: 16)),
-                        ))
-                      : keyListener(
-                          eventKey,
-                          focusNode,
-                          Setting().thumbnailView
-                              ? thumbnailView()
-                              : listView(),
-                        ))),
-        )));
-  }
-
-  Widget thumbnailView() {
-    var native = Native();
-    var db = context.watch<DatabaseService>();
-    List<Metadata> entries = db.pastEntries;
-    return GridView.builder(
-      controller: _thumbnailViewScrollController,
-      padding: const EdgeInsets.only(left: 16, right: 16),
-      shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
-      itemCount: entries.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          mainAxisExtent: 250),
-      itemBuilder: (context, index) {
-        return GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedIndex = index;
-              });
-            },
-            onDoubleTap: () {
-              setState(() {
-                selectedIndex = index;
-              });
-              play();
-            },
-            child: Container(
-                // color: selectedIndex == index
-                //     ? customSky.withOpacity(0.3)
-                //     : Colors.grey.withOpacity(0.1),
-                     decoration: BoxDecoration(
-                  color: selectedIndex == index
-                    ? customSky.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.1),
-                  border:  selectedIndex == index ?Border.all(
-                    color:  customSky.withOpacity(0.6),
-                    width: 2,
-                  ) : null,
-                  // borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: backgroundColor.withOpacity(0.2),
+                  ),
+                  constraints: const BoxConstraints(
+                    minHeight: 570,
+                  ),
+                  child: keyListener(
+                    eventKey,
+                    focusNode,
                     Stack(
                       children: [
-                        native.getThumbnail(entries[index].timestamp),
-                        Positioned(
-                          top: 4,
-                          left: 4,
-                          child: Text(
-                              timestampToMonthDay(
-                                  entries[index].timestamp, true),
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: subFont,
-                                  fontSize: 22)),
-                        )
+                        entries.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 70),
+                                child: SizedBox.expand(
+                                    child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text('No entries yet',
+                                      style: TextStyle(
+                                          color: textColor,
+                                          fontFamily: mainFont,
+                                          fontSize: 16)),
+                                )))
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 70),
+                                child: Setting().thumbnailView
+                                    ? thumbnailView(width, itemsPerRow)
+                                    : listView(),
+                              ),
+                        statusBar(),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16),
-                        child: Text(entries[index].title,
-                            style: TextStyle(
-                                color: selectedIndex == index
-                                    ? Colors.white
-                                    : textColor,
-                                fontFamily: mainFont,
-                                fontSize: 16))),
-                    const SizedBox(height: 8),
-                    if (entries[index].note?.isNotEmpty ?? false)
-                      Padding(
-                          padding: const EdgeInsets.only(left: 16, right: 16),
-                          child: Text(entries[index].note!,
-                              maxLines: 2,
-                              style: TextStyle(
-                                  color: selectedIndex == index
-                                      ? Colors.white
-                                      : textColor,
-                                  fontFamily: mainFont,
-                                  fontSize: 16,
-                                  overflow: TextOverflow.ellipsis))),
-                  ],
-                )));
-      },
+                  ),
+                ))));
+  }
+
+  Widget statusBar() {
+    DatabaseService db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.uiStatePastEntries;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: customOcean.withOpacity(0.6),
+        border: Border(
+          top: BorderSide(width: 2.0, color: customSky.withOpacity(0.6)),
+          bottom: BorderSide(width: 2.0, color: customSky.withOpacity(0.6)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(width: 16),
+          if (entries.isNotEmpty)
+            Text(timestampToMonthDay(entries[selectedIndex].timestamp, true),
+                style: TextStyle(
+                    color: Colors.white, fontFamily: subFont, fontSize: 22)),
+          const Spacer(),
+          const DateSearchBar()
+        ],
+      ),
     );
+  }
+
+  Widget thumbnailView(double width, int itemsPerRow) {
+    var native = Native();
+    var db = context.watch<DatabaseService>();
+    List<Metadata> entries = db.uiStatePastEntries;
+    print("thumbnailView ${entries.length}");
+    return SizedBox(
+        width: width,
+        child: GridView.builder(
+          controller: _thumbnailViewScrollController,
+          padding: const EdgeInsets.only(left: 16, right: 16),
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          itemCount: entries.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: itemsPerRow,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              mainAxisExtent: 250),
+          itemBuilder: (context, index) {
+            return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+                child: GestureDetector(
+                    key: ValueKey<double>(width),
+                    onTap: () {
+                      setState(() {
+                        selectedIndex = index;
+                      });
+                    },
+                    onDoubleTap: () {
+                      setState(() {
+                        selectedIndex = index;
+                      });
+                      play();
+                    },
+                    child: Container(
+                        decoration: BoxDecoration(
+                          color: selectedIndex == index
+                              ? customSky.withOpacity(0.3)
+                              : Colors.grey.withOpacity(0.1),
+                          border: selectedIndex == index
+                              ? Border.all(
+                                  color: customSky.withOpacity(0.6),
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            native.getThumbnail(entries[index].timestamp),
+                            const SizedBox(height: 16),
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 16, right: 16),
+                                child: Text(
+                                    getFormattedTimestamp(
+                                        timestamp: entries[index].timestamp),
+                                    style: TextStyle(
+                                        color: selectedIndex == index
+                                            ? Colors.white
+                                            : textColor,
+                                        fontFamily: mainFont,
+                                        fontSize: 16))),
+                            const SizedBox(height: 8),
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 16, right: 16),
+                                child: Text(entries[index].title,
+                                    maxLines: 2,
+                                    style: TextStyle(
+                                        color: selectedIndex == index
+                                            ? Colors.white
+                                            : textColor,
+                                        fontFamily: mainFont,
+                                        fontSize: 16,
+                                        overflow: TextOverflow.ellipsis))),
+                          ],
+                        ))));
+          },
+        ));
   }
 
   Widget listView() {
     var db = context.watch<DatabaseService>();
-    List<Metadata> entries = db.pastEntries;
+    List<Metadata> entries = db.uiStatePastEntries;
     return ListView.builder(
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
@@ -305,19 +362,10 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                       left: 16,
                       right: 32,
                     ),
-                    child: Row(
-                      children: [
-                        Text(
-                            timestampToMonthDay(
-                                entries[index].timestamp, false),
-                            style: TextStyle(
-                                color: textColor,
-                                fontFamily: mainFont,
-                                fontSize: 16)),
-                        const SizedBox(width: 16),
-                        pastEntry(entries[index].title, selectedIndex == index)
-                      ],
-                    ))));
+                    child: pastEntry(
+                        getFormattedTimestamp(
+                            timestamp: entries[index].timestamp),
+                        selectedIndex == index))));
       },
     );
   }

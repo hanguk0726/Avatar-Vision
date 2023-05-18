@@ -18,6 +18,8 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
   late final Store store;
 
   List<Metadata> pastEntries = [];
+  List<Metadata> filteredPastEntries = [];
+  List<Metadata> uiStatePastEntries = [];
   int lastestTimestamp = 0;
 
   Future<void> init() async {
@@ -64,11 +66,7 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     String fileName =
         getFormattedTimestamp(timestamp: timestamp, format: fileNameFormat);
     final metadata = Metadata(
-        title: fileName,
-        timestamp: timestamp,
-        note: '',
-        tags: '',
-        thumbnail: '');
+        title: '', timestamp: timestamp, note: '', tags: '', thumbnail: '');
     store.box<Metadata>().put(metadata);
   }
 
@@ -81,9 +79,31 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
         .map((el) => el.value)
         .toList()
         .cast<Metadata>();
+
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     debugPrint('getEntries: ${result.length}');
     return result;
   }
+
+  void resetUiStatePastEntries(bool notifiy) {
+    uiStatePastEntries = pastEntries;
+    if (notifiy) notifyListeners();
+  }
+
+  void filterEntriesBefore(int timestamp) async {
+    DateTime targetDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    List<Metadata> result = pastEntries
+        .where((el) => DateTime.fromMillisecondsSinceEpoch(el.timestamp)
+            .isBefore(targetDate.add(const Duration(days: 1))))
+        .toList();
+
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    filteredPastEntries = result;
+    uiStatePastEntries = filteredPastEntries;
+    debugPrint('filterEntriesBefore: ${result.length}');
+    notifyListeners();
+  }
+
 //FIXME
   // void clearOutdatedRecords() {
   //   var entries = getEntries();
@@ -105,6 +125,7 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
 
   Future<void> sync() async {
     pastEntries = await getEntries();
+    uiStatePastEntries = pastEntries;
     // clearOutdatedRecords();
     notifyListeners();
   }

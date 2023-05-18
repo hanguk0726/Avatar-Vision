@@ -25,21 +25,16 @@ class TabItemWidgetState extends State<TabItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxWidth: 550,
-      ),
-      child: StreamBuilder<TabItem>(
+    return StreamBuilder<TabItem>(
         stream: widget.tabItem,
         initialData: TabItem.mainCam,
         builder: (context, snapshot) {
           final tabItem = snapshot.data;
           return Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const  EdgeInsets.only(top: 16, bottom: 8, left: 8, right: 8),
               child: _buildTabItem(tabItem, context));
         },
-      ),
-    );
+      ) ;
   }
 }
 

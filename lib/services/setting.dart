@@ -14,11 +14,13 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   final fileName = 'diary_app_setting.json';
   String lastPreferredResolution = '';
   bool thumbnailView = true;
+  bool tip = true;
 
   Map<String, dynamic> _toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['lastPreferredResolution'] = lastPreferredResolution;
     data['thumbnailView'] = thumbnailView;
+    data['tip'] = tip;
     return data;
   }
 
@@ -51,7 +53,7 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
     final Map<String, dynamic> data = jsonDecode(jsonString);
     lastPreferredResolution = data['lastPreferredResolution'] as String? ?? '';
     thumbnailView = data['thumbnailView'] as bool? ?? true;
-    print("thumbnailView $thumbnailView");
+    tip = data['tip'] as bool? ?? true;
 
     return;
   }

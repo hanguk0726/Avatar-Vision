@@ -16,7 +16,11 @@ class EventBus {
   Stream<KeyEventPair> get onEvent => _eventController.stream;
 
   bool clearUiMode = false;
+  bool off = false;
   void fire(Event event, String key) {
+    if (off) {
+      return;
+    }
     if (clearUiMode) {
       //only accept space which is used to toggle clear ui
       if (event == KeyboardEvent.keyboardControlSpace) {

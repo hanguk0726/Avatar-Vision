@@ -11,6 +11,7 @@ import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
+import 'package:video_diary/widgets/tip_content.dart';
 
 import '../domain/app.dart';
 import '../domain/error.dart';
@@ -21,6 +22,7 @@ import '../domain/tab_item.dart';
 import '../domain/writing_state.dart';
 import '../services/database.dart';
 import '../services/runtime_data.dart';
+import '../services/setting.dart';
 import '../tools/time.dart';
 import '../widgets/tab.dart';
 import '../widgets/tabItem.dart';
@@ -45,9 +47,11 @@ class _VideoPageState extends State<VideoPage> {
   final runtimeData = RuntimeData();
   Timer? _timer;
   Duration recordingTime = Duration.zero;
+  bool showTipContent = false;
   @override
   void initState() {
     super.initState();
+    tabItem.add(RuntimeData().currentTab);
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (event.key != "pastEntries" && event.key != "tab") {
         return;
@@ -143,6 +147,7 @@ class _VideoPageState extends State<VideoPage> {
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               about(),
+              tip(),
               showMessageOnError(errors),
               menuTaps(recording: recording),
               _mediaControlButton(),
@@ -151,6 +156,12 @@ class _VideoPageState extends State<VideoPage> {
                   writingState: writingState,
                   recording: recording,
                   rendering: rendering),
+              if (showTipContent)
+                Positioned(
+                  top: 82,
+                  right: 82,
+                  child: tipContent(),
+                )
             ]),
           )),
           onPointerSignal: (PointerSignalEvent event) {
@@ -173,6 +184,39 @@ class _VideoPageState extends State<VideoPage> {
         EventBus().clearUiMode = isMovedAway;
       }
     });
+  }
+
+  Widget tip() {
+    var setting = Setting();
+    if (!setting.tip) return const SizedBox();
+    return StreamBuilder<TabItem>(
+        stream: tabItem,
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data != TabItem.pastEntries) {
+            return buildAnimatedPositioned(
+              isMovedAway: isMovedAway,
+              top: 32,
+              right: 32,
+              child: MouseRegion(
+                  onHover: (event) {
+                    setState(() {
+                      
+                    showTipContent = true;
+                    });
+                  },
+                  onExit: (event) {
+                    setState(() {
+                    showTipContent = false;
+                    });
+                  },
+                  child: Center(
+                      child: Icon(Icons.help_center_sharp,
+                          size: 50, color: customSky.withOpacity(0.4)))),
+            );
+          } else {
+            return Container();
+          }
+        });
   }
 
   Widget about() {

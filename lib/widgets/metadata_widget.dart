@@ -154,7 +154,12 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
                                 color: textColor,
                                 fontSize: 16,
                                 fontFamily: mainFont),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
+                              hintText: 'Empty title',
+                              hintStyle: TextStyle(
+                                color: Colors.white54,
+                                fontFamily: mainFont,
+                              ),
                               border: InputBorder.none,
                             )),
                         Divider(
