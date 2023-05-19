@@ -147,7 +147,7 @@ class _VideoPageState extends State<VideoPage> {
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               about(),
-              tip(),
+              tip(recording),
               showMessageOnError(errors),
               menuTaps(recording: recording),
               _mediaControlButton(),
@@ -186,9 +186,9 @@ class _VideoPageState extends State<VideoPage> {
     });
   }
 
-  Widget tip() {
+  Widget tip(bool recording) {
     var setting = Setting();
-    if (!setting.tip) return const SizedBox();
+    if (!setting.tip || recording) return const SizedBox();
     return StreamBuilder<TabItem>(
         stream: tabItem,
         builder: (context, snapshot) {
@@ -200,13 +200,12 @@ class _VideoPageState extends State<VideoPage> {
               child: MouseRegion(
                   onHover: (event) {
                     setState(() {
-                      
-                    showTipContent = true;
+                      showTipContent = true;
                     });
                   },
                   onExit: (event) {
                     setState(() {
-                    showTipContent = false;
+                      showTipContent = false;
                     });
                   },
                   child: Center(

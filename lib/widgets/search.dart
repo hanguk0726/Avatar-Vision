@@ -39,7 +39,9 @@ class DateSearchBarState extends State<DateSearchBar> {
     var db = DatabaseService();
     final selectedDate = _getSelectedDate();
     if (selectedDate != null) {
-      db.filterEntriesBefore(selectedDate.millisecondsSinceEpoch);
+      db.filterEntriesByDate(selectedDate.millisecondsSinceEpoch);
+    } else {
+      db.filterEntriesByText(_textController.text);
     }
   }
 
@@ -47,7 +49,7 @@ class DateSearchBarState extends State<DateSearchBar> {
   void initState() {
     super.initState();
     focusNode.addListener(() {
-       EventBus().off = focusNode.hasFocus;
+      EventBus().off = focusNode.hasFocus;
     });
   }
 
@@ -63,7 +65,7 @@ class DateSearchBarState extends State<DateSearchBar> {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-        message: "input date in MMDDYYYY format ",
+        message: 'Input date in MMDDYYYY format or text to search',
         decoration: BoxDecoration(
           color: customOcean,
         ),
@@ -86,7 +88,7 @@ class DateSearchBarState extends State<DateSearchBar> {
                   cursorColor: Colors.white,
                   onChanged: (value) {
                     EasyDebounce.debounce(
-                        "searchDate",
+                        "search",
                         const Duration(milliseconds: 300),
                         () => _handleSearch());
                   },

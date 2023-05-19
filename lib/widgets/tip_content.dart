@@ -1,31 +1,21 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:video_diary/domain/assets.dart';
 
 Widget tipContent() {
-  var backgroundColor = Colors.white ;
-  var borderColor = customOrange;
+  var backgroundColor = customSky;
   var textStyle =
-      TextStyle(color:
-      customBlack
-      //  Colors.white
-      , fontFamily: mainFont, fontSize: 18);
+      TextStyle(color: Colors.white, fontFamily: mainFont, fontSize: 18);
   return SizedBox(
-      width: 550,
-      height: 500,
+      width: 400,
+      height: 300,
       child: ClipRRect(
           child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
               child: Container(
                   decoration: BoxDecoration(
-                    color: backgroundColor.withOpacity(0.6),
-                    // border: Border.all(
-                    //   color: borderColor,
-                    //   width: 2,
-                    // ),
-                    // borderRadius: BorderRadius.circular(0),
+                    color: backgroundColor.withOpacity(0.2),
                   ),
                   constraints: const BoxConstraints(
                     minHeight: 520,
@@ -37,10 +27,14 @@ Widget tipContent() {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Scroll up/down or press Spacebar to toggle a clear view on the mainCam.",
+                              "Scroll up/down or press Spacebar to toggle \na clear view on the mainCam.",
                               style: textStyle,
                             ),
+                            const SizedBox(height: 32),
                             Text("You can turn off this tip on setting.",
-                                style: textStyle)
+                                style: textStyle),
+                            const SizedBox(height: 32),
+                            Text("Press Arrow keys to change the taps.",
+                                style: textStyle),
                           ]))))));
 }
