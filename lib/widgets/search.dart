@@ -72,32 +72,35 @@ class DateSearchBarState extends State<DateSearchBar> {
         textStyle:
             TextStyle(color: Colors.white, fontSize: 16, fontFamily: mainFont),
         preferBelow: false,
-        child: SizedBox(
-            height: 50,
-            width: 250,
-            child: Row(
-              children: [
-                Expanded(
-                    child: TextFormField(
-                  focusNode: focusNode,
-                  controller: _textController,
-                  keyboardType: TextInputType.datetime,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                  ),
-                  cursorColor: Colors.white,
-                  onChanged: (value) {
-                    EasyDebounce.debounce(
-                        "search",
-                        const Duration(milliseconds: 300),
-                        () => _handleSearch());
-                  },
-                  style: textStyle,
-                )),
-                const SizedBox(width: 8),
-                Icon(Icons.search, color: customSky.withOpacity(0.6)),
-                const SizedBox(width: 16),
-              ],
-            )));
+        child: GestureDetector(
+          onTap: () => focusNode.requestFocus(),
+          child: SizedBox(
+              height: 50,
+              width: 250,
+              child: Row(
+                children: [
+                  Expanded(
+                      child: TextFormField(
+                    focusNode: focusNode,
+                    controller: _textController,
+                    keyboardType: TextInputType.datetime,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                    ),
+                    cursorColor: Colors.white,
+                    onChanged: (value) {
+                      EasyDebounce.debounce(
+                          "search",
+                          const Duration(milliseconds: 300),
+                          () => _handleSearch());
+                    },
+                    style: textStyle,
+                  )),
+                  const SizedBox(width: 8),
+                  Icon(Icons.search, color: customSky.withOpacity(0.6)),
+                  const SizedBox(width: 16),
+                ],
+              )),
+        ));
   }
 }

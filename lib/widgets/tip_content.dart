@@ -36,5 +36,8 @@ Widget tipContent() {
                             const SizedBox(height: 32),
                             Text("Press Arrow keys to change the taps.",
                                 style: textStyle),
+                                  const SizedBox(height: 32),
+                            Text("Press F key to start fullscreen mode.",
+                                style: textStyle),
                           ]))))));
 }

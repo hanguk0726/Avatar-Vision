@@ -56,6 +56,16 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     await setWindowSize();
   }
 
+  @override
+  void onWindowEnterFullScreen() async {
+    await setWindowSize();
+  }
+
+  @override
+  void onWindowLeaveFullScreen() async {
+    await setWindowSize();
+  }
+
   Future<void> setWindowSize() async {
     var size = await windowManager.getSize();
     setState(() {
@@ -69,16 +79,16 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     setWindowSize();
-    var db = context.read<DatabaseService>();
-    List<Metadata> entries = db.uiStatePastEntries;
     var setting = context.read<Setting>();
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
+      var db = context.read<DatabaseService>();
+      List<Metadata> entries = db.uiStatePastEntries;
       if (entries.isNotEmpty) {
         int timestamp = entries[index].timestamp;
         EventBus().fire(MetadataEvent(timestamp), eventKey);
-        //FIXME
         if (setting.thumbnailView) {
-          double offset = (index ~/ 2) * 250.0;
+          int itemsPerRow = ((screenWidth ?? 1280) * 0.43) ~/ 250;
+          double offset = (index ~/ itemsPerRow) * 250.0;
           _thumbnailViewScrollController.animateTo(offset,
               duration: const Duration(milliseconds: 500), curve: Curves.ease);
         }
@@ -98,7 +108,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
           }
           break;
         case KeyboardEvent.keyboardControlArrowDown:
-          if (selectedIndex < Native().files.length - 2) {
+          if (selectedIndex < Native().files.length - 1) {
             setState(() {
               selectedIndex = selectedIndex + 1;
             });
@@ -141,7 +151,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
 
   void play() async {
     var native = Native();
-    var db = context.watch<DatabaseService>();
+    var db = context.read<DatabaseService>();
     List<Metadata> entries = db.uiStatePastEntries;
     int timestamp = entries[selectedIndex].timestamp;
     String fileName = gererateFileName(timestamp);
@@ -243,7 +253,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     var native = Native();
     var db = context.watch<DatabaseService>();
     List<Metadata> entries = db.uiStatePastEntries;
-    print("thumbnailView ${entries.length}");
     return SizedBox(
         width: width,
         child: GridView.builder(
@@ -271,6 +280,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                     onTap: () {
                       setState(() {
                         selectedIndex = index;
+                        focusNode.requestFocus();
                       });
                     },
                     onDoubleTap: () {
@@ -345,6 +355,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
             onTap: () {
               setState(() {
                 selectedIndex = index;
+                focusNode.requestFocus();
               });
             },
             onDoubleTap: () {

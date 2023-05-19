@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -48,6 +49,7 @@ class _VideoPageState extends State<VideoPage> {
   Timer? _timer;
   Duration recordingTime = Duration.zero;
   bool showTipContent = false;
+  bool isFullscreen = false;
   @override
   void initState() {
     super.initState();
@@ -60,6 +62,12 @@ class _VideoPageState extends State<VideoPage> {
         if (event.event == KeyboardEvent.keyboardControlSpace) {
           final recording = context.read<Native>().recording;
           clearUi(recording, !isMovedAway);
+          return;
+        }
+        if (event.event == KeyboardEvent.keyboardControlF) {
+          FullScreenWindow.setFullScreen(!isFullscreen);
+          isFullscreen = !isFullscreen;
+          setState(() {});
           return;
         }
       }

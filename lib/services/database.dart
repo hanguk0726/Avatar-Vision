@@ -45,12 +45,12 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
-  void update(String videoTitle, Metadata updatedData) {
+  void update(int timestamp, Metadata updatedData) {
     final query =
-        store.box<Metadata>().query(Metadata_.title.equals(videoTitle)).build();
+        store.box<Metadata>().query(Metadata_.timestamp.equals(timestamp)).build();
     final result = query.find();
     if (result.isEmpty) {
-      debugPrint('No metadata found for $videoTitle');
+      debugPrint('No metadata found for $timestamp');
     } else {
       final metadata = result.first;
       metadata.title = updatedData.title;
