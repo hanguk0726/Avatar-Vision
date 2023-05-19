@@ -90,7 +90,7 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     if (notifiy) notifyListeners();
   }
 
-  void filterEntriesBefore(int timestamp) async {
+  void filterEntriesByDate(int timestamp) async {
     DateTime targetDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
     List<Metadata> result = pastEntries
         .where((el) => DateTime.fromMillisecondsSinceEpoch(el.timestamp)
@@ -104,29 +104,40 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-//FIXME
-  // void clearOutdatedRecords() {
-  //   var entries = getEntries();
+  void filterEntriesByText(String text) async {
+    List<Metadata> result = [];
+    result = pastEntries
+        .where((el) =>
+            el.title.toLowerCase().contains(text.toLowerCase()) ||
+            (el.note != null &&
+                el.note!.toLowerCase().contains(text.toLowerCase())))
+        .toList();
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    filteredPastEntries = result;
+    uiStatePastEntries = filteredPastEntries;
+    debugPrint('filterEntriesByText: ${result.length}');
+    notifyListeners();
+  }
 
-  //   final query = store.box<Metadata>().query().build();
-  //   final dataInDB = query.find();
+  void clearOutdatedRecords(List<Metadata> entries) async {
+    final query = store.box<Metadata>().query().build();
+    final dataInDB = query.find();
 
-  //  debugPrint('dataInDB: ${dataInDB.length}');
-  //   for (var el in dataInDB) {
-  //     // the data inserted when start, but actual file could be writing now.
-  //     bool isTheDataJustAdded =
-  //         DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
+    for (var el in dataInDB) {
+      // the data inserted when start, but actual file could be writing now.
+      bool isTheDataJustAdded =
+          DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
 
-  //     if (!entries.contains(el) && !isTheDataJustAdded) {
-  //       store.box<Metadata>().remove(el.id);
-  //     }
-  //   }
-  // }
+      if (!entries.contains(el) && !isTheDataJustAdded) {
+        store.box<Metadata>().remove(el.id);
+      }
+    }
+  }
 
   Future<void> sync() async {
     pastEntries = await getEntries();
     uiStatePastEntries = pastEntries;
-    // clearOutdatedRecords();
+    clearOutdatedRecords(pastEntries);
     notifyListeners();
   }
 }
