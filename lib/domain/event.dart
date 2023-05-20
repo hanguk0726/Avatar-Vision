@@ -48,12 +48,30 @@ class MetadataEvent<T> extends Event<T> {
   final int timestamp;
 
   const MetadataEvent(this.timestamp) : super._();
+}
 
-  
+class DialogEvent<T> extends Event<T> {
+  final String text;
+  final String eventKey;
+  final String? buttonSky;
+  final String? buttonOrange;
+  final Future<void> Function()? buttonSkyTask;
+  final Future<void> Function()? buttonOrangeTask;
+  final Future<void> Function()? automaticTask;
+  const DialogEvent(
+      {required this.text,
+      required this.eventKey,
+      this.buttonSky,
+      this.buttonOrange,
+      this.buttonSkyTask,
+      this.buttonOrangeTask,
+      this.automaticTask})
+      : super._();
+
+  static const dismiss = DialogEvent(text: 'dismiss', eventKey: 'dismiss');
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
-  
   if (event is RawKeyDownEvent) {
     switch (event.logicalKey.keyLabel) {
       case 'Arrow Up':

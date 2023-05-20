@@ -8,17 +8,17 @@ Widget keyListener(
   FocusNode focusNode,
   Widget child,
 ) {
-  return  RawKeyboardListener(
-        focusNode: focusNode,
-        onKey: (event) {
-          debugPrint(
-            "${event.logicalKey.keyLabel}, $key",
-          );
-          var e = rawKeyEventToEvent(event);
-          if (e != null) {
-            EventBus().fire(e, key);
-          }
-        },
-        child: child,
+  return RawKeyboardListener(
+    focusNode: focusNode,
+    onKey: (event) {
+      debugPrint(
+        "${event.logicalKey.keyLabel}, $key",
       );
+      var e = rawKeyEventToEvent(event);
+      if (e != null) {
+        EventBus().fire(e, key);
+      }
+    },
+    child: child,
+  );
 }

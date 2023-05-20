@@ -61,13 +61,18 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   String filePathPrefix = '';
   String fileName = '';
   List<String> files = [];
-  void _deleteFile(int timestamp) {
+  Future<void> deleteFile(int timestamp) async {
     final fileName = gererateFileName(timestamp);
     File file = File('$filePathPrefix\\$fileName.mp4');
     file.deleteSync();
+    File thumbnailFile = File('$filePathPrefix\\thumbnails\\$fileName.png');
+    thumbnailFile.deleteSync();
+    // db record will be deleted by the db service 'clearOutdatedRecords'
   }
 
-  void _copyFileToDesktop(String filePath) {
+  Future<void> sendFileToDesktop(int timestamp) async {
+    final fileName = gererateFileName(timestamp);
+    final filePath = '$filePathPrefix\\$fileName.mp4';
     File file = File(filePath);
     if (file.existsSync()) {
       String desktopDir = '${Platform.environment['USERPROFILE']}\\Desktop';
@@ -169,7 +174,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   void setChannelHandlers() {
     recordingChannel.setMethodCallHandler((call) async {
-      switch (call.method)  {
+      switch (call.method) {
         case 'mark_writing_state':
           writingState = WritingState.fromName(call.arguments);
           if (writingState == WritingState.saving) {
@@ -180,7 +185,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           debugPrint('writingState: $writingState');
           if (writingState == WritingState.idle) {
             if (!rendering) {
-              await startCamera(); 
+              await startCamera();
               DatabaseService().sync();
             }
           }

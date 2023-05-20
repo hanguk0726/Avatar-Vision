@@ -17,6 +17,7 @@ import '../services/event_bus.dart';
 import '../services/native.dart';
 import '../services/setting.dart';
 import '../tools/time.dart';
+import 'context_menu.dart';
 
 class PastEntries extends StatefulWidget {
   const PastEntries({super.key});
@@ -225,7 +226,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   Widget statusBar() {
     DatabaseService db = context.watch<DatabaseService>();
     List<Metadata> entries = db.uiStatePastEntries;
-
     return Container(
       decoration: BoxDecoration(
         color: customOcean.withOpacity(0.6),
@@ -238,7 +238,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           const SizedBox(width: 16),
-          if (entries.isNotEmpty)
+          if (entries.length > selectedIndex)
             Text(timestampToMonthDay(entries[selectedIndex].timestamp, true),
                 style: TextStyle(
                     color: Colors.white, fontFamily: subFont, fontSize: 22)),
@@ -308,16 +308,22 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                             const SizedBox(height: 16),
                             Padding(
                                 padding:
-                                    const EdgeInsets.only(left: 16, right: 16),
-                                child: Text(
-                                    getFormattedTimestamp(
-                                        timestamp: entries[index].timestamp),
-                                    style: TextStyle(
-                                        color: selectedIndex == index
-                                            ? Colors.white
-                                            : textColor,
-                                        fontFamily: mainFont,
-                                        fontSize: 16))),
+                                    const EdgeInsets.only(left: 16),
+                                child: Row(children: [
+                                  Text(
+                                      getFormattedTimestamp(
+                                          timestamp: entries[index].timestamp),
+                                      style: TextStyle(
+                                          color: selectedIndex == index
+                                              ? Colors.white
+                                              : textColor,
+                                          fontFamily: mainFont,
+                                          fontSize: 16)),
+                                  if (selectedIndex == index) ...[
+                                    const Spacer(),
+                                    contextMenu( entries[index].timestamp, eventKey)
+                                  ]
+                                ])),
                             const SizedBox(height: 8),
                             Padding(
                                 padding:

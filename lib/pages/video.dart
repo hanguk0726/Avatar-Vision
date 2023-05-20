@@ -9,6 +9,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
+import 'package:video_diary/widgets/dialog.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
@@ -50,13 +51,29 @@ class _VideoPageState extends State<VideoPage> {
   Duration recordingTime = Duration.zero;
   bool showTipContent = false;
   bool isFullscreen = false;
+  DialogEvent? dialog;
+
   @override
   void initState() {
     super.initState();
     tabItem.add(RuntimeData().currentTab);
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (event.key != "pastEntries" && event.key != "tab") {
+      if (event.key != "pastEntries" &&
+          event.key != "tab" &&
+          eventKey != "dismiss") {
         return;
+      }
+      if (event.event is DialogEvent) {
+        DialogEvent casted = event.event as DialogEvent;
+        if (casted == DialogEvent.dismiss) {
+          setState(() {
+            dialog = null;
+          });
+        } else {
+          setState(() {
+            dialog = casted;
+          });
+        }
       }
       if (event.event is KeyboardEvent) {
         if (event.event == KeyboardEvent.keyboardControlSpace) {
@@ -158,7 +175,33 @@ class _VideoPageState extends State<VideoPage> {
               tip(recording),
               showMessageOnError(errors),
               menuTaps(recording: recording),
-              _mediaControlButton(),
+              buildAnimatedPositioned(
+                  isMovedAway: isMovedAway,
+                  bottom: 32,
+                  right: 32,
+                  child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(1.0, 1.0),
+                            end: const Offset(0.0, 0.0),
+                          ).animate(animation),
+                          child: child,
+                        );
+                      },
+                      child: dialog != null
+                          ? CustomDialog(
+                              text: dialog!.text,
+                              eventKey: dialog!.eventKey,
+                              buttonSky: dialog!.buttonSky,
+                              buttonSkyTask: dialog!.buttonSkyTask,
+                              buttonOrange: dialog!.buttonOrange,
+                              buttonOrangeTask: dialog!.buttonOrangeTask,
+                              automaticTask: dialog!.automaticTask,
+                            )
+                          : _mediaControlButton())),
               pastEntryMetadata(recording: recording),
               writingStateMessage(
                   writingState: writingState,
@@ -169,7 +212,7 @@ class _VideoPageState extends State<VideoPage> {
                   top: 82,
                   right: 82,
                   child: tipContent(),
-                )
+                ),
             ]),
           )),
           onPointerSignal: (PointerSignalEvent event) {
@@ -257,19 +300,15 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Widget _mediaControlButton() {
-    return buildAnimatedPositioned(
-      isMovedAway: isMovedAway,
-      bottom: 32,
-      right: 32,
-      child: mediaControlButton(
-          context: context,
-          onRecordStart: startTimter,
-          onRecordStop: () {
-            _timer?.cancel();
-            setState(() {
-              recordingTime = Duration.zero;
-            });
-          }),
+    return mediaControlButton(
+      context: context,
+      onRecordStart: startTimter,
+      onRecordStop: () {
+        _timer?.cancel();
+        setState(() {
+          recordingTime = Duration.zero;
+        });
+      },
     );
   }
 
@@ -338,14 +377,6 @@ class _VideoPageState extends State<VideoPage> {
         child: showMessage
             ? messageWidget(writingState.toName(), true, true)
             : const SizedBox());
-
-    // return Positioned(
-    //     top: 32,
-    //     right: 32,
-    //     child: SavingIndicator(
-    //       recording: recording,
-    //       writingState: writingState,
-    //     ));
   }
 
   Widget messageNoCameraFound() {

@@ -36,6 +36,7 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
         .box<Metadata>()
         .query(Metadata_.timestamp.equals(timestamp))
         .build();
+
     final result = query.find();
     if (result.isEmpty) {
       debugPrint('No metadata found for $fileName');
@@ -46,8 +47,10 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void update(int timestamp, Metadata updatedData) {
-    final query =
-        store.box<Metadata>().query(Metadata_.timestamp.equals(timestamp)).build();
+    final query = store
+        .box<Metadata>()
+        .query(Metadata_.timestamp.equals(timestamp))
+        .build();
     final result = query.find();
     if (result.isEmpty) {
       debugPrint('No metadata found for $timestamp');
@@ -56,15 +59,15 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
       metadata.title = updatedData.title;
       metadata.note = updatedData.note;
       metadata.tags = updatedData.tags;
+      metadata.timestamp = updatedData.timestamp;
       metadata.thumbnail = updatedData.thumbnail;
       store.box<Metadata>().put(metadata);
     }
+    sync();
   }
 
   void insert(int timestamp) {
     lastestTimestamp = timestamp;
-    String fileName =
-        getFormattedTimestamp(timestamp: timestamp, format: fileNameFormat);
     final metadata = Metadata(
         title: '', timestamp: timestamp, note: '', tags: '', thumbnail: '');
     store.box<Metadata>().put(metadata);
@@ -104,6 +107,8 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     notifyListeners();
   }
 
+
+
   void filterEntriesByText(String text) async {
     List<Metadata> result = [];
     result = pastEntries
@@ -122,17 +127,19 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
   void clearOutdatedRecords(List<Metadata> entries) async {
     final query = store.box<Metadata>().query().build();
     final dataInDB = query.find();
-
+    // timestamp is an id for each record.
+    final timestamp = entries.map((el) => el.timestamp).toList();
     for (var el in dataInDB) {
       // the data inserted when start, but actual file could be writing now.
       bool isTheDataJustAdded =
           DateTime.now().millisecondsSinceEpoch - el.timestamp < 3600000;
 
-      if (!entries.contains(el) && !isTheDataJustAdded) {
+      if (!timestamp.contains(el.timestamp) && !isTheDataJustAdded) {
         store.box<Metadata>().remove(el.id);
       }
     }
   }
+
 
   Future<void> sync() async {
     pastEntries = await getEntries();
