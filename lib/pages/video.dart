@@ -175,33 +175,8 @@ class _VideoPageState extends State<VideoPage> {
               tip(recording),
               showMessageOnError(errors),
               menuTaps(recording: recording),
-              buildAnimatedPositioned(
-                  isMovedAway: isMovedAway,
-                  bottom: 32,
-                  right: 32,
-                  child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(1.0, 1.0),
-                            end: const Offset(0.0, 0.0),
-                          ).animate(animation),
-                          child: child,
-                        );
-                      },
-                      child: dialog != null
-                          ? CustomDialog(
-                              text: dialog!.text,
-                              eventKey: dialog!.eventKey,
-                              buttonSky: dialog!.buttonSky,
-                              buttonSkyTask: dialog!.buttonSkyTask,
-                              buttonOrange: dialog!.buttonOrange,
-                              buttonOrangeTask: dialog!.buttonOrangeTask,
-                              automaticTask: dialog!.automaticTask,
-                            )
-                          : _mediaControlButton())),
+              _mediaControlButton(),
+              _customDialog(),
               pastEntryMetadata(recording: recording),
               writingStateMessage(
                   writingState: writingState,
@@ -300,16 +275,62 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Widget _mediaControlButton() {
-    return mediaControlButton(
-      context: context,
-      onRecordStart: startTimter,
-      onRecordStop: () {
-        _timer?.cancel();
-        setState(() {
-          recordingTime = Duration.zero;
-        });
-      },
-    );
+    return buildAnimatedPositioned(
+        isMovedAway: isMovedAway,
+        bottom: 32,
+        right: 32,
+        child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: const Offset(0.0, 0.0),
+                ).animate(animation),
+                child: child,
+              );
+            },
+            child: dialog == null
+                ? mediaControlButton(
+                    context: context,
+                    onRecordStart: startTimter,
+                    onRecordStop: () {
+                      _timer?.cancel();
+                      setState(() {
+                        recordingTime = Duration.zero;
+                      });
+                    },
+                  )
+                : const SizedBox()));
+  }
+
+  Widget _customDialog() {
+    // AnimatedSwitcher between dialog and mediaControlButton has some position issue
+    return Positioned(
+        bottom: 32,
+        right: 32,
+        child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: const Offset(0.0, 0.0),
+                ).animate(animation),
+                child: child,
+              );
+            },
+            child: dialog != null
+                ? CustomDialog(
+                    text: dialog!.text,
+                    eventKey: dialog!.eventKey,
+                    buttonSky: dialog!.buttonSky,
+                    buttonSkyTask: dialog!.buttonSkyTask,
+                    buttonOrange: dialog!.buttonOrange,
+                    buttonOrangeTask: dialog!.buttonOrangeTask,
+                    automaticTask: dialog!.automaticTask,
+                  )
+                : const SizedBox()));
   }
 
   Widget recordingInfo() {

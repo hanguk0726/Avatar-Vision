@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/domain/event.dart';
 
 import '../services/event_bus.dart';
@@ -25,11 +26,15 @@ Widget contextMenu(int timestmap, String eventKey) {
         showMenu(
           context: context,
           position: position.shift(const Offset(0, 36)),
+          color: customOcean,
           items: [
             PopupMenuItem(
               child: const ListTile(
-                leading: Icon(Icons.desktop_mac),
-                title: Text('Send to Desktop'),
+                leading: Icon(
+                  Icons.shortcut,
+                  color: Colors.white,
+                ),
+                title: Text('Send to Desktop', style : TextStyle(color: Colors.white)),
               ),
               onTap: () {
                 eventBus.fire(
@@ -43,8 +48,11 @@ Widget contextMenu(int timestmap, String eventKey) {
             ),
             PopupMenuItem(
               child: const ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Delete'),
+                leading: Icon(Icons.delete, color: Colors.white),
+                title: Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
               onTap: () {
                 eventBus.fire(
@@ -54,7 +62,8 @@ Widget contextMenu(int timestmap, String eventKey) {
                       buttonSky: 'Yes',
                       buttonSkyTask: () => native.deleteFile(timestmap),
                       buttonOrange: 'No',
-                      buttonOrangeTask: () => Future.microtask(() => eventBus.fire(DialogEvent.dismiss, eventKey)),
+                      buttonOrangeTask: () => Future.microtask(
+                          () => eventBus.fire(DialogEvent.dismiss, eventKey)),
                     ),
                     eventKey);
               },

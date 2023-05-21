@@ -67,6 +67,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     file.deleteSync();
     File thumbnailFile = File('$filePathPrefix\\thumbnails\\$fileName.png');
     thumbnailFile.deleteSync();
+    var db = DatabaseService();
+    await db.sync();
     // db record will be deleted by the db service 'clearOutdatedRecords'
   }
 
