@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   media_kit_video
   objectbox_flutter_libs
   screen_retriever
+  sentry_flutter
   window_manager
 )
 
