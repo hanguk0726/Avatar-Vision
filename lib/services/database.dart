@@ -45,7 +45,9 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
       return Success(result.first);
     }
   }
-
+  int getLogEntryOrder(int timestamp) {
+  return pastEntries.length - 1 - pastEntries.indexWhere((el) => el.timestamp == timestamp);
+  }
   void update(int timestamp, Metadata updatedData) {
     final query = store
         .box<Metadata>()

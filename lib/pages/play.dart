@@ -1,29 +1,32 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
+import 'package:intl/intl.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/tools/time.dart';
 import 'package:video_diary/widgets/box_widget.dart';
 import 'package:video_diary/widgets/key_listener.dart';
-import 'package:video_diary/widgets/metadata_widget.dart';
 
 import '../domain/event.dart';
+import '../services/database.dart';
 import '../services/event_bus.dart';
 
 class Play extends StatefulWidget {
   final String filePath;
-  final String fileName;
+  final int timestamp;
   final Function() onPlay;
 
   const Play({
     super.key,
     required this.filePath,
-    required this.fileName,
+    required this.timestamp,
     required this.onPlay,
   });
   @override
@@ -41,7 +44,7 @@ class PlayState extends State<Play> {
   Duration animatedOpacity = const Duration(milliseconds: 300);
   bool showOverlayAndMouseCursor = true;
   Timer? _timer;
-  
+  bool completed = false;
   final focusNode = FocusNode();
   final String eventKey = 'play';
   @override
@@ -49,6 +52,12 @@ class PlayState extends State<Play> {
     super.initState();
     initVideo();
     initKeyboradEvent();
+    completed = false;
+    player.streams.completed.listen((event) {
+      setState(() {
+        completed = event;
+      });
+    });
     player.streams.volume.listen((e) => setState(() {
           volume = e;
         }));
@@ -196,9 +205,49 @@ class PlayState extends State<Play> {
                 ),
                 header(),
                 mediaControllBar(),
+                recordingInfo(),
               ],
             ),
           ),
+        ));
+  }
+
+  Widget recordingInfo() {
+    var db = DatabaseService();
+    return Positioned(
+        bottom: 32,
+        left: 32,
+        child: AnimatedOpacity(
+          opacity: showOverlayAndMouseCursor ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          child: StreamBuilder<Duration>(
+              stream: controller?.player.streams.position,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text.rich(
+                    TextSpan(
+                      style: TextStyle(
+                          color: customSky,
+                          fontSize: 26,
+                          fontFamily: subFont,
+                          fontWeight: FontWeight.w600),
+                      text:
+                          'LOG ENTRY:  ${formatInt(db.getLogEntryOrder(widget.timestamp) + 1)}\n',
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'TIME:  ${formatDuration(snapshot.data!)}\n',
+                        ),
+                        TextSpan(
+                          text:
+                              'DATE:  ${DateFormat('MM/dd/yyyy').format(DateTime.fromMillisecondsSinceEpoch(widget.timestamp))}',
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  return const SizedBox();
+                }
+              }),
         ));
   }
 
@@ -236,7 +285,8 @@ class PlayState extends State<Play> {
                             child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(
-                                  widget.fileName,
+                                  getFormattedTimestamp(
+                                      timestamp: widget.timestamp),
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontFamily: mainFont,
@@ -273,8 +323,10 @@ class PlayState extends State<Play> {
           return const SizedBox();
         }
 
-        final position = snapshot.data!;
-
+        Duration position = snapshot.data!;
+        if (completed) {
+          position = playtime;
+        }
         return Text(
           '${position.inHours}:${position.inMinutes.remainder(60).toString().padLeft(2, '0')}:${position.inSeconds.remainder(60).toString().padLeft(2, '0')}',
           style: TextStyle(
@@ -295,8 +347,10 @@ class PlayState extends State<Play> {
           return const SizedBox();
         }
 
-        final position = snapshot.data!;
-
+        Duration position = snapshot.data!;
+        if (completed) {
+          position = playtime;
+        }
         return ProgressBar(
           progress: position,
           buffered: playtime,
@@ -343,7 +397,7 @@ class PlayState extends State<Play> {
     var play = CupertinoButton(
       child: Icon(Icons.play_arrow_sharp, color: color, size: size + 12),
       onPressed: () {
-        controller!.player.play();
+        controller!.player.playOrPause();
         setState(() {});
       },
     );
@@ -351,7 +405,7 @@ class PlayState extends State<Play> {
     var pause = CupertinoButton(
       child: Icon(Icons.pause_sharp, color: color, size: size + 12),
       onPressed: () {
-        controller!.player.pause();
+        controller!.player.playOrPause();
         setState(() {});
       },
     );

@@ -163,7 +163,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
       MaterialPageRoute(
           builder: (context) => Play(
                 filePath: filePath,
-                fileName: fileName,
+                timestamp: timestamp,
                 onPlay: () {},
               )),
     );
