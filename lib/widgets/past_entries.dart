@@ -27,7 +27,10 @@ class PastEntries extends StatefulWidget {
 
 class PastEntriesState extends State<PastEntries> with WindowListener {
   final selectedIndexSubject = BehaviorSubject<int>.seeded(0);
+  final selectedIndicesSubject = BehaviorSubject<List<int>>.seeded([]);
+  List<int> get selectedIndices => selectedIndicesSubject.value;
 
+  set selectedIndices(List<int> value) => selectedIndicesSubject.value = value;
   // Color backgroundColor = customBlack;
   Color backgroundColor = customOcean;
   Color textColor = Colors.white;
@@ -37,9 +40,11 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   int get selectedIndex => selectedIndexSubject.value;
   set selectedIndex(int value) => selectedIndexSubject.add(value);
   String eventKey = 'pastEntries';
-  String allowedEventKey = 'tab';
+  List<String> allowedEventKeys = ['tab', 'pastEntries', 'system'];
   double? screenHeight;
   double? screenWidth;
+  bool multiSelectMode = false;
+  late StreamSubscription<List<int>> _selectedIndicesSubscription;
   final ScrollController _thumbnailViewScrollController = ScrollController();
 
   @override
@@ -81,6 +86,17 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     windowManager.addListener(this);
     setWindowSize();
     var setting = context.read<Setting>();
+    _selectedIndicesSubscription = selectedIndicesSubject.listen((indices) {
+      final timestamps = context
+          .read<DatabaseService>()
+          .uiStatePastEntries
+          .asMap()
+          .entries
+          .where((entry) => indices.contains(entry.key))
+          .map((e) => e.value.timestamp)
+          .toList();
+      EventBus().fire(FileEvent(timestamps, FileEvent.selected), eventKey);
+    });
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       var db = context.read<DatabaseService>();
       List<Metadata> entries = db.uiStatePastEntries;
@@ -96,11 +112,23 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
       }
     });
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (eventKey != event.key && allowedEventKey != event.key) {
+      if (!allowedEventKeys.contains(event.key)) {
         return;
       }
+      if (event.event is FileEvent) {
+        FileEvent casted = event.event as FileEvent;
+        switch (casted.command) {
+          case FileEvent.cancel:
+            selectedIndices = [];
+            multiSelectMode = false;
+            setState(() {});
+            break;
+        }
+      }
+
       switch (event.event) {
         case KeyboardEvent.keyboardControlArrowUp:
+          if (multiSelectMode) return;
           if (selectedIndex > 0) {
             setState(() {
               selectedIndex = selectedIndex - 1;
@@ -109,6 +137,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
           }
           break;
         case KeyboardEvent.keyboardControlArrowDown:
+          if (multiSelectMode) return;
           if (selectedIndex < Native().files.length - 1) {
             setState(() {
               selectedIndex = selectedIndex + 1;
@@ -117,9 +146,27 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
           }
           break;
         case KeyboardEvent.keyboardControlEnter:
+          if (multiSelectMode) return;
           play();
           return;
-
+        case KeyboardEvent.keyboardControlEscape:
+          if (multiSelectMode) {
+            setState(() {
+              multiSelectMode = false;
+              selectedIndices = [];
+            });
+            return;
+          }
+          break;
+        case KeyboardEvent.keyboardControlBackspace:
+          if (multiSelectMode) {
+            setState(() {
+              multiSelectMode = false;
+              selectedIndices = [];
+            });
+            return;
+          }
+          break;
         default:
           break;
       }
@@ -133,6 +180,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     focusNode.dispose();
     _eventSubscription.cancel();
     _selectedIndexSubscription.cancel();
+    _selectedIndicesSubscription.cancel();
     super.dispose();
   }
 
@@ -238,7 +286,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           const SizedBox(width: 16),
-          if (entries.length > selectedIndex)
+          if (entries.length > selectedIndex && !multiSelectMode)
             Text(timestampToMonthDay(entries[selectedIndex].timestamp, true),
                 style: TextStyle(
                     color: Colors.white, fontFamily: subFont, fontSize: 22)),
@@ -253,6 +301,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     var native = Native();
     var db = context.watch<DatabaseService>();
     List<Metadata> entries = db.uiStatePastEntries;
+
     return SizedBox(
         width: width,
         child: GridView.builder(
@@ -267,6 +316,12 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
               crossAxisSpacing: 16,
               mainAxisExtent: 250),
           itemBuilder: (context, index) {
+            bool selected = false;
+            if (multiSelectMode) {
+              selected = selectedIndices.contains(index);
+            } else {
+              selected = selectedIndex == index;
+            }
             return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 transitionBuilder: (Widget child, Animation<double> animation) {
@@ -278,12 +333,32 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                 child: GestureDetector(
                     key: ValueKey<double>(width),
                     onTap: () {
-                      setState(() {
-                        selectedIndex = index;
-                        focusNode.requestFocus();
-                      });
+                      if (multiSelectMode) {
+                        if (selectedIndices.contains(index)) {
+                          selectedIndices.remove(index);
+                          // make stream distinct
+                          selectedIndices = List.from(selectedIndices);
+                        } else {
+                          selectedIndices.add(index);
+                          selectedIndices = List.from(selectedIndices);
+                        }
+                        setState(() {});
+                      } else {
+                        setState(() {
+                          selectedIndex = index;
+                          focusNode.requestFocus();
+                        });
+                      }
+                    },
+                    onLongPress: () {
+                      if (!multiSelectMode) {
+                        multiSelectMode = true;
+                        selectedIndices = [index];
+                        setState(() {});
+                      }
                     },
                     onDoubleTap: () {
+                      if (multiSelectMode) return;
                       setState(() {
                         selectedIndex = index;
                       });
@@ -291,10 +366,10 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                     },
                     child: Container(
                         decoration: BoxDecoration(
-                          color: selectedIndex == index
+                          color: selected
                               ? customSky.withOpacity(0.3)
                               : Colors.grey.withOpacity(0.1),
-                          border: selectedIndex == index
+                          border: selected
                               ? Border.all(
                                   color: customSky.withOpacity(0.6),
                                   width: 2,
@@ -307,21 +382,26 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                             native.getThumbnail(entries[index].timestamp),
                             const SizedBox(height: 16),
                             Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 16),
+                                padding: const EdgeInsets.only(left: 16),
                                 child: Row(children: [
                                   Text(
                                       getFormattedTimestamp(
                                           timestamp: entries[index].timestamp),
                                       style: TextStyle(
-                                          color: selectedIndex == index
+                                          color: selected
                                               ? Colors.white
                                               : textColor,
                                           fontFamily: mainFont,
                                           fontSize: 16)),
-                                  if (selectedIndex == index) ...[
+                                  if (selectedIndex == index &&
+                                      !multiSelectMode) ...[
                                     const Spacer(),
-                                    contextMenu( entries[index].timestamp, eventKey)
+                                    contextMenu(
+                                        entries[index].timestamp, eventKey,
+                                        iconSize: 24.0),
+                                    const SizedBox(
+                                      width: 8,
+                                    ),
                                   ]
                                 ])),
                             const SizedBox(height: 8),
@@ -331,9 +411,8 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
                                 child: Text(entries[index].title,
                                     maxLines: 2,
                                     style: TextStyle(
-                                        color: selectedIndex == index
-                                            ? Colors.white
-                                            : textColor,
+                                        color:
+                                            selected ? Colors.white : textColor,
                                         fontFamily: mainFont,
                                         fontSize: 16,
                                         overflow: TextOverflow.ellipsis))),
@@ -351,6 +430,12 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
       physics: const ClampingScrollPhysics(),
       itemCount: entries.length,
       itemBuilder: (context, index) {
+        bool selected = false;
+        if (multiSelectMode) {
+          selected = selectedIndices.contains(index);
+        } else {
+          selected = selectedIndex == index;
+        }
         return GestureDetector(
             // # Reference note
             // When GestureDetector has a onDoubleTap, it will add a short delay to wait for the potential second tap before deciding what to do. This is because tapping and double tapping are treated as exclusive actions. Unfortunatey, GestureDetector does not have a parameter to change this behaviour.
@@ -359,30 +444,57 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
             // so keyboard is faster.
 
             onTap: () {
-              setState(() {
-                selectedIndex = index;
-                focusNode.requestFocus();
-              });
+              if (multiSelectMode) {
+                if (selectedIndices.contains(index)) {
+                  selectedIndices.remove(index);
+                  selectedIndices = List.from(selectedIndices);
+                } else {
+                  selectedIndices.add(index);
+                  selectedIndices = List.from(selectedIndices);
+                }
+                setState(() {});
+              } else {
+                setState(() {
+                  selectedIndex = index;
+                  focusNode.requestFocus();
+                });
+              }
+            },
+            onLongPress: () {
+              if (!multiSelectMode) {
+                multiSelectMode = true;
+                selectedIndices = [index];
+                setState(() {});
+              }
             },
             onDoubleTap: () {
+              if (multiSelectMode) return;
               setState(() {
                 selectedIndex = index;
               });
               play();
             },
             child: Container(
-                color: selectedIndex == index
-                    ? customSky.withOpacity(0.3)
-                    : Colors.transparent,
+                color:
+                    selected ? customSky.withOpacity(0.3) : Colors.transparent,
                 child: Padding(
                     padding: const EdgeInsets.only(
                       left: 16,
-                      right: 32,
+                      right: 16,
                     ),
-                    child: pastEntry(
-                        getFormattedTimestamp(
-                            timestamp: entries[index].timestamp),
-                        selectedIndex == index))));
+                    child: Row(
+                      children: [
+                        pastEntry(
+                            getFormattedTimestamp(
+                                timestamp: entries[index].timestamp),
+                            selected),
+                        const Spacer(),
+                        if (selectedIndex == index && !multiSelectMode) ...[
+                          contextMenu(entries[index].timestamp, eventKey,
+                              iconSize: 16.0)
+                        ]
+                      ],
+                    ))));
       },
     );
   }

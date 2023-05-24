@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
-
 import '../domain/event.dart';
 
 class EventBus {
@@ -18,12 +16,13 @@ class EventBus {
   bool clearUiMode = false;
   bool off = false;
   void fire(Event event, String key) {
+    // print('fire $event $key');
     if (off) {
       return;
     }
     if (clearUiMode) {
-      //only accept space which is used to toggle clear ui
-      if (event == KeyboardEvent.keyboardControlSpace) {
+      //only accept Tab which is used to toggle clear ui
+      if (event == KeyboardEvent.keyboardControlTab) {
         _eventController.sink.add(KeyEventPair(event, key));
       }
       return;

@@ -71,7 +71,7 @@ class DateSearchBarState extends State<DateSearchBar> {
         ),
         textStyle:
             TextStyle(color: Colors.white, fontSize: 16, fontFamily: mainFont),
-        preferBelow: false,
+        // preferBelow: false,
         child: GestureDetector(
           onTap: () => focusNode.requestFocus(),
           child: SizedBox(

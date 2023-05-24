@@ -6,12 +6,12 @@ import 'package:video_diary/domain/event.dart';
 import '../services/event_bus.dart';
 import '../services/native.dart';
 
-Widget contextMenu(int timestmap, String eventKey) {
+Widget contextMenu(int timestmap, String eventKey, {double iconSize = 24}) {
   var eventBus = EventBus();
   var native = Native();
   return Builder(builder: (context) {
-    return IconButton(
-      onPressed: () {
+    return GestureDetector(
+      onTap: () {
         final RenderBox button = context.findRenderObject() as RenderBox;
         final RenderBox overlay =
             Overlay.of(context).context.findRenderObject() as RenderBox;
@@ -25,7 +25,7 @@ Widget contextMenu(int timestmap, String eventKey) {
         );
         showMenu(
           context: context,
-          position: position.shift(const Offset(0, 36)),
+          position: position.shift(Offset(0, iconSize + 12.0)),
           color: customOcean,
           items: [
             PopupMenuItem(
@@ -34,7 +34,8 @@ Widget contextMenu(int timestmap, String eventKey) {
                   Icons.shortcut,
                   color: Colors.white,
                 ),
-                title: Text('Send to Desktop', style : TextStyle(color: Colors.white)),
+                title: Text('Send to Desktop',
+                    style: TextStyle(color: Colors.white)),
               ),
               onTap: () {
                 eventBus.fire(
@@ -72,8 +73,8 @@ Widget contextMenu(int timestmap, String eventKey) {
           elevation: 8.0,
         );
       },
-      icon: const Icon(CupertinoIcons.ellipsis_vertical,
-          color: CupertinoColors.white, size: 24),
+      child: Icon(CupertinoIcons.ellipsis_vertical,
+          color: CupertinoColors.white, size: iconSize),
     );
   });
 }

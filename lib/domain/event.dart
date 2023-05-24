@@ -20,6 +20,7 @@ enum KeyboardEventType {
   backspace,
   delete,
   escape,
+  tab
 }
 
 class KeyboardEvent<T> extends Event<T> {
@@ -42,12 +43,23 @@ class KeyboardEvent<T> extends Event<T> {
       KeyboardEvent(KeyboardEventType.backspace);
   static const keyboardControlDelete = KeyboardEvent(KeyboardEventType.delete);
   static const keyboardControlEscape = KeyboardEvent(KeyboardEventType.escape);
+  static const keyboardControlTab = KeyboardEvent(KeyboardEventType.tab);
 }
 
 class MetadataEvent<T> extends Event<T> {
   final int timestamp;
 
   const MetadataEvent(this.timestamp) : super._();
+}
+
+class FileEvent<T> extends Event<T> {
+  final List<int> timestamps;
+  final int command;
+  static const int cancel = 0;
+  static const int selected = 1;
+  static const int sendFileToDesktop = 2;
+  static const int delete = 3;
+  const FileEvent(this.timestamps, this.command) : super._();
 }
 
 class DialogEvent<T> extends Event<T> {
@@ -68,7 +80,7 @@ class DialogEvent<T> extends Event<T> {
       this.automaticTask})
       : super._();
 
-  static const dismiss = DialogEvent(text: 'dismiss', eventKey: 'dismiss');
+  static const dismiss = DialogEvent(text: 'dismiss', eventKey: 'system');
 }
 
 Event? rawKeyEventToEvent(RawKeyEvent event) {
@@ -96,6 +108,8 @@ Event? rawKeyEventToEvent(RawKeyEvent event) {
         return KeyboardEvent.keyboardControlDelete;
       case 'Escape':
         return KeyboardEvent.keyboardControlEscape;
+      case 'Tab':
+        return KeyboardEvent.keyboardControlTab;
       default:
         return null;
     }

@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/tools/time.dart';
 import 'package:video_diary/widgets/box_widget.dart';
 import 'package:video_diary/widgets/key_listener.dart';
@@ -45,8 +46,10 @@ class PlayState extends State<Play> {
   bool showOverlayAndMouseCursor = true;
   Timer? _timer;
   bool completed = false;
+  bool isMovedAway = false;
   final focusNode = FocusNode();
   final String eventKey = 'play';
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +95,10 @@ class PlayState extends State<Play> {
             }
           }
           break;
+        case KeyboardEvent.keyboardControlSpace:
+          controller!.player.playOrPause();
+          setState(() {});
+          break;
         case KeyboardEvent.keyboardControlArrowRight:
           controller!.player.seek(
               controller!.player.state.position + const Duration(seconds: 10));
@@ -111,14 +118,10 @@ class PlayState extends State<Play> {
           isFullscreen = !isFullscreen;
           setState(() {});
           break;
-
-        case KeyboardEvent.keyboardControlSpace:
-          if (controller!.player.state.playing) {
-            controller!.player.pause();
-          } else {
-            controller!.player.play();
-          }
+        case KeyboardEvent.keyboardControlTab:
+          isMovedAway = !isMovedAway;
           setState(() {});
+
           break;
         case KeyboardEvent.keyboardControlBackspace:
           Navigator.pop(context);
@@ -144,6 +147,7 @@ class PlayState extends State<Play> {
     });
     _eventSubscription.cancel();
     _timer?.cancel();
+    focusNode.unfocus();
     focusNode.dispose();
     super.dispose();
   }
@@ -182,39 +186,55 @@ class PlayState extends State<Play> {
           }
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
-          body: keyListener(
-            eventKey,
-            focusNode,
-            Stack(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (controller!.player.state.playing) {
-                      controller!.player.pause();
-                    } else {
-                      controller!.player.play();
-                    }
-                    setState(() {});
-                    startOverlayTimer();
-                  },
-                  child: Video(
-                    controller: controller,
-                    fit: BoxFit.fill,
-                  ),
+            backgroundColor: Colors.black,
+            body: Listener(
+              child: keyListener(
+                eventKey,
+                focusNode,
+                Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (controller!.player.state.playing) {
+                          controller!.player.pause();
+                        } else {
+                          controller!.player.play();
+                        }
+                        setState(() {});
+                        startOverlayTimer();
+                      },
+                      child: Video(
+                        controller: controller,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    header(),
+                    mediaControllBar(),
+                    recordingInfo(),
+                  ],
                 ),
-                header(),
-                mediaControllBar(),
-                recordingInfo(),
-              ],
-            ),
-          ),
-        ));
+              ),
+              onPointerSignal: (PointerSignalEvent event) {
+                if (event is PointerScrollEvent) {
+                  if (event.scrollDelta.dy < 0) {
+                    setState(() {
+                      isMovedAway = true;
+                    });
+                  } else {
+                    // scrolled up
+                    setState(() {
+                      isMovedAway = false;
+                    });
+                  }
+                }
+              },
+            )));
   }
 
   Widget recordingInfo() {
     var db = DatabaseService();
-    return Positioned(
+    return buildAnimatedPositioned(
+        isMovedAway: isMovedAway,
         bottom: 32,
         left: 32,
         child: AnimatedOpacity(

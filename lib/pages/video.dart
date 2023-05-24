@@ -6,11 +6,11 @@ import 'package:fullscreen_window/fullscreen_window.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/event_bus.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/dialog.dart';
+import 'package:video_diary/widgets/file_command.dart';
 import 'package:video_diary/widgets/media_conrtol_bar.dart';
 import 'package:video_diary/widgets/message.dart';
 import 'package:video_diary/widgets/metadata_widget.dart';
@@ -53,6 +53,7 @@ class _VideoPageState extends State<VideoPage> {
   bool showTipContent = false;
   bool isFullscreen = false;
   DialogEvent? dialog;
+  List<int> selectedFileTimetamps = [];
 
   @override
   void initState() {
@@ -61,7 +62,7 @@ class _VideoPageState extends State<VideoPage> {
     _eventSubscription = EventBus().onEvent.listen((event) {
       if (event.key != "pastEntries" &&
           event.key != "tab" &&
-          eventKey != "dismiss") {
+          event.key != "system") {
         return;
       }
       if (event.event is DialogEvent) {
@@ -76,8 +77,9 @@ class _VideoPageState extends State<VideoPage> {
           });
         }
       }
+
       if (event.event is KeyboardEvent) {
-        if (event.event == KeyboardEvent.keyboardControlSpace) {
+        if (event.event == KeyboardEvent.keyboardControlTab) {
           final recording = context.read<Native>().recording;
           clearUi(recording, !isMovedAway);
           return;
@@ -105,6 +107,61 @@ class _VideoPageState extends State<VideoPage> {
             selectedMetadata = null;
             metadataQueryErrorMessage = (queryResult as Error).message;
           });
+        }
+        return;
+      }
+      if (event.event is FileEvent) {
+        FileEvent casted = event.event as FileEvent;
+        switch (casted.command) {
+          case FileEvent.cancel:
+            selectedFileTimetamps = [];
+            setState(() {});
+            break;
+          case FileEvent.selected:
+            selectedFileTimetamps = casted.timestamps;
+            setState(() {});
+            break;
+          case FileEvent.sendFileToDesktop:
+            EventBus().fire(
+                DialogEvent(
+                  text: 'Sending to Desktop',
+                  eventKey: 'system',
+                  automaticTask: () {
+                    var native = Native();
+                    for (var timestamp in casted.timestamps) {
+                      native.sendFileToDesktop(timestamp);
+                    }
+                    return Future.value();
+                  },
+                ),
+                'system');
+            EventBus().fire(const FileEvent([], FileEvent.cancel), 'system');
+            break;
+          case FileEvent.delete:
+            EventBus().fire(
+                DialogEvent(
+                  text: 'Proceed to delete?',
+                  eventKey: 'system',
+                  buttonSky: 'Yes',
+                  buttonSkyTask: () {
+                    var native = Native();
+                    for (var timestamp in casted.timestamps) {
+                      native.deleteFile(timestamp);
+                    }
+                    EventBus()
+                        .fire(const FileEvent([], FileEvent.cancel), 'system');
+                    return Future.value();
+                  },
+                  buttonOrange: 'No',
+                  buttonOrangeTask: () => Future.microtask(() {
+                    EventBus().fire(DialogEvent.dismiss, 'system');
+                    EventBus()
+                        .fire(const FileEvent([], FileEvent.cancel), 'system');
+                  }),
+                ),
+                'system');
+
+            break;
         }
       }
     });
@@ -178,7 +235,14 @@ class _VideoPageState extends State<VideoPage> {
               menuTaps(recording: recording),
               _mediaControlButton(),
               _customDialog(),
-              pastEntryMetadata(recording: recording),
+              if (selectedFileTimetamps.isEmpty)
+                pastEntryMetadata(recording: recording)
+              else
+                Positioned(
+                  top: 32,
+                  right: 32,
+                  child: fileCommandWidget(selectedFileTimetamps),
+                ),
               writingStateMessage(
                   writingState: writingState,
                   recording: recording,

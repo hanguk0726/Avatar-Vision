@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -12,22 +13,30 @@ import 'services/setting.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setUp();
-  await SentryFlutter.init((options) {
-    // for crashlytics
-    options.dsn =
-        'https://d20454ad99764ab5b86598129afadb7a@o4505225350807552.ingest.sentry.io/4505225351659520';
-    options.tracesSampleRate = 1.0;
-  },
-      appRunner: () => runApp(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => Native()),
-                ChangeNotifierProvider(create: (_) => Setting()),
-                ChangeNotifierProvider(create: (_) => DatabaseService()),
-              ],
-              child: const App(),
-            ),
-          ));
+  runApp_() {
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => Native()),
+          ChangeNotifierProvider(create: (_) => Setting()),
+          ChangeNotifierProvider(create: (_) => DatabaseService()),
+        ],
+        child: const App(),
+      ),
+    );
+  }
+
+  //make sentry work only in release mode
+  if (kReleaseMode) {
+    await SentryFlutter.init((options) {
+      // for crashlytics
+      options.dsn =
+          'https://d20454ad99764ab5b86598129afadb7a@o4505225350807552.ingest.sentry.io/4505225351659520';
+      options.tracesSampleRate = 1.0;
+    }, appRunner: () => runApp_());
+  } else {
+    runApp_();
+  }
 }
 
 class App extends StatelessWidget {
