@@ -13,6 +13,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../domain/event.dart';
 import '../domain/metadata.dart';
+import '../main.dart';
 import '../services/event_bus.dart';
 import '../services/native.dart';
 import '../services/setting.dart';
@@ -25,7 +26,8 @@ class PastEntries extends StatefulWidget {
   PastEntriesState createState() => PastEntriesState();
 }
 
-class PastEntriesState extends State<PastEntries> with WindowListener {
+class PastEntriesState extends State<PastEntries>
+    with WindowListener, RouteAware {
   final selectedIndexSubject = BehaviorSubject<int>.seeded(0);
   final selectedIndicesSubject = BehaviorSubject<List<int>>.seeded([]);
   List<int> get selectedIndices => selectedIndicesSubject.value;
@@ -81,10 +83,28 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void didPopNext() {
+    var db = context.read<DatabaseService>();
+    List<Metadata> entries = db.uiStatePastEntries;
+    if (entries.isNotEmpty) {
+      // when data was modified at 'play' page, the selected index is not updated
+      int timestamp = entries[selectedIndex].timestamp;
+      EventBus().fire(MetadataEvent(timestamp), eventKey);
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
     setWindowSize();
+    var db = context.read<DatabaseService>();
     var setting = context.read<Setting>();
     _selectedIndicesSubscription = selectedIndicesSubject.listen((indices) {
       final timestamps = context
@@ -98,7 +118,6 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
       EventBus().fire(FileEvent(timestamps, FileEvent.selected), eventKey);
     });
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
-      var db = context.read<DatabaseService>();
       List<Metadata> entries = db.uiStatePastEntries;
       if (entries.isNotEmpty) {
         int timestamp = entries[index].timestamp;
@@ -181,6 +200,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
     _eventSubscription.cancel();
     _selectedIndexSubscription.cancel();
     _selectedIndicesSubscription.cancel();
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -211,6 +231,7 @@ class PastEntriesState extends State<PastEntries> with WindowListener {
       MaterialPageRoute(
           builder: (context) => Play(
                 filePath: filePath,
+                fileName: fileName,
                 timestamp: timestamp,
                 onPlay: () {},
               )),

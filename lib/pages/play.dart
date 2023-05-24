@@ -10,6 +10,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:slider_controller/slider_controller.dart';
 import 'package:video_diary/domain/assets.dart';
+import 'package:video_diary/domain/metadata.dart';
+import 'package:video_diary/domain/result.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/tools/time.dart';
 import 'package:video_diary/widgets/box_widget.dart';
@@ -18,15 +20,18 @@ import 'package:video_diary/widgets/key_listener.dart';
 import '../domain/event.dart';
 import '../services/database.dart';
 import '../services/event_bus.dart';
+import '../widgets/metadata_widget.dart';
 
 class Play extends StatefulWidget {
   final String filePath;
+  final String fileName;
   final int timestamp;
   final Function() onPlay;
 
   const Play({
     super.key,
     required this.filePath,
+    required this.fileName,
     required this.timestamp,
     required this.onPlay,
   });
@@ -49,6 +54,7 @@ class PlayState extends State<Play> {
   bool isMovedAway = false;
   final focusNode = FocusNode();
   final String eventKey = 'play';
+  Metadata? metadata;
 
   @override
   void initState() {
@@ -69,6 +75,11 @@ class PlayState extends State<Play> {
         }));
     focusNode.requestFocus();
     startOverlayTimer();
+    var db = DatabaseService();
+    final _metadata = db.findByOsFileName(widget.fileName);
+    if (_metadata is Success<Metadata>) {
+      metadata = _metadata.value;
+    }
   }
 
   void initKeyboradEvent() {
@@ -211,6 +222,14 @@ class PlayState extends State<Play> {
                     header(),
                     mediaControllBar(),
                     recordingInfo(),
+                    if (metadata != null)
+                      Positioned(
+                          top: 32,
+                          right: 32,
+                          child:MetadataWidget(
+                              metadata: metadata!,
+                              smaller: true,
+                            ))
                   ],
                 ),
               ),

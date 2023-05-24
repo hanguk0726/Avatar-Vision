@@ -497,7 +497,7 @@ packages:
     source: hosted
     version: "2.1.0"
   package_info_plus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: package_info_plus
       sha256: "10259b111176fba5c505b102e3a5b022b51dd97e30522e906d6922c745584745"

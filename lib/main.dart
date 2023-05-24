@@ -8,11 +8,12 @@ import 'package:video_diary/services/database.dart';
 import 'package:video_diary/services/native.dart';
 import 'package:video_diary/tools/custom_scroll_behavior.dart';
 import 'package:window_manager/window_manager.dart';
+import 'domain/app.dart';
 import 'services/setting.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  setUp();
+  await setUp();
   runApp_() {
     runApp(
       MultiProvider(
@@ -39,6 +40,8 @@ Future<void> main() async {
   }
 }
 
+final routeObserver = RouteObserver<ModalRoute<dynamic>>();
+
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
 
@@ -49,6 +52,7 @@ class App extends StatelessWidget {
       title: 'Avatar Vision',
       scrollBehavior: CustomScrollBehavior(),
       home: const VideoPage(),
+      navigatorObservers: [routeObserver],
     );
   }
 }
@@ -59,6 +63,7 @@ Future<void> setUp() async {
   await Setting().load();
   await DatabaseService().init();
   MediaKit.ensureInitialized();
+  version = await getAppVersion();
   await setUpLast();
 }
 

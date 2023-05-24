@@ -1,5 +1,5 @@
 name: video_diary
-description: A new Flutter project.
+description: Video diary
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -57,7 +57,8 @@ dependencies:
   wakelock: ^0.6.2
   easy_debounce: ^2.0.3
   sentry_flutter: ^7.5.2
-
+  package_info_plus: ^3.1.2
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
