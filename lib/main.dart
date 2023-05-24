@@ -46,7 +46,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Video Diary',
+      title: 'Avatar Vision',
       scrollBehavior: CustomScrollBehavior(),
       home: const VideoPage(),
     );
@@ -67,7 +67,7 @@ Future<void> setUpLast() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1280, 720),
     minimumSize: Size(1280, 720),
-    title: "Video Diary",
+    title: "Avatar Vision",
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();

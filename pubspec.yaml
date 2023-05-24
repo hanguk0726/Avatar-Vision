@@ -57,7 +57,7 @@ dependencies:
   wakelock: ^0.6.2
   easy_debounce: ^2.0.3
   sentry_flutter: ^7.5.2
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "video_diary" "\0"
+            VALUE "CompanyName", "com.nemo" "\0"
+            VALUE "FileDescription", "Avatar Vision" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "video_diary" "\0"
+            VALUE "InternalName", "Avatar Vision" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "video_diary.exe" "\0"
-            VALUE "ProductName", "video_diary" "\0"
+            VALUE "OriginalFilename", "Avatar Vision.exe" "\0"
+            VALUE "ProductName", "Avatar Vision" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
