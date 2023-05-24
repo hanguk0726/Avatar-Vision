@@ -44,6 +44,9 @@ class PlayState extends State<Play> {
   final Player player = Player();
   VideoController? controller;
   bool isFullscreen = false;
+  bool showMetadata = true;
+  bool pinMetadata = false;
+
   double volume = 100;
   bool muted = false;
   Duration playtime = const Duration(seconds: 0);
@@ -55,6 +58,12 @@ class PlayState extends State<Play> {
   final focusNode = FocusNode();
   final String eventKey = 'play';
   Metadata? metadata;
+
+  bool _showMetadata() {
+    return metadata != null &&
+        showMetadata &&
+        (pinMetadata || showOverlayAndMouseCursor);
+  }
 
   @override
   void initState() {
@@ -222,14 +231,40 @@ class PlayState extends State<Play> {
                     header(),
                     mediaControllBar(),
                     recordingInfo(),
-                    if (metadata != null)
-                      Positioned(
-                          top: 32,
-                          right: 32,
-                          child:MetadataWidget(
-                              metadata: metadata!,
-                              smaller: true,
-                            ))
+                    Positioned(
+                        top: 32,
+                        right: 32,
+                        child: AnimatedOpacity(
+                            duration: animatedOpacity,
+                            opacity: _showMetadata() ? 1.0 : 0.0,
+                            child: IgnorePointer(
+                              ignoring: !_showMetadata(),
+                              child: Stack(
+                                children: [
+                                  MetadataWidget(
+                                    metadata: metadata!,
+                                    smaller: true,
+                                  ),
+                                  Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: IconButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            pinMetadata = !pinMetadata;
+                                          });
+                                        },
+                                        icon: Icon(
+                                          pinMetadata
+                                              ? Icons.push_pin_sharp
+                                              : Icons.push_pin_outlined,
+                                          color: customSky,
+                                          size: 30,
+                                        ),
+                                      ))
+                                ],
+                              ),
+                            )))
                   ],
                 ),
               ),
@@ -502,6 +537,14 @@ class PlayState extends State<Play> {
         // https://github.com/leanflutter/window_manager/issues/228
       },
     );
+
+    var metadata = CupertinoButton(
+      child: Icon(Icons.description_sharp, color: customSky, size: size),
+      onPressed: () async {
+        showMetadata = !showMetadata;
+        setState(() {});
+      },
+    );
     var playtimeWidget = Text(
       '${playtime.inHours}:${playtime.inMinutes.remainder(60).toString().padLeft(2, '0')}:${playtime.inSeconds.remainder(60).toString().padLeft(2, '0')}',
       style: TextStyle(
@@ -564,10 +607,22 @@ class PlayState extends State<Play> {
                       Flexible(
                           child: Align(
                               alignment: Alignment.centerRight,
-                              child: boxWidget(
-                                  color: customSky,
-                                  backgroundColor: customOcean,
-                                  child: fullscreen)))
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  boxWidget(
+                                      color: customSky,
+                                      backgroundColor: customOcean,
+                                      child: metadata),
+                                  const SizedBox(
+                                    width: 16,
+                                  ),
+                                  boxWidget(
+                                      color: customSky,
+                                      backgroundColor: customOcean,
+                                      child: fullscreen)
+                                ],
+                              )))
                     ],
                   )
                 ],
