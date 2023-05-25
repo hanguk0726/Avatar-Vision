@@ -1,16 +1,13 @@
 use irondash_texture::{BoxedPixelData, PayloadProvider, SimplePixelData};
 use std::{
     iter::repeat_with,
-    mem::take,
-    sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicUsize},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
 };
 
-use log::{debug, error};
+use log::error;
 
-use crate::{channel::ChannelHandler, resolution_settings::ResolutionSettings};
+use super::resolution_settings::ResolutionSettings;
+
 
 #[derive(Clone)]
 pub struct PixelBufferSource {

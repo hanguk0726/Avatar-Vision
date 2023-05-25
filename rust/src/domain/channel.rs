@@ -1,12 +1,7 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Instant,
-};
+use std::time::Instant;
 
-use kanal::{AsyncReceiver, AsyncSender, Receiver, Sender};
+use kanal::{Receiver, Sender};
 use nokhwa::Buffer;
-
-use crate::tools::{self, ordqueue::new};
 
 pub struct ChannelHandler {
     pub rendering: (Sender<(Buffer, Instant)>, Receiver<(Buffer, Instant)>),

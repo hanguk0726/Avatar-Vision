@@ -1,12 +1,9 @@
 use std::{
     collections::HashMap,
-    fs,
-    io::Read,
     mem::ManuallyDrop,
     ops::Not,
-    path::{Path, PathBuf},
+    path::{ PathBuf},
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
     },
     thread,
@@ -24,18 +21,19 @@ use irondash_run_loop::RunLoop;
 use kanal::{AsyncReceiver, AsyncSender, Sender};
 use log::{debug, error, info};
 use nokhwa::Buffer;
-use tokio::{
-    runtime::Runtime,
-    task::{block_in_place, spawn_blocking},
-};
 
 use crate::{
-    channel::ChannelHandler,
-    channel_audio::Pcm,
-    domain::image_processing::{decode_to_rgb, rgba_to_yuv},
-    recording::{encode_to_h264, to_mp4, RecordingInfo, WritingState},
-    tools::ordqueue::{new, OrdQueueIter},
+    domain::{
+        channel::ChannelHandler,
+        recording::{encode_to_h264, to_mp4, RecordingInfo, WritingState},
+    },
+    tools::{
+        image_processing::{decode_to_rgb, rgba_to_yuv},
+        ordqueue::new,
+    },
 };
+
+use super::audio_message_channel::Pcm;
 
 // FPS of the openh264 crate is 30
 const FPS: u32 = 24;
@@ -45,7 +43,7 @@ pub struct RecordingHandler {
     pub recording_info: Arc<Mutex<RecordingInfo>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
     final_audio_buffer: Arc<Mutex<Pcm>>,
-    uiEvent: (
+    ui_event: (
         Arc<AsyncSender<(String, String)>>,
         Arc<AsyncReceiver<(String, String)>>,
     ),
@@ -59,14 +57,14 @@ impl RecordingHandler {
         channel_handler: Arc<Mutex<ChannelHandler>>,
     ) -> Self {
         let (s, r) = kanal::bounded_async(1);
-        let uiEvent = (Arc::new(s), Arc::new(r));
+        let ui_event = (Arc::new(s), Arc::new(r));
 
         Self {
             audio,
             recording_info,
             channel_handler,
             final_audio_buffer: Arc::new(Mutex::new(Pcm::new())),
-            uiEvent,
+            ui_event,
             invoker: Late::new(),
         }
     }
@@ -224,7 +222,7 @@ impl AsyncMethodHandler for RecordingHandler {
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<usize>().unwrap();
                 let height = resolution[1].parse::<usize>().unwrap();
-                let ui_event_sender = self.uiEvent.0.clone();
+                let ui_event_sender = self.ui_event.0.clone();
                 let update_writing_state = move |state: WritingState| {
                     let sent = ui_event_sender
                         .try_send(("write_state".to_string(), state.to_str().to_string()))
@@ -350,7 +348,7 @@ impl AsyncMethodHandler for RecordingHandler {
 
                     // Convert the resized dynamic image back to an image buffer
                     let resized_imgbuf = resized_image.into_rgba8();
-                    
+
                     let mut thumbnail_path = PathBuf::from(&file_path_prefix);
                     thumbnail_path.push(THUMBNAIL_DIR_NAME);
                     thumbnail_path.push(&file_name);
@@ -396,7 +394,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     call,
                     thread::current().id()
                 );
-                while let Ok(event) = self.uiEvent.1.recv().await {
+                while let Ok(event) = self.ui_event.1.recv().await {
                     debug!("event: {:?}", event);
                     match event.0.as_str() {
                         "write_state" => {

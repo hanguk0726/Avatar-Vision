@@ -1,6 +1,6 @@
 use std::{
     mem::ManuallyDrop,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc},
     thread,
     time::Duration,
 };
@@ -13,7 +13,7 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture};
 
-use log::{debug, error, info};
+use log::{debug};
 
 pub struct RenderingHandler {
     pub texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,

@@ -14,10 +14,10 @@ use irondash_message_channel::{
 };
 use irondash_run_loop::RunLoop;
 
-use log::{debug, info};
+use log::{debug};
 use nokhwa::Buffer;
 
-use crate::{channel::ChannelHandler, domain::image_processing::decode_to_rgb, recording};
+use crate::{ tools::image_processing::decode_to_rgb, domain::channel::ChannelHandler,  };
 pub struct TextureHandler {
     pub render_buffer: Arc<Mutex<Vec<u8>>>,
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
@@ -28,7 +28,6 @@ impl AsyncMethodHandler for TextureHandler {
     async fn on_method_call(&self, call: MethodCall) -> PlatformResult {
         match call.method.as_str() {
             "open_texture_stream" => {
-           
                 debug!(
                     "Received request {:?} on thread {:?}",
                     call,

@@ -1,25 +1,22 @@
 use std::{
-    cell::RefCell,
     collections::HashMap,
     mem::ManuallyDrop,
-    ops::Not,
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
 };
 
 use async_trait::async_trait;
 use irondash_message_channel::{
-    AsyncMethodHandler, AsyncMethodInvoker, IsolateId, Late, MethodCall, PlatformError,
-    PlatformResult, Value,
+    AsyncMethodHandler, MethodCall, PlatformError, PlatformResult, Value,
 };
 use irondash_run_loop::RunLoop;
-use log::{debug, error, info};
+use log::debug;
 use nokhwa::{
     query,
-    utils::{ApiBackend, CameraIndex, Resolution},
+    utils::{ApiBackend, CameraIndex},
 };
 
-use crate::camera::Camera;
+use crate::domain::camera::Camera;
 
 pub struct CameraHandler {
     pub rendering: Arc<AtomicBool>,
@@ -106,7 +103,7 @@ impl AsyncMethodHandler for CameraHandler {
                     detail: Value::Null,
                 })
             }
-            
+
             "available_cameras" => {
                 debug!(
                     "Received request {:?} on thread {:?}",

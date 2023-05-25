@@ -1,20 +1,17 @@
 use kanal::Sender;
-use std::sync::atomic::AtomicI32;
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 use log::{debug, error};
 use nokhwa::pixel_format::RgbAFormat;
 use nokhwa::utils::{CameraIndex, CameraInfo, RequestedFormat, RequestedFormatType, Resolution};
 use nokhwa::{Buffer, CallbackCamera};
 
-use std::cell::RefCell;
 use std::fmt::Error;
 use std::time::Instant;
 
-use crate::channel::ChannelHandler;
-use crate::resolution_settings::ResolutionSettings;
-use crate::textrue::PixelBufferSource;
+
+use super::channel::ChannelHandler;
+use super::resolution_settings::ResolutionSettings;
 
 pub struct Camera {
     pub channel_handler: Arc<Mutex<ChannelHandler>>,
@@ -128,7 +125,7 @@ pub fn inflate_camera_conection(
         Error
     })?;
     let camera_info = camera.info().clone();
-    
+
     debug!("format :{}", format);
     debug!("camera_info :{}", camera_info);
 
@@ -144,8 +141,10 @@ pub fn inflate_camera_conection(
 }
 
 #[cfg(debug_assertions)]
+#[cfg(unsued)]
 static TIME_INSTANCE: Mutex<RefCell<Option<Instant>>> = Mutex::new(RefCell::new(None));
 
+#[cfg(unsued)]
 #[cfg(debug_assertions)]
 fn debug_time_elasped() {
     if let Ok(elapsed) = TIME_INSTANCE.lock() {

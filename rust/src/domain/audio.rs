@@ -4,9 +4,9 @@ use log::debug;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
 
-use crate::channel_audio::{cpal_available_inputs, Pcm};
+use crate::message_channel::audio_message_channel::{cpal_available_inputs, Pcm};
+
 
 pub struct AudioStream {
     pub stream: SendableStream,
@@ -49,7 +49,7 @@ pub fn open_audio_stream(
     //     config.buffer_size().clone(),
     //     cpal::SampleFormat::I16,
     // );
-    
+
     debug!("Default input config: {:?}", config);
 
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));

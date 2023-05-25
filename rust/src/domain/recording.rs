@@ -1,9 +1,8 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom, Write},
-    ops::Not,
     path::Path,
     sync::{
-        atomic::{AtomicBool, AtomicUsize},
+        atomic::{AtomicBool,  },
         Arc, Mutex,
     },
 };
@@ -15,7 +14,9 @@ use openh264::{
     Error,
 };
 
-use crate::{channel_audio::Pcm, domain::image_processing::YUVBuf, tools::ordqueue::OrdQueueIter};
+use crate::{
+      tools::ordqueue::OrdQueueIter, tools::image_processing::YUVBuf, message_channel::audio_message_channel::Pcm,
+};
 
 pub struct RecordingInfo {
     pub started: std::time::Instant,
@@ -97,10 +98,10 @@ impl RecordingInfo {
 
 pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height)
-    .rate_control_mode(RateControlMode::Timestamp)
-    .enable_skip_frame(false)
-    .set_bitrate_bps(360000)
-    .debug(false);
+        .rate_control_mode(RateControlMode::Timestamp)
+        .enable_skip_frame(false)
+        .set_bitrate_bps(360000)
+        .debug(false);
 
     Encoder::with_config(config)
 }

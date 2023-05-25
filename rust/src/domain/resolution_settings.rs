@@ -8,6 +8,7 @@ pub struct ResolutionSettings {
 }
 
 impl ResolutionSettings {
+
     pub fn new() -> Self {
         Self {
             width: AtomicI32::new(0),
@@ -16,10 +17,12 @@ impl ResolutionSettings {
             current_resolution: Mutex::new(String::new()),
         }
     }
+
     pub fn set_available_resolutions(&self, resolutions: &Vec<String>) {
         let mut available_resolutions = self.available_resolutions.lock().unwrap();
         *available_resolutions = resolutions.clone();
     }
+    
     pub fn set_resolution(&self, resolution: &String) {
         let mut current_resolution = self.current_resolution.lock().unwrap();
         *current_resolution = resolution.clone();

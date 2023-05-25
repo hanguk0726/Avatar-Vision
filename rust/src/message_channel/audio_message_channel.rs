@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     collections::HashMap,
     mem::ManuallyDrop,
     sync::{atomic::AtomicBool, Arc, Mutex},
@@ -17,7 +16,8 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::audio::{open_audio_stream, AudioStream};
+use crate::domain::audio::{open_audio_stream, AudioStream};
+
 
 pub struct AudioHandler {
     pub capture_white_sound: Arc<AtomicBool>,

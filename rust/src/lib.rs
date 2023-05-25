@@ -1,39 +1,22 @@
 use std::{
-    cell::RefCell,
     ffi::c_void,
-    sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicUsize},
-        Arc, Mutex, Once,
-    },
+    sync::{atomic::AtomicBool, Arc, Mutex, Once},
 };
 
+use domain::{channel::ChannelHandler, textrue};
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
+use message_channel::{camera_message_channel::{self, CameraHandler}, texture_message_channel::{self, TextureHandler}, audio_message_channel::{self, AudioHandler}, recording_message_channel::{RecordingHandler, self}, rendering_message_channel::{self, RenderingHandler}};
 
-use log::debug;
+use crate::{ domain::camera::Camera, domain::recording::RecordingInfo,
+    domain::resolution_settings::ResolutionSettings,
+};
 use textrue::PixelBufferSource;
 use tools::log_::init_logging;
 
-use crate::{
-    camera::Camera, channel::ChannelHandler, channel_audio::AudioHandler,
-    channel_camera::CameraHandler, channel_recording::RecordingHandler,
-    channel_rendering::RenderingHandler, channel_texture::TextureHandler, recording::RecordingInfo,
-    resolution_settings::ResolutionSettings,
-};
-
-mod audio;
-mod camera;
-mod channel;
-mod channel_audio;
-mod channel_camera;
-mod channel_recording;
-mod channel_rendering;
-mod channel_texture;
+mod message_channel;
 mod domain;
-mod recording;
-mod resolution_settings;
-mod textrue;
 mod tools;
 
 static START: Once = Once::new();
@@ -59,7 +42,7 @@ fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     let textrue = Texture::new_with_provider(flutter_enhine_id, provider).unwrap();
     let texture_id = textrue.id();
 
-    init_channels(
+    init_message_channels(
         render_buffer.clone(),
         textrue.into_sendable_texture(),
         resolution_settings,
@@ -68,7 +51,7 @@ fn init_on_main_thread(flutter_enhine_id: i64) -> i64 {
     texture_id
 }
 
-fn init_channels(
+fn init_message_channels(
     render_buffer: Arc<Mutex<Vec<u8>>>,
     texture: Arc<SendableTexture<Box<dyn PixelDataProvider>>>,
     resolution_settings: Arc<ResolutionSettings>,
@@ -81,20 +64,20 @@ fn init_channels(
         recording.clone(),
         capture_white_sound.clone(),
     )));
-    let audio = Arc::new(Mutex::new(channel_audio::Pcm {
+    let audio = Arc::new(Mutex::new(audio_message_channel::Pcm {
         data: Arc::new(Mutex::new(vec![])),
         sample_rate: 0,
         channels: 0,
         bit_rate: 0,
     }));
 
-    channel_texture::init(TextureHandler {
+    texture_message_channel::init(TextureHandler {
         render_buffer,
         channel_handler: channel_handler.clone(),
         recording: recording.clone(),
     });
 
-    channel_camera::init(CameraHandler::new(
+    camera_message_channel::init(CameraHandler::new(
         rendering.clone(),
         Arc::new(Mutex::new(Camera::new(
             channel_handler.clone(),
@@ -102,15 +85,15 @@ fn init_channels(
         ))),
     ));
 
-    channel_recording::init(RecordingHandler::new(
+    recording_message_channel::init(RecordingHandler::new(
         audio.clone(),
         recording_info.clone(),
         channel_handler,
     ));
 
-    channel_rendering::init(RenderingHandler::new(texture, rendering));
+    rendering_message_channel::init(RenderingHandler::new(texture, rendering));
 
-    channel_audio::init(AudioHandler {
+    audio_message_channel::init(AudioHandler {
         capture_white_sound,
         stream: Arc::new(Mutex::new(None)),
         audio,
