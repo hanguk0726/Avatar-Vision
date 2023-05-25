@@ -1,13 +1,13 @@
 use std::sync::{atomic::AtomicI32, Mutex};
 
-pub struct ResolutionSettings {
+pub struct ResolutionService {
     pub width: AtomicI32,
     pub height: AtomicI32,
     available_resolutions: Mutex<Vec<String>>,
     current_resolution: Mutex<String>,
 }
 
-impl ResolutionSettings {
+impl ResolutionService {
 
     pub fn new() -> Self {
         Self {

@@ -451,7 +451,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   Future<void> startCamera() async {
-    stopCameraStream();
     openCameraStream();
     availableResolution();
     await _currentResolution();

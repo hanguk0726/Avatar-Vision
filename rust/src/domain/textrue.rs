@@ -6,17 +6,17 @@ use std::{
 
 use log::error;
 
-use super::resolution_settings::ResolutionSettings;
+use super::resolution_settings::ResolutionService;
 
 
 #[derive(Clone)]
 pub struct PixelBufferSource {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
-    pub resolution: Arc<ResolutionSettings>,
+    pub resolution: Arc<ResolutionService>,
 }
 
 impl PixelBufferSource {
-    pub fn new(resolution: Arc<ResolutionSettings>) -> Self {
+    pub fn new(resolution: Arc<ResolutionService>) -> Self {
         Self {
             pixel_buffer: Arc::new(Mutex::new(Vec::new())),
             resolution,

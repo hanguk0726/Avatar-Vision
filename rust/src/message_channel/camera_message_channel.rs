@@ -16,16 +16,16 @@ use nokhwa::{
     utils::{ApiBackend, CameraIndex},
 };
 
-use crate::domain::camera::Camera;
+use crate::domain::camera::CameraService;
 
 pub struct CameraHandler {
     pub rendering: Arc<AtomicBool>,
-    pub camera: Arc<Mutex<Camera>>,
+    pub camera_service: Arc<Mutex<CameraService>>,
 }
 
 impl CameraHandler {
-    pub fn new(rendering: Arc<AtomicBool>, camera: Arc<Mutex<Camera>>) -> Self {
-        Self { rendering, camera }
+    pub fn new(rendering: Arc<AtomicBool>, camera: Arc<Mutex<CameraService>>) -> Self {
+        Self { rendering, camera_service: camera }
     }
 }
 
@@ -41,10 +41,12 @@ impl AsyncMethodHandler for CameraHandler {
                 );
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let resolution = map.get("resolution");
-                let mut camera = self.camera.lock().unwrap();
+
+                let mut camera_service = self.camera_service.lock().unwrap();
                 let mut camera_index: Option<CameraIndex> = None;
+
                 {
-                    let camera_info = &mut camera.current_camera_info.lock().unwrap();
+                    let camera_info = &mut camera_service.current_camera_info.lock().unwrap();
                     camera_index.replace(camera_info.as_ref().unwrap().index().clone());
                 }
 
@@ -56,8 +58,8 @@ impl AsyncMethodHandler for CameraHandler {
                     });
                 }
 
-                camera.infate_camera(camera_index.unwrap(), resolution);
-                camera.open_camera_stream();
+                camera_service.infate_camera(camera_index.unwrap(), resolution);
+                camera_service.open_camera_stream();
 
                 return PlatformResult::Ok("ok".into());
             }
@@ -68,14 +70,14 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
-                let mut camera = self.camera.lock().unwrap();
-                camera.stop_camera_stream();
+                let mut camera_service = self.camera_service.lock().unwrap();
+                camera_service.stop_camera_stream();
                 Ok("ok".into())
             }
 
             "camera_health_check" => {
-                let mut camera = self.camera.lock().unwrap();
-                let (health_check, message) = camera.health_check();
+                let mut camera_service = self.camera_service.lock().unwrap();
+                let (health_check, message) = camera_service.health_check();
                 if health_check {
                     return PlatformResult::Ok("ok".into());
                 }
@@ -88,12 +90,14 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
-                let camera = self.camera.lock().unwrap();
+                let camera_service = self.camera_service.lock().unwrap();
+
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let camera_name = map.get("device_name").unwrap().as_str();
+                
                 let cameras = query(ApiBackend::Auto).unwrap();
                 if let Some(camera_info) = cameras.iter().find(|c| c.human_name() == camera_name) {
-                    let mut current_camera_info = camera.current_camera_info.lock().unwrap();
+                    let mut current_camera_info = camera_service.current_camera_info.lock().unwrap();
                     current_camera_info.replace(camera_info.clone());
                     return PlatformResult::Ok("ok".into());
                 }
@@ -123,9 +127,9 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
-                let camera = self.camera.lock().unwrap();
+                let camera_service = self.camera_service.lock().unwrap();
 
-                let mut resolution = camera.resolution_settings.get_current_resolution();
+                let mut resolution = camera_service.resolution_service.get_current_resolution();
                 let resolution = resolution.as_mut().to_string();
 
                 Ok(Value::String(resolution))
@@ -138,9 +142,9 @@ impl AsyncMethodHandler for CameraHandler {
                     thread::current().id()
                 );
 
-                let camera = self.camera.lock().unwrap();
+                let camera_service = self.camera_service.lock().unwrap();
 
-                let camera_info = &mut camera.current_camera_info.lock().unwrap();
+                let camera_info = &mut camera_service.current_camera_info.lock().unwrap();
                 match camera_info.as_ref() {
                     Some(camera_info) => Ok(camera_info.human_name().into()),
                     None => Ok("".into()),
@@ -152,8 +156,8 @@ impl AsyncMethodHandler for CameraHandler {
                     call,
                     thread::current().id()
                 );
-                let camera = self.camera.lock().unwrap();
-                let list = &mut camera.resolution_settings.get_available_resolutions();
+                let camera_service = self.camera_service.lock().unwrap();
+                let list = &mut camera_service.resolution_service.get_available_resolutions();
                 let list = list.to_owned();
 
                 debug!("available_resolution: {:?}", list);

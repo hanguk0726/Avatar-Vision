@@ -62,14 +62,18 @@ impl AsyncMethodHandler for RenderingHandler {
                 self.rendering
                     .store(true, std::sync::atomic::Ordering::Relaxed);
                 self.mark_rendering_state_on_ui(call.isolate);
+
                 let texture_provider = Arc::clone(&self.texture);
 
                 let rendering: Arc<AtomicBool> = self.rendering.clone();
+
                 let frame_interval = Duration::from_millis(1000 / 24);
+
+                // avoid blocking the method channel
                 thread::spawn(move || {
-                    // avoid blocking the method channel
                     while rendering.load(std::sync::atomic::Ordering::Relaxed) {
                         thread::sleep(frame_interval);
+                        // this will display the texture on the screen from the pixel data we provide
                         texture_provider.mark_frame_available();
                     }
                 });

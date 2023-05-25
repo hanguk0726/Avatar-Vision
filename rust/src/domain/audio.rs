@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use crate::message_channel::audio_message_channel::{cpal_available_inputs, Pcm};
 
 
-pub struct AudioStream {
+pub struct AudioService {
     pub stream: SendableStream,
     pub audio: Pcm,
 }
@@ -17,7 +17,7 @@ pub struct SendableStream(Stream);
 unsafe impl Sync for SendableStream {}
 unsafe impl Send for SendableStream {}
 
-impl AudioStream {
+impl AudioService {
     pub fn play(&self) -> Result<(), anyhow::Error> {
         self.stream.0.play()?;
         Ok(())
@@ -31,7 +31,7 @@ impl AudioStream {
 pub fn open_audio_stream(
     device_name: &str,
     capture_white_sound: Arc<AtomicBool>,
-) -> Result<AudioStream, anyhow::Error> {
+) -> Result<AudioService, anyhow::Error> {
     let devices = cpal_available_inputs();
     let device = devices
         .iter()
@@ -117,7 +117,7 @@ pub fn open_audio_stream(
             return Err(anyhow::anyhow!("Unsupported sample format"));
         }
     };
-    Ok(AudioStream {
+    Ok(AudioService {
         stream: SendableStream(stream),
         audio: Pcm {
             data: Arc::clone(&buffer),

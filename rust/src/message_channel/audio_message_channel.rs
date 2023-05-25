@@ -16,12 +16,12 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::domain::audio::{open_audio_stream, AudioStream};
+use crate::domain::audio::{open_audio_stream, AudioService};
 
 
 pub struct AudioHandler {
     pub capture_white_sound: Arc<AtomicBool>,
-    pub stream: Arc<Mutex<Option<AudioStream>>>,
+    pub stream: Arc<Mutex<Option<AudioService>>>,
     pub audio: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
 }

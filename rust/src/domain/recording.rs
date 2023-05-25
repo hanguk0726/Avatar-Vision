@@ -18,7 +18,7 @@ use crate::{
       tools::ordqueue::OrdQueueIter, tools::image_processing::YUVBuf, message_channel::audio_message_channel::Pcm,
 };
 
-pub struct RecordingInfo {
+pub struct RecordingService {
     pub started: std::time::Instant,
     pub recording: Arc<AtomicBool>,
     pub time_elapsed: f64,
@@ -62,7 +62,7 @@ impl PartialEq for WritingState {
     }
 }
 
-impl RecordingInfo {
+impl RecordingService {
     pub fn new(recording: Arc<AtomicBool>, active_audio_only: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),

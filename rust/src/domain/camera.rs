@@ -10,31 +10,31 @@ use std::fmt::Error;
 use std::time::Instant;
 
 
-use super::channel::ChannelHandler;
-use super::resolution_settings::ResolutionSettings;
+use super::channel::ChannelService;
+use super::resolution_settings::ResolutionService;
 
-pub struct Camera {
-    pub channel_handler: Arc<Mutex<ChannelHandler>>,
+pub struct CameraService {
+    pub channel_handler: Arc<Mutex<ChannelService>>,
     pub camera: Option<CallbackCamera>,
     pub current_camera_info: Arc<Mutex<Option<CameraInfo>>>,
-    pub resolution_settings: Arc<ResolutionSettings>,
+    pub resolution_service: Arc<ResolutionService>,
 }
-impl Camera {
+impl CameraService {
     pub fn new(
-        channel_handler: Arc<Mutex<ChannelHandler>>,
-        resolution_settings: Arc<ResolutionSettings>,
+        channel_handler: Arc<Mutex<ChannelService>>,
+        resolution_settings: Arc<ResolutionService>,
     ) -> Self {
         Self {
             channel_handler,
             camera: None,
             current_camera_info: Arc::new(Mutex::new(None)),
-            resolution_settings,
+            resolution_service: resolution_settings,
         }
     }
     pub fn infate_camera(&mut self, index: CameraIndex, resolution: Option<&String>) {
         let mut channel_handler = self.channel_handler.lock().unwrap();
         let mut rendering_sender = channel_handler.rendering.0.clone();
-        let resolution_settings = self.resolution_settings.clone();
+        let resolution_settings = self.resolution_service.clone();
         if rendering_sender.is_closed() {
             channel_handler.reset();
             rendering_sender = channel_handler.rendering.0.clone();
@@ -77,7 +77,7 @@ impl Camera {
         } else {
             debug!("No camera to stop");
         }
-        self.resolution_settings.clear();
+        self.resolution_service.clear();
     }
 }
 
@@ -85,7 +85,7 @@ pub fn inflate_camera_conection(
     index: CameraIndex,
     rendering_sender: Sender<(Buffer, Instant)>,
     requested_resolution: Option<&String>,
-    resolution_settings: Arc<ResolutionSettings>,
+    resolution_settings: Arc<ResolutionService>,
 ) -> Result<CallbackCamera, Error> {
     let mut requested: Option<RequestedFormat> = None;
     if let Some(res) = requested_resolution {

@@ -2,10 +2,8 @@ use std::{
     collections::HashMap,
     mem::ManuallyDrop,
     ops::Not,
-    path::{ PathBuf},
-    sync::{
-        Arc, Mutex,
-    },
+    path::PathBuf,
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -24,8 +22,8 @@ use nokhwa::Buffer;
 
 use crate::{
     domain::{
-        channel::ChannelHandler,
-        recording::{encode_to_h264, to_mp4, RecordingInfo, WritingState},
+        channel::ChannelService,
+        recording::{encode_to_h264, to_mp4, RecordingService, WritingState},
     },
     tools::{
         image_processing::{decode_to_rgb, rgba_to_yuv},
@@ -35,13 +33,12 @@ use crate::{
 
 use super::audio_message_channel::Pcm;
 
-// FPS of the openh264 crate is 30
 const FPS: u32 = 24;
 const THUMBNAIL_DIR_NAME: &str = "thumbnails";
 pub struct RecordingHandler {
     pub audio: Arc<Mutex<Pcm>>,
-    pub recording_info: Arc<Mutex<RecordingInfo>>,
-    pub channel_handler: Arc<Mutex<ChannelHandler>>,
+    pub recording_info: Arc<Mutex<RecordingService>>,
+    pub channel_handler: Arc<Mutex<ChannelService>>,
     final_audio_buffer: Arc<Mutex<Pcm>>,
     ui_event: (
         Arc<AsyncSender<(String, String)>>,
@@ -53,8 +50,8 @@ pub struct RecordingHandler {
 impl RecordingHandler {
     pub fn new(
         audio: Arc<Mutex<Pcm>>,
-        recording_info: Arc<Mutex<RecordingInfo>>,
-        channel_handler: Arc<Mutex<ChannelHandler>>,
+        recording_info: Arc<Mutex<RecordingService>>,
+        channel_handler: Arc<Mutex<ChannelService>>,
     ) -> Self {
         let (s, r) = kanal::bounded_async(1);
         let ui_event = (Arc::new(s), Arc::new(r));
@@ -68,7 +65,7 @@ impl RecordingHandler {
             invoker: Late::new(),
         }
     }
-
+    // writing encdoed video file to disk
     fn mark_writing_state_on_ui(&self, target_isolate: IsolateId) {
         let recording_info = self.recording_info.lock().unwrap();
         let writing_state = recording_info.writing_state.lock().unwrap();
@@ -108,86 +105,45 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 let recording_info = self.recording_info.clone();
                 let channel_handler = self.channel_handler.clone();
+
                 let encoding_sender = channel_handler.lock().unwrap().encoding.0.clone();
-                let recording = recording_info.lock().unwrap().recording.clone();
                 let recording_receiver = self.channel_handler.lock().unwrap().recording.1.clone();
-                // start audio before start recording
+
+                let recording = recording_info.lock().unwrap().recording.clone();
+                // toggle recording state
                 {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.start();
                 }
+
                 self.mark_recording_state_on_ui(call.isolate);
 
-                let mut timestamp = None;
-
-                let one_second = Duration::from_millis(1000);
-                let frame_interval = Duration::from_millis(1000 / FPS as u64);
-                let mut batch =
-                    move |list: Vec<(Buffer, Instant)>, encoding_sender: Sender<Buffer>| -> u32 {
-                        if timestamp.is_none() {
-                            timestamp = Some(list.first().unwrap().1 + one_second);
-                        }
-                        let mut enough = false;
-                        let mut count = 0u32;
-                        for (_, time) in list.iter() {
-                            if time > &timestamp.unwrap() {
-                                enough = true;
-                                break;
-                            }
-                            count += 1;
-                        }
-                        if enough.not() {
-                            info!("not enough frame, wait and retry");
-                            thread::sleep(Duration::from_millis(400));
-                            return 0;
-                        }
-                        let mut loop_count = 0;
-
-                        let mut last_tick = list.first().unwrap().1;
-                        for i in 0..count {
-                            let (buffer, time) = &list[i as usize];
-                            if i != 0 {
-                                let diff = time.saturating_duration_since(last_tick);
-                                // debug!("diff: {:?}, i {:?} ,time {:?}", diff, i, time);
-                                if diff < frame_interval {
-                                    continue;
-                                }
-                            }
-
-                            encoding_sender.send(buffer.clone()).unwrap();
-                            last_tick += frame_interval;
-                            loop_count += 1;
-                        }
-                        debug!("{} frames filtered", loop_count);
-                        while (FPS - loop_count) > 0 {
-                            encoding_sender
-                                .send(list[(count - 1) as usize].0.clone())
-                                .unwrap();
-                            loop_count += 1;
-                        }
-                        timestamp = Some(timestamp.unwrap() + one_second);
-                        count
-                    };
+                // the audio buffer is not empty when it's not the first time to record, flush it
                 {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
                 }
-                // + 1s on last_time when flush
-                let list: Arc<Mutex<Vec<(Buffer, Instant)>>> = Arc::new(Mutex::new(vec![]));
+
+                // Collecting and processing frames to achieve 24fps.
+                let webcam_frame_queue: Arc<Mutex<Vec<(Buffer, Instant)>>> =
+                    Arc::new(Mutex::new(vec![]));
                 thread::spawn(move || {
+                    let timestamp = Arc::new(Mutex::new(None));
                     rayon::scope(|s| {
                         s.spawn(|_| {
                             while let Ok(el) = recording_receiver.recv() {
-                                list.lock().unwrap().push(el);
+                                webcam_frame_queue.lock().unwrap().push(el);
                             }
                         });
                         s.spawn(|_| {
                             loop {
-                                let list_ = { list.lock().unwrap().clone() };
+                                // waiting for enough elements or processing the queue
+                                let list_ = { webcam_frame_queue.lock().unwrap().clone() };
                                 if list_.len() > 0 {
-                                    let flushed_length = batch(list_, encoding_sender.clone());
+                                    let flushed_length =
+                                        batch(timestamp.clone(), list_, encoding_sender.clone());
                                     if flushed_length != 0 {
                                         //remove all flushed elements from origin
-                                        let mut list = list.lock().unwrap();
+                                        let mut list = webcam_frame_queue.lock().unwrap();
                                         list.drain(0..flushed_length as usize);
                                     }
                                 } else {
@@ -215,40 +171,52 @@ impl AsyncMethodHandler for RecordingHandler {
                 );
                 let started = std::time::Instant::now();
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
+
                 let file_path_prefix = map.get("file_path_prefix").unwrap().to_string();
                 let file_name = map.get("file_name").unwrap().to_string();
                 debug!("file_path_prefix: {:?}", file_path_prefix);
+
                 let resolution = map.get("resolution").unwrap().as_str();
                 let resolution = resolution.split("x").collect::<Vec<&str>>();
                 let width = resolution[0].parse::<usize>().unwrap();
                 let height = resolution[1].parse::<usize>().unwrap();
+
                 let ui_event_sender = self.ui_event.0.clone();
                 let update_writing_state = move |state: WritingState| {
                     let sent = ui_event_sender
                         .try_send(("write_state".to_string(), state.to_str().to_string()))
                         .unwrap_or_else(|_| false);
                     if sent {
-                        debug!("uiEvent {} sent", state.to_str());
+                        debug!("ui_event {} sent", state.to_str());
                     } else {
-                        error!("uiEvent sending failed");
+                        error!("ui_Event sending failed");
                     }
                 };
+
                 let mut thumbnail_rgba: Vec<u8> = vec![];
                 let mut count = 0;
+
                 let encoding_receiver = self.channel_handler.lock().unwrap().encoding.1.clone();
                 if encoding_receiver.is_closed() {
                     self.channel_handler.lock().unwrap().reset_encoding();
                 }
+
+                // This maintains order of frames while they are being encoded in multiple threads pool
+                // the data added to this queue will be consumed through the 'iter'.
                 let (queue, iter) = new();
                 let queue: Arc<crate::tools::ordqueue::OrdQueue<Vec<u8>>> = Arc::new(queue);
+
                 let final_audio = self.final_audio_buffer.clone();
+
                 let mut worker_count = 2;
                 let mut pool = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(worker_count)
                     .build()
                     .unwrap();
+
                 update_writing_state(WritingState::Encoding);
                 let writing_state = { self.recording_info.lock().unwrap().writing_state.clone() };
+
                 let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
                 let processed2 = processed.clone();
 
@@ -256,6 +224,7 @@ impl AsyncMethodHandler for RecordingHandler {
                     rayon::scope(|s| {
                         s.spawn(|_| {
                             while let Ok(buf) = encoding_receiver.recv() {
+                                //pulling first frame to get the thumbnail
                                 if count == 0 {
                                     let rgba = decode_to_rgb(
                                         buf.buffer(),
@@ -267,7 +236,9 @@ impl AsyncMethodHandler for RecordingHandler {
                                     .unwrap();
                                     thumbnail_rgba.extend_from_slice(&rgba[..]);
                                 }
+
                                 let queue = queue.clone();
+
                                 pool.spawn(async move {
                                     let rgba = decode_to_rgb(
                                         buf.buffer(),
@@ -286,6 +257,7 @@ impl AsyncMethodHandler for RecordingHandler {
                                 });
                                 // debug!("encoded {} frames", count);
                                 count += 1;
+                                // when threads for display when off, increase the thread count for encoding
                                 if *writing_state.lock().unwrap() == WritingState::Saving {
                                     if worker_count == 2 {
                                         worker_count = 8;
@@ -303,6 +275,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         });
                         s.spawn(|_| {
                             let mut processed = processed2.lock().unwrap();
+                            //keep encoding to h264. this will be terminated when the queue is empty
                             encode_to_h264(iter, &mut processed, width, height);
                             debug!("terminate encoding frames on recording");
                         });
@@ -317,9 +290,13 @@ impl AsyncMethodHandler for RecordingHandler {
 
                     debug!("*********** saving... ***********");
 
+                    //encoded h264 data.
                     let processed = processed.lock().unwrap();
+
                     let mut video_path = PathBuf::from(&file_path_prefix);
                     video_path.push(&file_name);
+
+                    //write to mp4
                     if let Err(e) = to_mp4(
                         &processed[..],
                         video_path,
@@ -331,30 +308,7 @@ impl AsyncMethodHandler for RecordingHandler {
                         error!("Failed to save video {:?}", e);
                     }
 
-                    //THUMBNAIL_DIR_NAME
-                    // create an ImageBuffer from the RGBA data
-                    let imgbuf = ImageBuffer::<Rgba<u8>, _>::from_raw(
-                        width as u32,
-                        height as u32,
-                        thumbnail_rgba,
-                    )
-                    .unwrap();
-                    // Convert the image buffer to a dynamic image
-                    let image = DynamicImage::ImageRgba8(imgbuf);
-
-                    // Resize the dynamic image
-                    let resized_image =
-                        image.resize(320, 180, image::imageops::FilterType::Lanczos3);
-
-                    // Convert the resized dynamic image back to an image buffer
-                    let resized_imgbuf = resized_image.into_rgba8();
-
-                    let mut thumbnail_path = PathBuf::from(&file_path_prefix);
-                    thumbnail_path.push(THUMBNAIL_DIR_NAME);
-                    thumbnail_path.push(&file_name);
-                    thumbnail_path.set_extension("png");
-
-                    resized_imgbuf.save(thumbnail_path).unwrap();
+                    save_thumbnail(&file_path_prefix, &file_name, thumbnail_rgba, width, height);
 
                     debug!("*********** saved! ***********");
                     update_writing_state(WritingState::Idle);
@@ -373,13 +327,16 @@ impl AsyncMethodHandler for RecordingHandler {
                     let mut recording_info = self.recording_info.lock().unwrap();
                     recording_info.stop();
                 }
+
                 let audio = Arc::clone(&self.audio);
                 let audio = audio.lock().unwrap();
                 let mut final_audio = self.final_audio_buffer.lock().unwrap();
                 *final_audio = audio.to_owned();
                 debug!("**************************** audio data finalized ****************************");
+
                 self.channel_handler.lock().unwrap().encoding.0.close();
                 self.mark_recording_state_on_ui(call.isolate);
+
                 self.recording_info
                     .lock()
                     .unwrap()
@@ -388,6 +345,7 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 Ok("ok".into())
             }
+            //XXX need to be seperated if this handles more events
             "listen_ui_event_dispatcher" => {
                 debug!(
                     "Received request {:?} on thread {:?}",
@@ -429,4 +387,94 @@ pub fn init(recording_handler: RecordingHandler) {
         );
         RunLoop::current().run();
     });
+}
+
+fn batch(
+    timestamp: Arc<Mutex<Option<Instant>>>,
+    list: Vec<(Buffer, Instant)>,
+    encoding_sender: Sender<Buffer>,
+) -> u32 {
+    let one_second = Duration::from_millis(1000);
+    let frame_interval = Duration::from_millis(1000 / FPS as u64);
+    let mut timestamp = timestamp.lock().unwrap();
+    if timestamp.is_none() {
+        *timestamp = Some(list.first().unwrap().1 + one_second);
+    }
+    let mut enough = false;
+
+    let mut frame_count = 0u32;
+    for (_, time) in list.iter() {
+        // if list contains frames for upcoming second
+        if time > &timestamp.unwrap() {
+            enough = true;
+            break;
+        }
+        frame_count += 1;
+    }
+
+    if enough.not() {
+        info!("not enough frame, wait and retry");
+        thread::sleep(Duration::from_millis(400));
+        return 0;
+    }
+
+    let mut loop_count = 0;
+
+    let mut last_tick = list.first().unwrap().1;
+
+    for i in 0..frame_count {
+        let (buffer, time) = &list[i as usize];
+
+        if i != 0 {
+            let diff = time.saturating_duration_since(last_tick);
+            // debug!("diff: {:?}, i {:?} ,time {:?}", diff, i, time);
+            if diff < frame_interval {
+                continue;
+            }
+        }
+
+        encoding_sender.send(buffer.clone()).unwrap();
+        last_tick += frame_interval;
+        loop_count += 1;
+    }
+    debug!("{} frames filtered", loop_count);
+    // if webcam is not fast enough, send the last frame multiple times
+    // this is not ideal, but it's better than dropping frames which will cause audio and video out of sync
+    while (FPS - loop_count) > 0 {
+        encoding_sender
+            .send(list[(frame_count - 1) as usize].0.clone())
+            .unwrap();
+        loop_count += 1;
+    }
+
+    *timestamp = Some(timestamp.unwrap() + one_second);
+    frame_count
+}
+
+fn save_thumbnail(
+    file_path_prefix: &str,
+    file_name: &str,
+    thumbnail_rgba: Vec<u8>,
+    width: usize,
+    height: usize,
+) {
+    // create an ImageBuffer from the RGBA data
+    let imgbuf =
+        ImageBuffer::<Rgba<u8>, _>::from_raw(width as u32, height as u32, thumbnail_rgba).unwrap();
+    // Convert the image buffer to a dynamic image
+    let image = DynamicImage::ImageRgba8(imgbuf);
+
+    // Resize the dynamic image
+    let resized_image = image.resize(320, 180, image::imageops::FilterType::Lanczos3);
+
+    // Convert the resized dynamic image back to an image buffer
+    let resized_imgbuf = resized_image.into_rgba8();
+
+    let mut thumbnail_path = PathBuf::from(&file_path_prefix);
+    thumbnail_path.push(THUMBNAIL_DIR_NAME);
+    thumbnail_path.push(&file_name);
+    thumbnail_path.set_extension("png");
+
+    resized_imgbuf.save(thumbnail_path).unwrap();
+    info!("thumbnail saved");
 }

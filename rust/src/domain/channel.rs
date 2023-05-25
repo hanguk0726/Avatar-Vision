@@ -3,13 +3,13 @@ use std::time::Instant;
 use kanal::{Receiver, Sender};
 use nokhwa::Buffer;
 
-pub struct ChannelHandler {
+pub struct ChannelService {
     pub rendering: (Sender<(Buffer, Instant)>, Receiver<(Buffer, Instant)>),
     pub recording: (Sender<(Buffer, Instant)>, Receiver<(Buffer, Instant)>),
     pub encoding: (Sender<Buffer>, Receiver<Buffer>),
 }
 
-impl ChannelHandler {
+impl ChannelService {
     pub fn new() -> Self {
         let (rendering_sender, rendering_receiver): (
             Sender<(Buffer, Instant)>,
