@@ -18,11 +18,10 @@ use log::debug;
 
 use crate::domain::audio::{open_audio_stream, AudioService};
 
-
 pub struct AudioHandler {
     pub capture_white_sound: Arc<AtomicBool>,
-    pub stream: Arc<Mutex<Option<AudioService>>>,
-    pub audio: Arc<Mutex<Pcm>>,
+    pub audio_service: Arc<Mutex<Option<AudioService>>>,
+    pub pcm: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
 }
 #[derive(Debug, Clone)]
@@ -58,14 +57,14 @@ impl AsyncMethodHandler for AudioHandler {
                 let device_name = map.get("device_name").unwrap().as_str();
                 let capture_white_sound = self.capture_white_sound.clone();
 
-                let recorder = open_audio_stream(device_name, capture_white_sound).unwrap();
+                let audio_service = open_audio_stream(device_name, capture_white_sound).unwrap();
 
-                let mut audio = self.audio.lock().unwrap();
-                *audio = recorder.audio.clone();
+                let mut pcm = self.pcm.lock().unwrap();
+                *pcm = audio_service.pcm.clone();
 
-                recorder.play().unwrap();
+                audio_service.play().unwrap();
 
-                self.stream.lock().unwrap().replace(recorder);
+                self.audio_service.lock().unwrap().replace(audio_service);
                 PlatformResult::Ok("ok".into())
             }
             "stop_audio_stream" => {
@@ -74,7 +73,7 @@ impl AsyncMethodHandler for AudioHandler {
                     call,
                     thread::current().id()
                 );
-                if let Some(recorder) = self.stream.lock().unwrap().take() {
+                if let Some(recorder) = self.audio_service.lock().unwrap().take() {
                     recorder.stop();
                 }
 
@@ -90,7 +89,7 @@ impl AsyncMethodHandler for AudioHandler {
                 let mut data = vec![];
 
                 if let Some(_) = self.current_device.lock().unwrap().as_ref() {
-                    let audio = self.audio.lock().unwrap();
+                    let audio = self.pcm.lock().unwrap();
                     data = audio.data.lock().unwrap().drain(..).collect::<Vec<u8>>();
                 }
                 // debug!("data len: {}", data.len());

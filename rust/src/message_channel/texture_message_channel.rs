@@ -53,13 +53,13 @@ impl AsyncMethodHandler for TextureHandler {
                 let recording = self.recording.clone();
                 let recording_sender = self.channel_handler.lock().unwrap().recording.0.clone();
 
-                let pixel_buffer = self.render_buffer.clone();
+                let render_buffer = self.render_buffer.clone();
                 let mut index = 0;
 
                 while let Ok((buf, timestamp)) = receiver.recv() {
 
                     let render_buffer_index = render_buffer_index.clone();
-                    let pixel_buffer = pixel_buffer.clone();
+                    let render_buffer = render_buffer.clone();
 
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         recording_sender.send((buf.clone(), timestamp)).unwrap_or_else(|e| {
@@ -70,7 +70,7 @@ impl AsyncMethodHandler for TextureHandler {
                     index += 1;
 
                     pool.spawn(async move {
-                        decode(index, buf, render_buffer_index, pixel_buffer, width, height);
+                        decode(index, buf, render_buffer_index, render_buffer, width, height);
                     });
                 }
                 Ok("ok".into())
@@ -99,14 +99,14 @@ pub(crate) fn init(textrue_handler: TextureHandler) {
 fn decode(
     index: usize,
     buf: Buffer,
-    render_buffer: Arc<AtomicUsize>,
-    pixel_buffer: Arc<Mutex<Vec<u8>>>,
+    render_buffer_index: Arc<AtomicUsize>,
+    render_buffer: Arc<Mutex<Vec<u8>>>,
     width: u32,
     height: u32,
 ) {
     // check if the frame is outdated
-    let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
-    if render_buffer_index > index {
+    let render_buffer_index_ = render_buffer_index.load(std::sync::atomic::Ordering::SeqCst);
+    if render_buffer_index_ > index {
         debug!("drop frame :: outdated");
         return;
     }
@@ -122,11 +122,11 @@ fn decode(
     .unwrap();
     // debug!("decode time {:?}", time.elapsed());
     
-    let render_buffer_index = render_buffer.load(std::sync::atomic::Ordering::SeqCst);
-    if index > render_buffer_index.to_owned() {
-        let mut pixel_buffer = pixel_buffer.lock().unwrap();
-        *pixel_buffer = decoded;
-        render_buffer.store(index, std::sync::atomic::Ordering::SeqCst);
+    let render_buffer_index_ = render_buffer_index.load(std::sync::atomic::Ordering::SeqCst);
+    if index > render_buffer_index_.to_owned() {
+        let mut render_buffer = render_buffer.lock().unwrap();
+        *render_buffer = decoded;
+        render_buffer_index.store(index, std::sync::atomic::Ordering::SeqCst);
     } else {
         debug!("drop frame :: outdated");
     }

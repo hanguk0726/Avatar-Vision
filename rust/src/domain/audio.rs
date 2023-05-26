@@ -10,7 +10,7 @@ use crate::message_channel::audio_message_channel::{cpal_available_inputs, Pcm};
 
 pub struct AudioService {
     pub stream: SendableStream,
-    pub audio: Pcm,
+    pub pcm: Pcm,
 }
 pub struct SendableStream(Stream);
 
@@ -28,6 +28,7 @@ impl AudioService {
         debug!("audio stream dropped");
     }
 }
+
 pub fn open_audio_stream(
     device_name: &str,
     capture_white_sound: Arc<AtomicBool>,
@@ -67,6 +68,9 @@ pub fn open_audio_stream(
                 let capture_white_sound =
                     capture_white_sound.load(std::sync::atomic::Ordering::Relaxed);
                 // debug!("amplitude: {}", amplitude);
+
+                // trying to distinguish between silence and human voice for a wavy pattern UI in the 'setting' tab
+                // only when it's not recording
                 if capture_white_sound || amplitude > HAS_AUDIO {
                     for &sample in data.iter() {
                         let sample = sample.to_le_bytes();
@@ -119,7 +123,7 @@ pub fn open_audio_stream(
     };
     Ok(AudioService {
         stream: SendableStream(stream),
-        audio: Pcm {
+        pcm: Pcm {
             data: Arc::clone(&buffer),
             sample_rate: config.sample_rate().0,
             channels: config.channels(),

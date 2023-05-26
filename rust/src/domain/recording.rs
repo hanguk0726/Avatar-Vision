@@ -1,10 +1,7 @@
 use std::{
     io::{Cursor, Read, Seek, SeekFrom, Write},
     path::Path,
-    sync::{
-        atomic::{AtomicBool,  },
-        Arc, Mutex,
-    },
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
 use log::debug;
@@ -15,7 +12,8 @@ use openh264::{
 };
 
 use crate::{
-      tools::ordqueue::OrdQueueIter, tools::image_processing::YUVBuf, message_channel::audio_message_channel::Pcm,
+    message_channel::audio_message_channel::Pcm, tools::image_processing::YUVBuf,
+    tools::ordqueue::OrdQueueIter,
 };
 
 pub struct RecordingService {
@@ -63,13 +61,13 @@ impl PartialEq for WritingState {
 }
 
 impl RecordingService {
-    pub fn new(recording: Arc<AtomicBool>, active_audio_only: Arc<AtomicBool>) -> Self {
+    pub fn new(recording: Arc<AtomicBool>, capture_white_sound: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),
             recording,
             time_elapsed: 0.0,
             writing_state: Arc::new(Mutex::new(WritingState::Idle)),
-            capture_white_sound: active_audio_only,
+            capture_white_sound,
         }
     }
 
@@ -96,7 +94,7 @@ impl RecordingService {
     }
 }
 
-pub fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
+fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
     let config = EncoderConfig::new(width, height)
         .rate_control_mode(RateControlMode::Timestamp)
         .enable_skip_frame(false)
@@ -141,7 +139,7 @@ pub fn encode_to_h264(
             }
         }
     }
-    // DEBUG ONLY
+    // for DEBUG, not needed
     {
         debug!("writing h264 to file");
         use std::fs::File;
@@ -172,6 +170,7 @@ pub fn to_mp4<P: AsRef<Path>>(
         audio.sample_rate,
         audio.channels.into(),
     );
+
     let audio_data = audio.data.lock().unwrap();
     debug!(
         "audio :: data: {}, sample_rata: {}, channles: {}, bit_rate: {},",
@@ -180,7 +179,9 @@ pub fn to_mp4<P: AsRef<Path>>(
         &audio.channels,
         &audio.bit_rate
     );
+
     debug!("frame_rate: {}", frame_rate);
+
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
 
     mp4muxer.close();
@@ -188,7 +189,7 @@ pub fn to_mp4<P: AsRef<Path>>(
     video_buffer.seek(SeekFrom::Start(0)).unwrap();
     let mut video_bytes = Vec::new();
     video_buffer.read_to_end(&mut video_bytes).unwrap();
-    debug!("{} bytes", video_bytes.len());
+
     let file_path = file_path.as_ref().with_extension("mp4");
     std::fs::write(file_path, &video_bytes)
 }

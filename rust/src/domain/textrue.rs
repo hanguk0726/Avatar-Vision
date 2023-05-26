@@ -6,16 +6,16 @@ use std::{
 
 use log::error;
 
-use super::resolution_settings::ResolutionService;
+use super::resolution::ResolutionService;
 
 
 #[derive(Clone)]
-pub struct PixelBufferSource {
+pub struct TextureService {
     pub pixel_buffer: Arc<Mutex<Vec<u8>>>,
     pub resolution: Arc<ResolutionService>,
 }
 
-impl PixelBufferSource {
+impl TextureService {
     pub fn new(resolution: Arc<ResolutionService>) -> Self {
         Self {
             pixel_buffer: Arc::new(Mutex::new(Vec::new())),
@@ -36,7 +36,7 @@ impl PixelBufferSource {
     }
 }
 
-impl PayloadProvider<BoxedPixelData> for PixelBufferSource {
+impl PayloadProvider<BoxedPixelData> for TextureService {
     // An error occurring here causes the Flutter app to shut down without any error message.
     // ex: if the length of the data does not match the required width * height * 4 for the texture widget of Flutter
     fn get_payload(&self) -> BoxedPixelData {

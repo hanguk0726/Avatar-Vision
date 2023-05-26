@@ -23,7 +23,7 @@ impl ResolutionService {
         *available_resolutions = resolutions.clone();
     }
     
-    pub fn set_resolution(&self, resolution: &String) {
+    pub fn set_current_resolution(&self, resolution: &String) {
         let mut current_resolution = self.current_resolution.lock().unwrap();
         *current_resolution = resolution.clone();
         let resolution: Vec<&str> = resolution.split('x').collect();
