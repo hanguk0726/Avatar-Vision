@@ -96,7 +96,7 @@ class _VideoPageState extends State<VideoPage> {
         // add data
         int timestamp = casted.timestamp;
         final queryResult =
-            DatabaseService().findByOsFileName(gererateFileName(timestamp));
+            DatabaseService().findByOsFileName(osFileName(timestamp));
         if (queryResult is Success) {
           setState(() {
             selectedMetadata = (queryResult as Success<Metadata>).value;

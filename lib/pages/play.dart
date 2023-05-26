@@ -359,7 +359,7 @@ class PlayState extends State<Play> {
                             child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(
-                                  getFormattedTimestamp(
+                                  formatTimestamp(
                                       timestamp: widget.timestamp),
                                   style: TextStyle(
                                       color: Colors.white,

@@ -62,7 +62,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   String fileName = '';
   List<String> files = [];
   Future<void> deleteFile(int timestamp) async {
-    final fileName = gererateFileName(timestamp);
+    final fileName = osFileName(timestamp);
     File file = File('$filePathPrefix\\$fileName.mp4');
     file.deleteSync();
     File thumbnailFile = File('$filePathPrefix\\thumbnails\\$fileName.png');
@@ -73,7 +73,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   Future<void> sendFileToDesktop(int timestamp) async {
-    final fileName = gererateFileName(timestamp);
+    final fileName = osFileName(timestamp);
     final filePath = '$filePathPrefix\\$fileName.mp4';
     File file = File(filePath);
     if (file.existsSync()) {
@@ -134,7 +134,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   Widget getThumbnail(int timestamp) {
-    final fileName = gererateFileName(timestamp);
+    final fileName = osFileName(timestamp);
     final thumbnailPath = '$filePathPrefix\\thumbnails\\$fileName.png';
     return Image(
       image: FileImage(File(thumbnailPath)),
@@ -262,7 +262,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   void _startEncoding() async {
     final int timestamp = DateTime.now().millisecondsSinceEpoch;
 
-    final fileName = gererateFileName(timestamp);
+    final fileName = osFileName(timestamp);
 
     DatabaseService().insert(timestamp);
     final res = await recordingChannel.invokeMethod('start_encording', {

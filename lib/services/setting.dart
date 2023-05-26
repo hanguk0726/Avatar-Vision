@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:video_diary/tools/time.dart';
 
 class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   Setting._privateConstructor();
@@ -11,7 +10,7 @@ class Setting with ChangeNotifier, DiagnosticableTreeMixin {
   factory Setting() {
     return _instance;
   }
-  final fileName = 'diary_app_setting.json';
+  final fileName = 'video_diary_setting.json';
   String lastPreferredResolution = '';
   bool thumbnailView = true;
   bool tip = true;

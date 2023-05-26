@@ -45,9 +45,13 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
       return Success(result.first);
     }
   }
+
   int getLogEntryOrder(int timestamp) {
-  return pastEntries.length - 1 - pastEntries.indexWhere((el) => el.timestamp == timestamp);
+    return pastEntries.length -
+        1 -
+        pastEntries.indexWhere((el) => el.timestamp == timestamp);
   }
+
   void update(int timestamp, Metadata updatedData) {
     final query = store
         .box<Metadata>()
@@ -109,8 +113,6 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-
-
   void filterEntriesByText(String text) async {
     List<Metadata> result = [];
     result = pastEntries
@@ -142,7 +144,6 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
-
   Future<void> sync() async {
     pastEntries = await getEntries();
     uiStatePastEntries = pastEntries;
@@ -151,9 +152,8 @@ class DatabaseService with ChangeNotifier, DiagnosticableTreeMixin {
   }
 }
 
-String gererateFileName(int timestamp) {
-  var fileName =
-      getFormattedTimestamp(timestamp: timestamp, format: fileNameFormat);
+String osFileName(int timestamp) {
+  var fileName = formatTimestamp(timestamp: timestamp, format: fileNameFormat);
   fileName += "_${timestamp.toString()}"; // this part is used for id of db row.
   // yyyy-MM-dd_HH-mm-ss_'epochMicroseconds'
   return fileName;

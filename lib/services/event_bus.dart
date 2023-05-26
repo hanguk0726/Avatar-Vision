@@ -13,6 +13,7 @@ class EventBus {
 
   Stream<KeyEventPair> get onEvent => _eventController.stream;
 
+
   bool clearUiMode = false;
   bool off = false;
   void fire(Event event, String key) {

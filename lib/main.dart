@@ -11,6 +11,9 @@ import 'package:window_manager/window_manager.dart';
 import 'domain/app.dart';
 import 'services/setting.dart';
 
+
+// it has a warning from objectbox-dart when launching in debug mode currently.
+// https://github.com/objectbox/objectbox-dart/issues/522
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setUp();

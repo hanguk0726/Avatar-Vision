@@ -223,7 +223,7 @@ class PastEntriesState extends State<PastEntries>
     var db = context.read<DatabaseService>();
     List<Metadata> entries = db.uiStatePastEntries;
     int timestamp = entries[selectedIndex].timestamp;
-    String fileName = gererateFileName(timestamp);
+    String fileName = osFileName(timestamp);
     String filePath = "${native.filePathPrefix}/$fileName.mp4";
     focusNode.unfocus();
     Navigator.push(
@@ -406,7 +406,7 @@ class PastEntriesState extends State<PastEntries>
                                 padding: const EdgeInsets.only(left: 16),
                                 child: Row(children: [
                                   Text(
-                                      getFormattedTimestamp(
+                                      formatTimestamp(
                                           timestamp: entries[index].timestamp),
                                       style: TextStyle(
                                           color: selected
@@ -506,7 +506,7 @@ class PastEntriesState extends State<PastEntries>
                     child: Row(
                       children: [
                         pastEntry(
-                            getFormattedTimestamp(
+                            formatTimestamp(
                                 timestamp: entries[index].timestamp),
                             selected),
                         const Spacer(),

@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-String getFormattedTimestamp({int? timestamp, String? format}) {
+String formatTimestamp({int? timestamp, String? format}) {
   timestamp ??= DateTime.now().millisecondsSinceEpoch;
 
   String formattedOffsetTime = DateFormat(format ?? 'MM-dd-yyyy HH:mm:ss')

@@ -6,7 +6,7 @@ Widget boxWidget(
     {required Color color,
     required Color backgroundColor,
     required Widget child,
-    bool sharp = false }) {
+    bool sharp = false}) {
   return ClipRRect(
       child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),

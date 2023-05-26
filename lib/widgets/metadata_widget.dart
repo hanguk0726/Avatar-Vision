@@ -50,7 +50,7 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
     };
     titleEditingController.text = model.title;
     datatimeEditingController.text =
-        getFormattedTimestamp(timestamp: model.timestamp);
+        formatTimestamp(timestamp: model.timestamp);
     noteEditingController.text = model.note ?? "";
   }
 

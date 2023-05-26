@@ -1,16 +1,13 @@
 import 'package:flutter/services.dart';
 
-
-
-// This could be refactored when Flutter supports sealed classes.
 abstract class Event<T> {
   const Event._();
 
-  factory Event.keyboard(KeyboardEventType type) = KeyboardEvent<T>;
+  factory Event.keyboard(KeyAction type) = KeyboardEvent<T>;
   factory Event.metadata(int timestamp) = MetadataEvent<T>;
 }
 
-enum KeyboardEventType {
+enum KeyAction {
   arrowUp,
   arrowDown,
   arrowLeft,
@@ -26,26 +23,27 @@ enum KeyboardEventType {
 }
 
 class KeyboardEvent<T> extends Event<T> {
-  final KeyboardEventType type;
+  final KeyAction keyAction;
 
-  const KeyboardEvent(this.type) : super._();
+  const KeyboardEvent(this.keyAction) : super._();
+
   static const keyboardControlArrowUp =
-      KeyboardEvent(KeyboardEventType.arrowUp);
+      KeyboardEvent(KeyAction.arrowUp);
   static const keyboardControlArrowDown =
-      KeyboardEvent(KeyboardEventType.arrowDown);
+      KeyboardEvent(KeyAction.arrowDown);
   static const keyboardControlArrowLeft =
-      KeyboardEvent(KeyboardEventType.arrowLeft);
+      KeyboardEvent(KeyAction.arrowLeft);
   static const keyboardControlArrowRight =
-      KeyboardEvent(KeyboardEventType.arrowRight);
-  static const keyboardControlEnter = KeyboardEvent(KeyboardEventType.enter);
-  static const keyboardControlSpace = KeyboardEvent(KeyboardEventType.space);
-  static const keyboardControlM = KeyboardEvent(KeyboardEventType.m);
-  static const keyboardControlF = KeyboardEvent(KeyboardEventType.f);
+      KeyboardEvent(KeyAction.arrowRight);
+  static const keyboardControlEnter = KeyboardEvent(KeyAction.enter);
+  static const keyboardControlSpace = KeyboardEvent(KeyAction.space);
+  static const keyboardControlM = KeyboardEvent(KeyAction.m);
+  static const keyboardControlF = KeyboardEvent(KeyAction.f);
   static const keyboardControlBackspace =
-      KeyboardEvent(KeyboardEventType.backspace);
-  static const keyboardControlDelete = KeyboardEvent(KeyboardEventType.delete);
-  static const keyboardControlEscape = KeyboardEvent(KeyboardEventType.escape);
-  static const keyboardControlTab = KeyboardEvent(KeyboardEventType.tab);
+      KeyboardEvent(KeyAction.backspace);
+  static const keyboardControlDelete = KeyboardEvent(KeyAction.delete);
+  static const keyboardControlEscape = KeyboardEvent(KeyAction.escape);
+  static const keyboardControlTab = KeyboardEvent(KeyAction.tab);
 }
 
 class MetadataEvent<T> extends Event<T> {
@@ -98,7 +96,7 @@ Event? rawKeyEventToEvent(RawKeyEvent event) {
         return KeyboardEvent.keyboardControlArrowRight;
       case 'Enter':
         return KeyboardEvent.keyboardControlEnter;
-      case ' ': // this empty value is actually a space
+      case ' ': // this value indicates a space actually.
         return KeyboardEvent.keyboardControlSpace;
       case 'M':
         return KeyboardEvent.keyboardControlM;
