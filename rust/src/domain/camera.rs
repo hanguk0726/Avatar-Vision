@@ -22,13 +22,13 @@ pub struct CameraService {
 impl CameraService {
     pub fn new(
         channel_handler: Arc<Mutex<ChannelService>>,
-        resolution_settings: Arc<ResolutionService>,
+        resolution_service: Arc<ResolutionService>,
     ) -> Self {
         Self {
             channel_handler,
             camera: None,
             current_camera_info: Arc::new(Mutex::new(None)),
-            resolution_service: resolution_settings,
+            resolution_service,
         }
     }
     pub fn infate_camera(&mut self, index: CameraIndex, resolution: Option<&String>) {

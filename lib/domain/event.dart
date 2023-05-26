@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+
+
 // This could be refactored when Flutter supports sealed classes.
 abstract class Event<T> {
   const Event._();

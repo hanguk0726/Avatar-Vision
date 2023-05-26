@@ -14,19 +14,7 @@ import 'services/setting.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setUp();
-  runApp_() {
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => Native()),
-          ChangeNotifierProvider(create: (_) => Setting()),
-          ChangeNotifierProvider(create: (_) => DatabaseService()),
-        ],
-        child: const App(),
-      ),
-    );
-  }
-
+  
   //make sentry work only in release mode
   if (kReleaseMode) {
     await SentryFlutter.init((options) {
@@ -39,6 +27,19 @@ Future<void> main() async {
     runApp_();
   }
 }
+
+runApp_() {
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => Native()),
+          ChangeNotifierProvider(create: (_) => Setting()),
+          ChangeNotifierProvider(create: (_) => DatabaseService()),
+        ],
+        child: const App(),
+      ),
+    );
+  }
 
 final routeObserver = RouteObserver<ModalRoute<dynamic>>();
 
@@ -59,7 +60,7 @@ class App extends StatelessWidget {
 
 Future<void> setUp() async {
   await Native()
-      .init(); // Native init process must not be delayed by other init (ex: UI init process)
+      .init(); // Native init process **MUST NOT** be delayed by other init.
   await Setting().load();
   await DatabaseService().init();
   MediaKit.ensureInitialized();
