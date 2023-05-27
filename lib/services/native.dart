@@ -18,16 +18,21 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   factory Native() {
     return _instance;
   }
+
   WritingState writingState = WritingState
       .idle; // whether the recorded video data is being written to the file
+
   bool recording = false; // whether the video is being recorded
   bool rendering = false; // whether the video is being rendered
+
   bool cameraHealthCheck =
       true; // whether the camera is ok (connection, resource etc.)
   String cameraHealthCheckErrorMessage =
       ''; // the error message of the camera health check
+
   String currentAudioDevice = ''; // the current audio device name
   String currentCameraDevice = ''; // the current camera device name
+
   List<String> audioDevices = []; // the list of audio devices
   List<String> cameraDevices = []; // the list of camera devices
 
@@ -60,6 +65,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   String filePathPrefix = '';
   String fileName = '';
   List<String> files = [];
+
   Future<void> deleteFile(int timestamp) async {
     final fileName = osFileName(timestamp);
     File file = File('$filePathPrefix\\$fileName.mp4');
@@ -68,7 +74,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     thumbnailFile.deleteSync();
     var db = DatabaseService();
     await db.sync();
-    // db record will be deleted by the db service 'clearOutdatedRecords'
+    // The db record will be deleted by the db function 'clearOutdatedRecords'
   }
 
   Future<void> sendFileToDesktop(int timestamp) async {
@@ -83,6 +89,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     }
   }
 
+  // check essential files and directories are available
+  // and set the file path prefix and the list of files already recorded
   Future<void> checkFileDirectoryAndSetFiles() async {
     // On Windows, get or create the appdata folder
     if (Platform.isWindows) {
@@ -172,6 +180,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     listenUiEventDispatcher();
   }
 
+// Channel from Rust to Flutter
   void setChannelHandlers() {
     recordingChannel.setMethodCallHandler((call) async {
       switch (call.method) {
@@ -471,6 +480,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void observeAudioBuffer(BehaviorSubject<bool> stream) async {
+    // To save resource, keep clearing audio buffer when is not recording
     while (true) {
       if (writingState == WritingState.idle) {
         bool hanAudio = await clearAudioBuffer();

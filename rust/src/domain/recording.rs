@@ -3,7 +3,6 @@ use std::{
     path::Path,
     sync::{atomic::AtomicBool, Arc, Mutex},
 };
-
 use log::debug;
 use minimp4::Mp4Muxer;
 use openh264::{
@@ -136,6 +135,7 @@ pub fn encode_to_h264(
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
                 buf_h264.extend_from_slice(nal);
+                // debug!("memory usage for h264: {}", size_of_vec(buf_h264));
             }
         }
     }
@@ -192,4 +192,10 @@ pub fn to_mp4<P: AsRef<Path>>(
 
     let file_path = file_path.as_ref().with_extension("mp4");
     std::fs::write(file_path, &video_bytes)
+}
+
+fn size_of_vec<T>(vec: &Vec<T>) -> usize {
+    let element_size = std::mem::size_of::<T>();
+    let metadata_size = std::mem::size_of::<Vec<T>>();
+    vec.len() * element_size + metadata_size
 }
