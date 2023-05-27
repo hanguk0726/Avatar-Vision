@@ -14,7 +14,7 @@ import 'package:video_diary/domain/metadata.dart';
 import 'package:video_diary/domain/result.dart';
 import 'package:video_diary/pages/video.dart';
 import 'package:video_diary/tools/time.dart';
-import 'package:video_diary/widgets/box_widget.dart';
+import 'package:video_diary/widgets/glassy_box.dart';
 import 'package:video_diary/widgets/key_listener.dart';
 
 import '../domain/event.dart';
@@ -85,9 +85,9 @@ class PlayState extends State<Play> {
     focusNode.requestFocus();
     startOverlayTimer();
     var db = DatabaseService();
-    final _metadata = db.findByOsFileName(widget.fileName);
-    if (_metadata is Success<Metadata>) {
-      metadata = _metadata.value;
+    final metadata_ = db.findByOsFileName(widget.fileName);
+    if (metadata_ is Success<Metadata>) {
+      metadata = metadata_.value;
     }
   }
 
@@ -332,7 +332,7 @@ class PlayState extends State<Play> {
         child: AnimatedOpacity(
             duration: animatedOpacity,
             opacity: showOverlayAndMouseCursor ? 1.0 : 0.0,
-            child: boxWidget(
+            child: glassyBoxWidget(
                 color: customSky,
                 backgroundColor: customOcean,
                 child: ConstrainedBox(
@@ -575,13 +575,13 @@ class PlayState extends State<Play> {
                       Flexible(
                           child: Align(
                               alignment: Alignment.centerLeft,
-                              child: boxWidget(
+                              child: glassyBoxWidget(
                                 color: customSky,
                                 backgroundColor: customOcean,
                                 child: volumeWidget,
                               ))),
                       const Spacer(),
-                      boxWidget(
+                      glassyBoxWidget(
                           color: customSky,
                           backgroundColor: customOcean,
                           child: SizedBox(
@@ -610,14 +610,14 @@ class PlayState extends State<Play> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  boxWidget(
+                                  glassyBoxWidget(
                                       color: customSky,
                                       backgroundColor: customOcean,
                                       child: metadata),
                                   const SizedBox(
                                     width: 16,
                                   ),
-                                  boxWidget(
+                                  glassyBoxWidget(
                                       color: customSky,
                                       backgroundColor: customOcean,
                                       child: fullscreen)

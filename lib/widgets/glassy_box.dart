@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 
-Widget boxWidget(
+Widget glassyBoxWidget(
     {required Color color,
     required Color backgroundColor,
     required Widget child,

@@ -159,9 +159,9 @@ class _WaveformPainter extends CustomPainter {
       ..close();
 
     // Create the rounded rectangle shape
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(halfHeight),
-    );
+    // final shape = RoundedRectangleBorder(
+    //   borderRadius: BorderRadius.circular(halfHeight),
+    // );
 
     // Create the paint object
     final paint = Paint()..shader = gradient.createShader(path.getBounds());

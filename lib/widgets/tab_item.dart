@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:video_diary/services/native.dart';
-import 'package:video_diary/widgets/key_listener.dart';
 import 'package:video_diary/widgets/past_entries.dart';
 import 'package:video_diary/widgets/setting_widget.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../domain/assets.dart';
 import '../domain/tab_item.dart';

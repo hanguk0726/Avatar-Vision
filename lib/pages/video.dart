@@ -28,7 +28,7 @@ import '../services/runtime_data.dart';
 import '../services/setting.dart';
 import '../tools/time.dart';
 import '../widgets/tab.dart';
-import '../widgets/tabItem.dart';
+import '../widgets/tab_item.dart';
 import '../widgets/texture.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();

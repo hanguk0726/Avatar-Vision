@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -78,10 +77,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     File file = File(filePath);
     if (file.existsSync()) {
       String desktopDir = '${Platform.environment['USERPROFILE']}\\Desktop';
-      File copiedFile =
-          file.copySync('$desktopDir\\${file.path.split('\\').last}');
+      file.copySync('$desktopDir\\${file.path.split('\\').last}');
     } else {
-      print('File does not exist.');
+      debugPrint('File does not exist.');
     }
   }
 
@@ -240,9 +238,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     textureId = function(handle);
   }
 
-  static void _showResult(Object res) {
-    const encoder = JsonEncoder.withIndent('  ');
-    final text = encoder.convert(res);
+  void _showResult(Object res) {
+    // const encoder = JsonEncoder.withIndent('  ');
+    // final text = encoder.convert(res);
     // debugPrint(text);
   }
 
