@@ -364,8 +364,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     notifyListeners();
   }
 
-  Future<bool> clearAudioBuffer() async {
-    final res = await audioChannel.invokeMethod('clear_audio_buffer', {});
+  Future<bool> getAudioBuffer() async {
+    final res = await audioChannel.invokeMethod('get_audio_buffer', {});
 
     return Future.value(res);
   }
@@ -485,9 +485,9 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     // To save resource, keep clearing audio buffer when is not recording
     while (true) {
       if (writingState == WritingState.idle) {
-        bool hanAudio = await clearAudioBuffer();
+        bool hanActiveAudio = await getAudioBuffer();
         if (!stream.isClosed) {
-          stream.add(hanAudio);
+          stream.add(hanActiveAudio);
         } else {
           break;
         }

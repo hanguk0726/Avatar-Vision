@@ -82,7 +82,7 @@ impl AsyncMethodHandler for AudioHandler {
                 return PlatformResult::Ok("ok".into());
             }
 
-            "clear_audio_buffer" => {
+            "get_audio_buffer" => {
                 // debug!(
                 //     "Received request {:?} on thread {:?}",
                 //     call,
