@@ -16,13 +16,15 @@ use irondash_message_channel::{
 use irondash_run_loop::RunLoop;
 use log::debug;
 
-use crate::domain::audio::{open_audio_stream, AudioService};
+use crate::domain::{
+    audio::{open_audio_stream, AudioService},
+};
 
 pub struct AudioHandler {
-    pub capture_white_sound: Arc<AtomicBool>,
     pub audio_service: Arc<Mutex<Option<AudioService>>>,
     pub pcm: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
+    pub recording: Arc<AtomicBool>,
 }
 #[derive(Debug, Clone)]
 pub struct Pcm {
@@ -55,9 +57,9 @@ impl AsyncMethodHandler for AudioHandler {
                 );
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let device_name = map.get("device_name").unwrap().as_str();
-                let capture_white_sound = self.capture_white_sound.clone();
-
-                let audio_service = open_audio_stream(device_name, capture_white_sound).unwrap();
+                let recording = self.recording.clone();
+                let audio_service =
+                    open_audio_stream(device_name, recording).unwrap();
 
                 let mut pcm = self.pcm.lock().unwrap();
                 *pcm = audio_service.pcm.clone();
@@ -94,8 +96,8 @@ impl AsyncMethodHandler for AudioHandler {
                 }
                 // debug!("data len: {}", data.len());
 
-                let has_audio = data.iter().any(|&x| x != 0);
-                Ok(has_audio.into())
+                let has_active_audio = data.iter().any(|&x| x != 0);
+                Ok(has_active_audio.into())
             }
 
             "available_audios" => {

@@ -1,13 +1,14 @@
-use std::{
-    io::{Cursor, Read, Seek, SeekFrom, Write},
-    path::Path,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-};
 use log::debug;
 use minimp4::Mp4Muxer;
 use openh264::{
     encoder::{Encoder, EncoderConfig, RateControlMode},
     Error,
+};
+use std::{
+    fs::File,
+    io::{Cursor, Read, Seek, SeekFrom, Write},
+    path::Path,
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
 use crate::{
@@ -20,7 +21,6 @@ pub struct RecordingService {
     pub recording: Arc<AtomicBool>,
     pub time_elapsed: f64,
     pub writing_state: Arc<Mutex<WritingState>>,
-    pub capture_white_sound: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -60,13 +60,12 @@ impl PartialEq for WritingState {
 }
 
 impl RecordingService {
-    pub fn new(recording: Arc<AtomicBool>, capture_white_sound: Arc<AtomicBool>) -> Self {
+    pub fn new(recording: Arc<AtomicBool>) -> Self {
         Self {
             started: std::time::Instant::now(),
             recording,
             time_elapsed: 0.0,
             writing_state: Arc::new(Mutex::new(WritingState::Idle)),
-            capture_white_sound,
         }
     }
 
@@ -86,10 +85,6 @@ impl RecordingService {
     pub fn set_writing_state(&mut self, state: WritingState) {
         let mut state_ = self.writing_state.lock().unwrap();
         *state_ = state;
-
-        let capture_white_sound = state != WritingState::Idle;
-        self.capture_white_sound
-            .store(capture_white_sound, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -105,7 +100,7 @@ fn encoder(width: u32, height: u32) -> Result<Encoder, Error> {
 
 pub fn encode_to_h264(
     mut yuv_iter: OrdQueueIter<Vec<u8>>,
-    buf_h264: &mut Vec<u8>,
+    buffer_file_name: &str,
     width: usize,
     height: usize,
 ) {
@@ -116,6 +111,12 @@ pub fn encode_to_h264(
 
     let started = std::time::Instant::now();
     let mut timer = std::time::Instant::now();
+
+    // if 'buffer_file_name' exists, delete it
+    if Path::new(buffer_file_name).exists() {
+        std::fs::remove_file(buffer_file_name).unwrap();
+    }
+    let mut file = File::create(buffer_file_name).unwrap();
 
     while let Some(el) = yuv_iter.next() {
         inner_count += 1;
@@ -134,17 +135,12 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                buf_h264.extend_from_slice(nal);
-                // debug!("memory usage for h264: {}", size_of_vec(buf_h264));
+                // buf_h264.extend_from_slice(nal);
+
+                file.write_all(nal).unwrap();
+                file.flush().unwrap();
             }
         }
-    }
-    // for DEBUG, not needed
-    {
-        debug!("writing h264 to file");
-        use std::fs::File;
-        let mut file = File::create("test.h264").unwrap();
-        file.write_all(&buf_h264).unwrap();
     }
 
     debug!(
@@ -171,18 +167,16 @@ pub fn to_mp4<P: AsRef<Path>>(
         audio.channels.into(),
     );
 
-    let audio_data = audio.data.lock().unwrap();
     debug!(
-        "audio :: data: {}, sample_rata: {}, channles: {}, bit_rate: {},",
-        &audio_data.len(),
-        &audio.sample_rate,
-        &audio.channels,
-        &audio.bit_rate
+        "audio :: sample_rata: {}, channles: {}, bit_rate: {},",
+        &audio.sample_rate, &audio.channels, &audio.bit_rate
     );
 
     debug!("frame_rate: {}", frame_rate);
-
+    // read data from file 'temp.pcm'
+    let audio_data = std::fs::read("temp.pcm").unwrap();
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
+    // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
 
     mp4muxer.close();
 
@@ -192,10 +186,4 @@ pub fn to_mp4<P: AsRef<Path>>(
 
     let file_path = file_path.as_ref().with_extension("mp4");
     std::fs::write(file_path, &video_bytes)
-}
-
-fn size_of_vec<T>(vec: &Vec<T>) -> usize {
-    let element_size = std::mem::size_of::<T>();
-    let metadata_size = std::mem::size_of::<Vec<T>>();
-    vec.len() * element_size + metadata_size
 }

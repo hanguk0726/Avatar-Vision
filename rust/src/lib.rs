@@ -7,16 +7,23 @@ use domain::{channel::ChannelService, textrue};
 use irondash_message_channel::{irondash_init_message_channel_context, FunctionResult};
 use irondash_run_loop::RunLoop;
 use irondash_texture::{PixelDataProvider, SendableTexture, Texture};
-use message_channel::{camera_message_channel::{self, CameraHandler}, texture_message_channel::{self, TextureHandler}, audio_message_channel::{self, AudioHandler}, recording_message_channel::{RecordingHandler, self}, rendering_message_channel::{self, RenderingHandler}};
+use message_channel::{
+    audio_message_channel::{self, AudioHandler},
+    camera_message_channel::{self, CameraHandler},
+    recording_message_channel::{self, RecordingHandler},
+    rendering_message_channel::{self, RenderingHandler},
+    texture_message_channel::{self, TextureHandler},
+};
 
-use crate::{ domain::camera::CameraService, domain::recording::RecordingService,
+use crate::{
+    domain::camera::CameraService, domain::recording::RecordingService,
     domain::resolution::ResolutionService,
 };
 use textrue::TextureService;
 use tools::log_::init_logging;
 
-mod message_channel;
 mod domain;
+mod message_channel;
 mod tools;
 
 static START: Once = Once::new();
@@ -59,11 +66,7 @@ fn init_message_channels(
     let channel_handler = Arc::new(Mutex::new(ChannelService::new()));
     let recording = Arc::new(AtomicBool::new(false));
     let rendering = Arc::new(AtomicBool::new(false));
-    let capture_white_sound = Arc::new(AtomicBool::new(false));
-    let recording_info = Arc::new(Mutex::new(RecordingService::new(
-        recording.clone(),
-        capture_white_sound.clone(),
-    )));
+    let recording_info = Arc::new(Mutex::new(RecordingService::new(recording.clone())));
     let audio = Arc::new(Mutex::new(audio_message_channel::Pcm {
         data: Arc::new(Mutex::new(vec![])),
         sample_rate: 0,
@@ -94,9 +97,9 @@ fn init_message_channels(
     rendering_message_channel::init(RenderingHandler::new(texture, rendering));
 
     audio_message_channel::init(AudioHandler {
-        capture_white_sound,
         audio_service: Arc::new(Mutex::new(None)),
         pcm: audio,
+        recording,
         current_device: Arc::new(Mutex::new(None)),
     });
 }

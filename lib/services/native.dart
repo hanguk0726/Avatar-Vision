@@ -261,6 +261,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   void startRecording() async {
+    _stopAudioStream();
+    _openAudioStream(currentAudioDevice);
     final res = await recordingChannel.invokeMethod('start_recording', {});
     _showResult(res);
     _startEncoding();

@@ -217,9 +217,8 @@ impl AsyncMethodHandler for RecordingHandler {
                 update_writing_state(WritingState::Encoding);
                 let writing_state = { self.recording_info.lock().unwrap().writing_state.clone() };
 
-                let processed: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
-                let processed2 = processed.clone();
-
+                let buffer_file_name = "temp.h264";
+                
                 thread::spawn(move || {
                     rayon::scope(|s| {
                         s.spawn(|_| {
@@ -274,9 +273,8 @@ impl AsyncMethodHandler for RecordingHandler {
                             debug!("terminate receiving frames on recording");
                         });
                         s.spawn(|_| {
-                            let mut processed = processed2.lock().unwrap();
                             //keep encoding to h264. this will be terminated when the queue is empty
-                            encode_to_h264(iter, &mut processed, width, height);
+                            encode_to_h264(iter, &buffer_file_name, width, height);
                             debug!("terminate encoding frames on recording");
                         });
                     });
@@ -291,7 +289,9 @@ impl AsyncMethodHandler for RecordingHandler {
                     debug!("*********** saving... ***********");
 
                     //encoded h264 data.
-                    let processed = processed.lock().unwrap();
+                    // let processed = processed.lock().unwrap();
+                    // get data from file 'temp.h264'
+                    let processed = std::fs::read(&buffer_file_name).unwrap();
 
                     let mut video_path = PathBuf::from(&file_path_prefix);
                     video_path.push(&file_name);
