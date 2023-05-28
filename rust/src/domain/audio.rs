@@ -53,6 +53,7 @@ pub fn open_audio_stream(
     //     cpal::SampleFormat::I16,
     // );
 
+
     debug!("Default input config: {:?}", config);
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 

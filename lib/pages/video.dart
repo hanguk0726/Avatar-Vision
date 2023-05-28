@@ -48,7 +48,7 @@ class _VideoPageState extends State<VideoPage> {
   String eventKey = 'video';
   bool isMovedAway = false;
   final runtimeData = RuntimeData();
-  Timer? _timer;
+  Timer? _recordingTimer;
   Duration recordingTime = Duration.zero;
   bool showTipContent = false;
   bool isFullscreen = false;
@@ -60,116 +60,121 @@ class _VideoPageState extends State<VideoPage> {
     super.initState();
     tabItem.add(RuntimeData().currentTab);
     _eventSubscription = EventBus().onEvent.listen((event) {
-      if (event.key != "pastEntries" &&
-          event.key != "tab" &&
-          event.key != "system") {
-        return;
-      }
-      if (event.event is DialogEvent) {
-        DialogEvent casted = event.event as DialogEvent;
-        if (casted == DialogEvent.dismiss) {
-          setState(() {
-            dialog = null;
-          });
-        } else {
-          setState(() {
-            dialog = casted;
-          });
-        }
-      }
-
-      if (event.event is KeyboardEvent) {
-        if (event.event == KeyboardEvent.keyboardControlTab) {
-          final recording = context.read<Native>().recording;
-          clearUi(recording, !isMovedAway);
-          return;
-        }
-        if (event.event == KeyboardEvent.keyboardControlF) {
-          FullScreenWindow.setFullScreen(!isFullscreen);
-          isFullscreen = !isFullscreen;
-          setState(() {});
-          return;
-        }
-      }
-      if (event.event is MetadataEvent) {
-        MetadataEvent casted = event.event as MetadataEvent;
-        // add data
-        int timestamp = casted.timestamp;
-        final queryResult =
-            DatabaseService().findByOsFileName(osFileName(timestamp));
-        if (queryResult is Success) {
-          setState(() {
-            selectedMetadata = (queryResult as Success<Metadata>).value;
-            metadataQueryErrorMessage = '';
-          });
-        } else {
-          setState(() {
-            selectedMetadata = null;
-            metadataQueryErrorMessage = (queryResult as Error).message;
-          });
-        }
-        return;
-      }
-      if (event.event is FileEvent) {
-        FileEvent casted = event.event as FileEvent;
-        switch (casted.command) {
-          case FileEvent.cancel:
-            selectedFileTimetamps = [];
-            setState(() {});
-            break;
-          case FileEvent.selected:
-            selectedFileTimetamps = casted.timestamps;
-            setState(() {});
-            break;
-          case FileEvent.sendFileToDesktop:
-            EventBus().fire(
-                DialogEvent(
-                  text: 'Sending to Desktop',
-                  eventKey: 'system',
-                  automaticTask: () {
-                    var native = Native();
-                    for (var timestamp in casted.timestamps) {
-                      native.sendFileToDesktop(timestamp);
-                    }
-                    return Future.value();
-                  },
-                ),
-                'system');
-            EventBus().fire(const FileEvent([], FileEvent.cancel), 'system');
-            break;
-          case FileEvent.delete:
-            EventBus().fire(
-                DialogEvent(
-                  text: 'Proceed to delete?',
-                  eventKey: 'system',
-                  buttonSky: 'Yes',
-                  buttonSkyTask: () {
-                    var native = Native();
-                    for (var timestamp in casted.timestamps) {
-                      native.deleteFile(timestamp);
-                    }
-                    EventBus()
-                        .fire(const FileEvent([], FileEvent.cancel), 'system');
-                    return Future.value();
-                  },
-                  buttonOrange: 'No',
-                  buttonOrangeTask: () => Future.microtask(() {
-                    EventBus().fire(DialogEvent.dismiss, 'system');
-                    EventBus()
-                        .fire(const FileEvent([], FileEvent.cancel), 'system');
-                  }),
-                ),
-                'system');
-
-            break;
-        }
-      }
+      handleEvent(event);
     });
   }
 
+  void handleEvent(KeyEventPair event) {
+    if (event.key != "pastEntries" &&
+        event.key != "tab" &&
+        event.key != "system") {
+      return;
+    }
+    if (event.event is DialogEvent) {
+      DialogEvent casted = event.event as DialogEvent;
+      if (casted == DialogEvent.dismiss) {
+        setState(() {
+          dialog = null;
+        });
+      } else {
+        setState(() {
+          dialog = casted;
+        });
+      }
+    }
+
+    if (event.event is KeyboardEvent) {
+      if (event.event == KeyboardEvent.keyboardControlTab) {
+        final recording = context.read<Native>().recording;
+        clearUi(recording, !isMovedAway);
+        return;
+      }
+      if (event.event == KeyboardEvent.keyboardControlF) {
+        FullScreenWindow.setFullScreen(!isFullscreen);
+        isFullscreen = !isFullscreen;
+        setState(() {});
+        return;
+      }
+    }
+    if (event.event is MetadataEvent) {
+      MetadataEvent casted = event.event as MetadataEvent;
+      // add data
+      int timestamp = casted.timestamp;
+      final queryResult =
+          DatabaseService().findByOsFileName(osFileName(timestamp));
+      if (queryResult is Success) {
+        setState(() {
+          selectedMetadata = (queryResult as Success<Metadata>).value;
+          metadataQueryErrorMessage = '';
+        });
+      } else {
+        setState(() {
+          selectedMetadata = null;
+          metadataQueryErrorMessage = (queryResult as Error).message;
+        });
+      }
+      return;
+    }
+    if (event.event is FileEvent) {
+      FileEvent casted = event.event as FileEvent;
+      switch (casted.command) {
+        case FileEvent.cancel:
+          selectedFileTimetamps = [];
+          setState(() {});
+          break;
+        case FileEvent.selected:
+          selectedFileTimetamps = casted.timestamps;
+          setState(() {});
+          break;
+        case FileEvent.sendFileToDesktop:
+          EventBus().fire(
+            DialogEvent(
+              text: 'Sending to Desktop',
+              eventKey: 'system',
+              automaticTask: () {
+                var native = Native();
+                for (var timestamp in casted.timestamps) {
+                  native.sendFileToDesktop(timestamp);
+                }
+                return Future.value();
+              },
+            ),
+            'system',
+          );
+          EventBus().fire(const FileEvent([], FileEvent.cancel), 'system');
+          break;
+        case FileEvent.delete:
+          EventBus().fire(
+            DialogEvent(
+              text: 'Proceed to delete?',
+              eventKey: 'system',
+              buttonSky: 'Yes',
+              buttonSkyTask: () {
+                var native = Native();
+                for (var timestamp in casted.timestamps) {
+                  native.deleteFile(timestamp);
+                }
+                EventBus()
+                    .fire(const FileEvent([], FileEvent.cancel), 'system');
+                return Future.value();
+              },
+              buttonOrange: 'No',
+              buttonOrangeTask: () => Future.microtask(() {
+                EventBus().fire(DialogEvent.dismiss, 'system');
+                EventBus()
+                    .fire(const FileEvent([], FileEvent.cancel), 'system');
+              }),
+            ),
+            'system',
+          );
+          break;
+      }
+    }
+  }
+
   void startTimter() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _recordingTimer?.cancel();
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         recordingTime = recordingTime + const Duration(seconds: 1);
       });
@@ -180,7 +185,7 @@ class _VideoPageState extends State<VideoPage> {
   void dispose() {
     tabItem.close();
     _eventSubscription.cancel();
-    _timer?.cancel();
+    _recordingTimer?.cancel();
     super.dispose();
   }
 
@@ -245,7 +250,6 @@ class _VideoPageState extends State<VideoPage> {
                 ),
               writingStateMessage(
                   writingState: writingState,
-                  recording: recording,
                   rendering: rendering),
               if (showTipContent)
                 Positioned(
@@ -360,7 +364,7 @@ class _VideoPageState extends State<VideoPage> {
                     context: context,
                     onRecordStart: startTimter,
                     onRecordStop: () {
-                      _timer?.cancel();
+                      _recordingTimer?.cancel();
                       setState(() {
                         recordingTime = Duration.zero;
                       });
@@ -449,7 +453,6 @@ class _VideoPageState extends State<VideoPage> {
 
   Widget writingStateMessage(
       {required WritingState writingState,
-      required bool recording,
       required bool rendering}) {
     bool showMessage = writingState != WritingState.idle && !rendering;
     return AnimatedSwitcher(
