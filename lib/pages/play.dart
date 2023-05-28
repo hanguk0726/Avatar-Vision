@@ -53,12 +53,13 @@ class PlayState extends State<Play> {
   Duration animatedOpacity = const Duration(milliseconds: 300);
   bool showOverlayAndMouseCursor = true;
   Timer? _timer;
-  bool completed = false;
+  bool playCompleted = false;
   bool isMovedAway = false;
   final focusNode = FocusNode();
   final String eventKey = 'play';
   Metadata? metadata;
-
+  double size = 32;
+  Color color = customSky;
   bool _showMetadata() {
     return metadata != null &&
         showMetadata &&
@@ -70,10 +71,10 @@ class PlayState extends State<Play> {
     super.initState();
     initVideo();
     initKeyboradEvent();
-    completed = false;
+    playCompleted = false;
     player.streams.completed.listen((event) {
       setState(() {
-        completed = event;
+        playCompleted = event;
       });
     });
     player.streams.volume.listen((e) => setState(() {
@@ -96,67 +97,107 @@ class PlayState extends State<Play> {
       if (event.key != eventKey) {
         return;
       }
+
       switch (event.event) {
         case KeyboardEvent.keyboardControlArrowUp:
           setVolume(volume + 10);
           break;
+
         case KeyboardEvent.keyboardControlArrowDown:
           setVolume(volume - 10);
           break;
 
         case KeyboardEvent.keyboardControlArrowLeft:
-          {
-            if (controller!.player.state.position >
-                const Duration(seconds: 10)) {
-              controller!.player.seek(controller!.player.state.position -
-                  const Duration(seconds: 10));
-            } else {
-              controller!.player.seek(const Duration(seconds: 0));
-            }
-          }
+          handleArrowLeft();
           break;
-        case KeyboardEvent.keyboardControlSpace:
-          controller!.player.playOrPause();
-          setState(() {});
-          break;
-        case KeyboardEvent.keyboardControlArrowRight:
-          controller!.player.seek(
-              controller!.player.state.position + const Duration(seconds: 10));
-          break;
-        case KeyboardEvent.keyboardControlM:
-          if (muted) {
-            controller!.player.setVolume(100);
-            muted = false;
-          } else {
-            controller!.player.setVolume(0);
-            muted = true;
-          }
-          setState(() {});
-          break;
-        case KeyboardEvent.keyboardControlF:
-          FullScreenWindow.setFullScreen(!isFullscreen);
-          isFullscreen = !isFullscreen;
-          setState(() {});
-          break;
-        case KeyboardEvent.keyboardControlTab:
-          isMovedAway = !isMovedAway;
-          setState(() {});
 
+        case KeyboardEvent.keyboardControlSpace:
+          handleSpace();
           break;
+
+        case KeyboardEvent.keyboardControlArrowRight:
+          handleArrowRight();
+          break;
+
+        case KeyboardEvent.keyboardControlM:
+          handleM();
+          break;
+
+        case KeyboardEvent.keyboardControlF:
+          handleF();
+          break;
+
+        case KeyboardEvent.keyboardControlTab:
+          handleTab();
+          break;
+
         case KeyboardEvent.keyboardControlBackspace:
-          Navigator.pop(context);
+          handleBackspace();
           break;
+
         case KeyboardEvent.keyboardControlEscape:
-          if (isFullscreen) {
-            FullScreenWindow.setFullScreen(false);
-            isFullscreen = false;
-            setState(() {});
-          }
+          handleEscape();
           break;
+
         default:
           break;
       }
     });
+  }
+
+  void handleArrowLeft() {
+    if (controller!.player.state.position > const Duration(seconds: 10)) {
+      controller!.player.seek(
+        controller!.player.state.position - const Duration(seconds: 10),
+      );
+    } else {
+      controller!.player.seek(const Duration(seconds: 0));
+    }
+  }
+
+  void handleSpace() {
+    controller!.player.playOrPause();
+    setState(() {});
+  }
+
+  void handleArrowRight() {
+    controller!.player.seek(
+      controller!.player.state.position + const Duration(seconds: 10),
+    );
+  }
+
+  void handleM() {
+    if (muted) {
+      controller!.player.setVolume(100);
+      muted = false;
+    } else {
+      controller!.player.setVolume(0);
+      muted = true;
+    }
+    setState(() {});
+  }
+
+  void handleF() {
+    FullScreenWindow.setFullScreen(!isFullscreen);
+    isFullscreen = !isFullscreen;
+    setState(() {});
+  }
+
+  void handleTab() {
+    isMovedAway = !isMovedAway;
+    setState(() {});
+  }
+
+  void handleBackspace() {
+    Navigator.pop(context);
+  }
+
+  void handleEscape() {
+    if (isFullscreen) {
+      FullScreenWindow.setFullScreen(false);
+      isFullscreen = false;
+      setState(() {});
+    }
   }
 
   @override
@@ -192,6 +233,61 @@ class PlayState extends State<Play> {
     });
   }
 
+  Widget videoPlayer() {
+    return GestureDetector(
+      onTap: () {
+        if (controller!.player.state.playing) {
+          controller!.player.pause();
+        } else {
+          controller!.player.play();
+        }
+        setState(() {});
+        startOverlayTimer();
+      },
+      child: Video(
+        controller: controller,
+        fit: BoxFit.fill,
+      ),
+    );
+  }
+
+  Widget metadataWidget() {
+    return Positioned(
+        top: 32,
+        right: 32,
+        child: AnimatedOpacity(
+            duration: animatedOpacity,
+            opacity: _showMetadata() ? 1.0 : 0.0,
+            child: IgnorePointer(
+              ignoring: !_showMetadata(),
+              child: Stack(
+                children: [
+                  MetadataWidget(
+                    metadata: metadata!,
+                    smaller: true,
+                  ),
+                  Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            pinMetadata = !pinMetadata;
+                          });
+                        },
+                        icon: Icon(
+                          pinMetadata
+                              ? Icons.push_pin_sharp
+                              : Icons.push_pin_outlined,
+                          color: customSky,
+                          size: 30,
+                        ),
+                      ))
+                ],
+              ),
+            )));
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -213,58 +309,11 @@ class PlayState extends State<Play> {
                 focusNode,
                 Stack(
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (controller!.player.state.playing) {
-                          controller!.player.pause();
-                        } else {
-                          controller!.player.play();
-                        }
-                        setState(() {});
-                        startOverlayTimer();
-                      },
-                      child: Video(
-                        controller: controller,
-                        fit: BoxFit.fill,
-                      ),
-                    ),
+                    videoPlayer(),
                     header(),
-                    mediaControllBar(),
                     recordingInfo(),
-                    Positioned(
-                        top: 32,
-                        right: 32,
-                        child: AnimatedOpacity(
-                            duration: animatedOpacity,
-                            opacity: _showMetadata() ? 1.0 : 0.0,
-                            child: IgnorePointer(
-                              ignoring: !_showMetadata(),
-                              child: Stack(
-                                children: [
-                                  MetadataWidget(
-                                    metadata: metadata!,
-                                    smaller: true,
-                                  ),
-                                  Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            pinMetadata = !pinMetadata;
-                                          });
-                                        },
-                                        icon: Icon(
-                                          pinMetadata
-                                              ? Icons.push_pin_sharp
-                                              : Icons.push_pin_outlined,
-                                          color: customSky,
-                                          size: 30,
-                                        ),
-                                      ))
-                                ],
-                              ),
-                            )))
+                    metadataWidget(),
+                    mediaControllBar(),
                   ],
                 ),
               ),
@@ -359,8 +408,7 @@ class PlayState extends State<Play> {
                             child: Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Text(
-                                  formatTimestamp(
-                                      timestamp: widget.timestamp),
+                                  formatTimestamp(timestamp: widget.timestamp),
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontFamily: mainFont,
@@ -398,7 +446,7 @@ class PlayState extends State<Play> {
         }
 
         Duration position = snapshot.data!;
-        if (completed) {
+        if (playCompleted) {
           position = playtime;
         }
         return Text(
@@ -422,7 +470,7 @@ class PlayState extends State<Play> {
         }
 
         Duration position = snapshot.data!;
-        if (completed) {
+        if (playCompleted) {
           position = playtime;
         }
         return ProgressBar(
@@ -445,45 +493,48 @@ class PlayState extends State<Play> {
     );
   }
 
-  Widget mediaControllBar() {
-    if (controller == null) {
-      return const SizedBox();
-    }
-    double size = 32;
-    Color color = customSky;
-
-    var forward = CupertinoButton(
+  Widget forwardButton() {
+    return CupertinoButton(
       child: Icon(Icons.forward_10_sharp, color: color, size: size),
       onPressed: () {
         controller!.player.seek(
             controller!.player.state.position + const Duration(seconds: 10));
       },
     );
+  }
 
-    var back = CupertinoButton(
+  Widget backButton() {
+    return CupertinoButton(
       child: Icon(Icons.replay_10_sharp, color: color, size: size),
       onPressed: () {
         controller!.player.seek(
             controller!.player.state.position - const Duration(seconds: 10));
       },
     );
+  }
 
-    var play = CupertinoButton(
+  Widget playButton() {
+    return CupertinoButton(
       child: Icon(Icons.play_arrow_sharp, color: color, size: size + 12),
       onPressed: () {
         controller!.player.playOrPause();
         setState(() {});
       },
     );
+  }
 
-    var pause = CupertinoButton(
+  Widget pauseButton() {
+    return CupertinoButton(
       child: Icon(Icons.pause_sharp, color: color, size: size + 12),
       onPressed: () {
         controller!.player.playOrPause();
         setState(() {});
       },
     );
-    var volumeWidget = Row(
+  }
+
+  Widget volumeWidget() {
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         CupertinoButton(
@@ -523,8 +574,10 @@ class PlayState extends State<Play> {
         const SizedBox(width: 24),
       ],
     );
+  }
 
-    var fullscreen = CupertinoButton(
+  Widget fullscreen() {
+    return CupertinoButton(
       child: Icon(
           isFullscreen ? Icons.fullscreen_exit_sharp : Icons.fullscreen_sharp,
           color: customSky,
@@ -534,18 +587,23 @@ class PlayState extends State<Play> {
         isFullscreen = !isFullscreen;
         setState(() {});
         // At the moment, the windowManager has a bug in its fullscreen feature, which is problematic for the video player.
-        // https://github.com/leanflutter/window_manager/issues/228
+        //
       },
     );
+  }
 
-    var metadata = CupertinoButton(
+  Widget metadata_() {
+    return CupertinoButton(
       child: Icon(Icons.description_sharp, color: customSky, size: size),
       onPressed: () async {
         showMetadata = !showMetadata;
         setState(() {});
       },
     );
-    var playtimeWidget = Text(
+  }
+
+  Widget playtimeWidget() {
+    return Text(
       '${playtime.inHours}:${playtime.inMinutes.remainder(60).toString().padLeft(2, '0')}:${playtime.inSeconds.remainder(60).toString().padLeft(2, '0')}',
       style: TextStyle(
         color: customSky,
@@ -553,7 +611,14 @@ class PlayState extends State<Play> {
         fontSize: 18,
       ),
     );
-    var padding = const SizedBox(
+  }
+
+  Widget mediaControllBar() {
+    if (controller == null) {
+      return const SizedBox();
+    }
+
+    const padding = SizedBox(
       width: 32,
       height: 32,
     );
@@ -578,7 +643,7 @@ class PlayState extends State<Play> {
                               child: glassyBoxWidget(
                                 color: customSky,
                                 backgroundColor: customOcean,
-                                child: volumeWidget,
+                                child: volumeWidget(),
                               ))),
                       const Spacer(),
                       glassyBoxWidget(
@@ -592,15 +657,15 @@ class PlayState extends State<Play> {
                                 children: [
                                   time(),
                                   padding,
-                                  back,
+                                  backButton(),
                                   padding,
                                   controller!.player.state.playing
-                                      ? pause
-                                      : play,
+                                      ? pauseButton()
+                                      : playButton(),
                                   padding,
-                                  forward,
+                                  forwardButton(),
                                   padding,
-                                  playtimeWidget
+                                  playtimeWidget()
                                 ],
                               ))),
                       const Spacer(),
@@ -613,14 +678,14 @@ class PlayState extends State<Play> {
                                   glassyBoxWidget(
                                       color: customSky,
                                       backgroundColor: customOcean,
-                                      child: metadata),
+                                      child: metadata_()),
                                   const SizedBox(
                                     width: 16,
                                   ),
                                   glassyBoxWidget(
                                       color: customSky,
                                       backgroundColor: customOcean,
-                                      child: fullscreen)
+                                      child: fullscreen())
                                 ],
                               )))
                     ],
