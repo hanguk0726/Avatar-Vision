@@ -173,16 +173,21 @@ pub fn to_mp4<P: AsRef<Path>>(
 
     debug!("frame_rate: {}", frame_rate);
 
-    // let audio_data = &audio.data.lock().unwrap();
     // read data from file temp.pcm
     let audio_data = {
         let mut file = File::open("temp.pcm").unwrap();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
-        buffer
+        let mut data = Vec::<u8>::new();
+        let mut index = 0;
+    
+        while index < buffer.len() {
+            let value = u16::from_le_bytes([buffer[index], buffer[index + 1]]);
+            data.extend(&value.to_le_bytes());
+            index += 2;
+        }
+        data
     };
-
-    // debug!("audio_data length: {}", audio_data.len());
 
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data);
 

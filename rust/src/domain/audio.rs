@@ -85,7 +85,7 @@ pub fn open_audio_stream(
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         buffer.push(sample[0]);
                         buffer.push(sample[1]);
-                        if buffer.len() >= 1024 {
+                        if buffer.len() >= 100000 {
                             buffered_file.write_all(&buffer).unwrap();
                             buffer.clear();
                         }
@@ -122,7 +122,7 @@ pub fn open_audio_stream(
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         buffer.push(sample[0]);
                         buffer.push(sample[1]);
-                        if buffer.len() >= 1024 {
+                        if buffer.len() >= 100000 {
                             buffered_file.write_all(&buffer).unwrap();
                             buffer.clear();
                         }
