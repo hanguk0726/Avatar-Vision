@@ -135,12 +135,12 @@ pub fn encode_to_h264(
             let layer = bitstream.layer(l).unwrap();
             for n in 0..layer.nal_count() {
                 let nal = layer.nal_unit(n).unwrap();
-                // buf_h264.extend_from_slice(nal);
 
                 file.write_all(nal).unwrap();
-                file.flush().unwrap();
             }
         }
+        // don't let the momery explode
+        file.flush().unwrap();
     }
 
     debug!(
@@ -176,7 +176,6 @@ pub fn to_mp4<P: AsRef<Path>>(
     // read data from file 'temp.pcm'
     let audio_data = std::fs::read("temp.pcm").unwrap();
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
-    // mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
 
     mp4muxer.close();
 

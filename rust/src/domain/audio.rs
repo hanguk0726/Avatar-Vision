@@ -53,7 +53,6 @@ pub fn open_audio_stream(
     //     cpal::SampleFormat::I16,
     // );
 
-
     debug!("Default input config: {:?}", config);
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 
@@ -92,17 +91,19 @@ pub fn open_audio_stream(
                             last_file_flush = std::time::Instant::now();
                             last_recording_state = true;
                         }
-                    } else if amplitude > ACTIVE_AUDIO_AMPLITUDE {
+                    } else {
                         if last_recording_state {
                             file.flush().unwrap();
                             last_recording_state = false;
                         }
-                        if last_data_flush.elapsed() > tick {
-                            buffer.clear();
-                            last_data_flush = std::time::Instant::now();
+                        if amplitude > ACTIVE_AUDIO_AMPLITUDE {
+                            if last_data_flush.elapsed() > tick {
+                                buffer.clear();
+                                last_data_flush = std::time::Instant::now();
+                            }
+                            buffer.push(sample[0]);
+                            buffer.push(sample[1]);
                         }
-                        buffer.push(sample[0]);
-                        buffer.push(sample[1]);
                     }
                 }
             },
@@ -129,17 +130,19 @@ pub fn open_audio_stream(
                             last_file_flush = std::time::Instant::now();
                             last_recording_state = true;
                         }
-                    } else if amplitude > ACTIVE_AUDIO_AMPLITUDE {
+                    } else {
                         if last_recording_state {
                             file.flush().unwrap();
                             last_recording_state = false;
                         }
-                        if last_data_flush.elapsed() > tick {
-                            buffer.clear();
-                            last_data_flush = std::time::Instant::now();
+                        if amplitude > ACTIVE_AUDIO_AMPLITUDE {
+                            if last_data_flush.elapsed() > tick {
+                                buffer.clear();
+                                last_data_flush = std::time::Instant::now();
+                            }
+                            buffer.push(sample[0]);
+                            buffer.push(sample[1]);
                         }
-                        buffer.push(sample[0]);
-                        buffer.push(sample[1]);
                     }
                 }
 

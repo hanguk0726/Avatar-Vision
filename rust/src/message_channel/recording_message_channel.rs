@@ -288,9 +288,8 @@ impl AsyncMethodHandler for RecordingHandler {
 
                     debug!("*********** saving... ***********");
 
-                    //encoded h264 data.
-                    // let processed = processed.lock().unwrap();
-                    // get data from file 'temp.h264'
+                    // encoded h264 data.
+                    // get the data from file 'temp.h264'
                     let processed = std::fs::read(&buffer_file_name).unwrap();
 
                     let mut video_path = PathBuf::from(&file_path_prefix);
@@ -437,14 +436,16 @@ fn batch(
         last_tick += frame_interval;
         loop_count += 1;
     }
-    debug!("{} frames filtered", loop_count);
+    debug!("{} frames filtered from {}", loop_count, frame_count);
     // if webcam is not fast enough, send the last frame multiple times
-    // this is not ideal, but it's better than dropping frames which will cause audio and video out of sync
+    // this is not ideal, but it's better than dropping frames which will cause audio and video out of sync.
+    // also the mp4muxer could not handle the case when data is not enough for requested fps.
     while (FPS - loop_count) > 0 {
         encoding_sender
             .send(list[(frame_count - 1) as usize].0.clone())
             .unwrap();
         loop_count += 1;
+        info!("{} sending additional frame", loop_count);
     }
 
     *timestamp = Some(timestamp.unwrap() + one_second);
