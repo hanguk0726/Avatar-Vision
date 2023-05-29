@@ -139,7 +139,6 @@ pub fn encode_to_h264(
                 file.write_all(nal).unwrap();
             }
         }
-        // don't let the momery explode
         file.flush().unwrap();
     }
 

@@ -58,16 +58,6 @@ pub fn open_audio_stream(
 
     let buffer_clone = Arc::clone(&buffer);
 
-    let buffer_file_name = "temp.pcm";
-
-    if Path::new(buffer_file_name).exists() {
-        std::fs::remove_file(buffer_file_name).unwrap();
-    }
-    let mut file = File::create(buffer_file_name).unwrap();
-    let tick = std::time::Duration::from_millis(1000);
-    let mut last_file_flush: std::time::Instant = std::time::Instant::now();
-    let mut last_data_flush: std::time::Instant = std::time::Instant::now();
-    let mut last_recording_state = false;
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
@@ -86,25 +76,8 @@ pub fn open_audio_stream(
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         buffer.push(sample[0]);
                         buffer.push(sample[1]);
-                        if last_file_flush.elapsed() > tick {
-                            let data = buffer.drain(..).collect::<Vec<u8>>();
-                            file.write(&data).unwrap();
-                            file.flush().unwrap();
-                            last_file_flush = std::time::Instant::now();
-                            last_recording_state = true;
-                        }
                     } else {
-                        if last_recording_state {
-                            let data = buffer.drain(..).collect::<Vec<u8>>();
-                            file.write(&data).unwrap();
-                            file.flush().unwrap();
-                            last_recording_state = false;
-                        }
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
-                            if last_data_flush.elapsed() > tick {
-                                buffer.clear();
-                                last_data_flush = std::time::Instant::now();
-                            }
                             buffer.push(sample[0]);
                             buffer.push(sample[1]);
                         }
@@ -130,24 +103,8 @@ pub fn open_audio_stream(
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
                         buffer.push(sample[0]);
                         buffer.push(sample[1]);
-                        if last_file_flush.elapsed() > tick {
-                            let data = buffer.drain(..).collect::<Vec<u8>>();
-                            file.write(&data).unwrap();
-                            file.flush().unwrap();
-                            last_file_flush = std::time::Instant::now();
-                            last_recording_state = true;
-                        }
                     } else {
-                        if last_recording_state {
-                            file.write(&sample).unwrap();
-                            file.flush().unwrap();
-                            last_recording_state = false;
-                        }
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
-                            if last_data_flush.elapsed() > tick {
-                                buffer.clear();
-                                last_data_flush = std::time::Instant::now();
-                            }
                             buffer.push(sample[0]);
                             buffer.push(sample[1]);
                         }

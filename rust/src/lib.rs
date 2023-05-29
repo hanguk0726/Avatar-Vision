@@ -101,5 +101,6 @@ fn init_message_channels(
         pcm: audio,
         recording,
         current_device: Arc::new(Mutex::new(None)),
+        playing: Arc::new(AtomicBool::new(false)),
     });
 }
