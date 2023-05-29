@@ -84,15 +84,19 @@ pub fn open_audio_stream(
                 for &sample in data.iter() {
                     let sample = sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        file.write_all(&sample[..2]).unwrap();
-
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
                         if last_file_flush.elapsed() > tick {
+                            let data = buffer.drain(..).collect::<Vec<u8>>();
+                            file.write(&data).unwrap();
                             file.flush().unwrap();
                             last_file_flush = std::time::Instant::now();
                             last_recording_state = true;
                         }
                     } else {
                         if last_recording_state {
+                            let data = buffer.drain(..).collect::<Vec<u8>>();
+                            file.write(&data).unwrap();
                             file.flush().unwrap();
                             last_recording_state = false;
                         }
@@ -124,14 +128,18 @@ pub fn open_audio_stream(
                     let i16_sample = (sample * i16::MAX as f32) as i16;
                     let sample = i16_sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        file.write_all(&sample[..2]).unwrap();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
                         if last_file_flush.elapsed() > tick {
+                            let data = buffer.drain(..).collect::<Vec<u8>>();
+                            file.write(&data).unwrap();
                             file.flush().unwrap();
                             last_file_flush = std::time::Instant::now();
                             last_recording_state = true;
                         }
                     } else {
                         if last_recording_state {
+                            file.write(&sample).unwrap();
                             file.flush().unwrap();
                             last_recording_state = false;
                         }

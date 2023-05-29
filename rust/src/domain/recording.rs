@@ -168,14 +168,14 @@ pub fn to_mp4<P: AsRef<Path>>(
     );
 
     debug!(
-        "audio :: sample_rata: {}, channles: {}, bit_rate: {},",
+        "audio :: sample_rate: {}, channles: {}, bit_rate: {},",
         &audio.sample_rate, &audio.channels, &audio.bit_rate
     );
 
     debug!("frame_rate: {}", frame_rate);
     // read data from file 'temp.pcm'
     let audio_data = std::fs::read("temp.pcm").unwrap();
-    mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data[..]);
+    mp4muxer.write_video_with_audio(buf_h264, frame_rate,  &audio_data);
 
     mp4muxer.close();
 
