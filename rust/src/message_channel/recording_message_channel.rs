@@ -118,7 +118,7 @@ impl AsyncMethodHandler for RecordingHandler {
 
                 self.mark_recording_state_on_ui(call.isolate);
 
-                // the audio buffer is not empty when it's not the first time to record, flush it
+                // the audio buffer is might not empty.
                 {
                     self.audio.lock().unwrap().data.lock().unwrap().clear();
                 }

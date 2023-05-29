@@ -65,6 +65,8 @@ pub fn open_audio_stream(
     let file = File::create(buffer_file_name).unwrap();
     let mut buffered_file = io::BufWriter::new(file);
 
+    let mut last_recording_state = false;
+
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.config(),
@@ -81,8 +83,19 @@ pub fn open_audio_stream(
                 for &sample in data.iter() {
                     let sample = sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        buffered_file.write(&sample).unwrap();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                        if buffer.len() >= 1024 {
+                            buffered_file.write_all(&buffer).unwrap();
+                            buffer.clear();
+                        }
+                        last_recording_state = true;
                     } else {
+                        if last_recording_state {
+                            buffered_file.write_all(&buffer).unwrap();
+                            buffer.clear();
+                            last_recording_state = false;
+                        }
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
                             buffer.push(sample[0]);
                             buffer.push(sample[1]);
@@ -107,8 +120,19 @@ pub fn open_audio_stream(
                     let i16_sample = (sample * i16::MAX as f32) as i16;
                     let sample = i16_sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        buffered_file.write(&sample).unwrap();
+                        buffer.push(sample[0]);
+                        buffer.push(sample[1]);
+                        if buffer.len() >= 1024 {
+                            buffered_file.write_all(&buffer).unwrap();
+                            buffer.clear();
+                        }
+                        last_recording_state = true;
                     } else {
+                        if last_recording_state {
+                            buffered_file.write_all(&buffer).unwrap();
+                            buffer.clear();
+                            last_recording_state = false;
+                        }
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
                             buffer.push(sample[0]);
                             buffer.push(sample[1]);
