@@ -192,6 +192,7 @@ class _VideoPageState extends State<VideoPage> {
   @override
   Widget build(BuildContext context) {
     final native = context.watch<Native>();
+    final setting = Setting();
     final writingState = native.writingState;
     final recording = native.recording;
     final rendering = native.rendering;
@@ -201,6 +202,7 @@ class _VideoPageState extends State<VideoPage> {
     final width = native.currentResolutionWidth;
     final height = native.currentResolutionHeight;
     final recordingHealthCheck = native.recordingHealthCheck;
+    final showTip = setting.tip && !recording;
 
     List<CustomError> errors = [
       CustomError(
@@ -235,13 +237,20 @@ class _VideoPageState extends State<VideoPage> {
               if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               about(),
-              tip(recording),
-              showMessageOnError(errors),
+
+              if (showTip) tip(),
+              if (errors.any((error) => error.occurred))
+                messageOnError(
+                    error: errors.firstWhere((error) => error.occurred)),
+
               menuTaps(recording: recording),
               _mediaControlButton(),
               _customDialog(),
               if (selectedFileTimetamps.isEmpty)
-                pastEntryMetadata(recording: recording)
+                if (!recording && selectedMetadata != null)
+                  pastEntryMetadata()
+                else
+                  Container()
               else
                 Positioned(
                   top: 32,
@@ -249,8 +258,7 @@ class _VideoPageState extends State<VideoPage> {
                   child: fileCommandWidget(selectedFileTimetamps),
                 ),
               writingStateMessage(
-                  writingState: writingState,
-                  rendering: rendering),
+                  writingState: writingState, rendering: rendering),
               if (showTipContent)
                 Positioned(
                   top: 82,
@@ -281,9 +289,7 @@ class _VideoPageState extends State<VideoPage> {
     });
   }
 
-  Widget tip(bool recording) {
-    var setting = Setting();
-    if (!setting.tip || recording) return const SizedBox();
+  Widget tip() {
     return StreamBuilder<TabItem>(
         stream: tabItem,
         builder: (context, snapshot) {
@@ -429,31 +435,17 @@ class _VideoPageState extends State<VideoPage> {
     );
   }
 
-  Widget showMessageOnError(List<CustomError> errors) {
-    if (errors.any((error) => error.occurred)) {
-      return messageOnError(
-          error: errors.firstWhere((error) => error.occurred));
-    } else {
-      return const SizedBox();
-    }
-  }
-
-  Widget pastEntryMetadata({required bool recording}) {
-    if (recording || selectedMetadata == null) {
-      return const SizedBox();
-    } else {
-      return Positioned(
-          top: 32,
-          right: 32,
-          child: MetadataWidget(
-            metadata: selectedMetadata!,
-          ));
-    }
+  Widget pastEntryMetadata() {
+    return Positioned(
+        top: 32,
+        right: 32,
+        child: MetadataWidget(
+          metadata: selectedMetadata!,
+        ));
   }
 
   Widget writingStateMessage(
-      {required WritingState writingState,
-      required bool rendering}) {
+      {required WritingState writingState, required bool rendering}) {
     bool showMessage = writingState != WritingState.idle && !rendering;
     return AnimatedSwitcher(
         duration: const Duration(milliseconds: 500),

@@ -46,11 +46,12 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
 
   static const String rustLibraryName = 'rust';
 
-  final dylib = defaultTargetPlatform == TargetPlatform.android
-      ? DynamicLibrary.open("lib$rustLibraryName.so")
-      : (defaultTargetPlatform == TargetPlatform.windows
-          ? DynamicLibrary.open("$rustLibraryName.dll")
-          : DynamicLibrary.process());
+  final dylib = DynamicLibrary.open("$rustLibraryName.dll");
+  // final dylib = defaultTargetPlatform == TargetPlatform.android
+  //     ? DynamicLibrary.open("lib$rustLibraryName.so")
+  //     : (defaultTargetPlatform == TargetPlatform.windows
+  //         ? DynamicLibrary.open("$rustLibraryName.dll")
+  //         : DynamicLibrary.process());
 
   late final int textureId;
 
