@@ -51,3 +51,5 @@ rust/Cargo.lock
 video_diary_database/data.mdb
 
 temp*
+temp.h264
+temp.pcm

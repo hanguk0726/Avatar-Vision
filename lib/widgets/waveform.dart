@@ -50,15 +50,15 @@ class WaveformState extends State<Waveform>
   late AnimationController _controller;
   late Animation<double> _animation;
 
-  late BehaviorSubject<bool> _hasAudio;
+  late BehaviorSubject<bool> _hasActiveAudio;
   @override
   void initState() {
     super.initState();
-    _hasAudio = BehaviorSubject.seeded(false);
+    _hasActiveAudio = BehaviorSubject.seeded(false);
     int duration = widget.durationMillis;
     int reverseDuration = (widget.durationMillis / 2).round();
 
-    Native().observeAudioBuffer(_hasAudio);
+    Native().observeAudioBuffer(_hasActiveAudio);
 
     _controller = AnimationController(
         vsync: this,
@@ -77,8 +77,8 @@ class WaveformState extends State<Waveform>
     );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation);
 
-    _hasAudio.listen((hasAudio) {
-      if (hasAudio &&
+    _hasActiveAudio.listen((hasActiveAudio) {
+      if (hasActiveAudio &&
           _controller.status == AnimationStatus.dismissed &&
           !_controller.isAnimating &&
           mounted) {
@@ -90,7 +90,7 @@ class WaveformState extends State<Waveform>
   @override
   void dispose() {
     _controller.dispose();
-    _hasAudio.close();
+    _hasActiveAudio.close();
     super.dispose();
   }
 

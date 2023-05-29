@@ -139,6 +139,7 @@ pub fn encode_to_h264(
                 buffered_file.write_all(nal).unwrap();
             }
         }
+        buffered_file.flush().unwrap();
     }
 
     debug!(
@@ -171,8 +172,18 @@ pub fn to_mp4<P: AsRef<Path>>(
     );
 
     debug!("frame_rate: {}", frame_rate);
-    // read data from file 'temp.pcm'
-    let audio_data = std::fs::read("temp.pcm").unwrap();
+
+    // let audio_data = &audio.data.lock().unwrap();
+    // read data from file temp.pcm
+    let audio_data = {
+        let mut file = File::open("temp.pcm").unwrap();
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer).unwrap();
+        buffer
+    };
+
+    // debug!("audio_data length: {}", audio_data.len());
+
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data);
 
     mp4muxer.close();

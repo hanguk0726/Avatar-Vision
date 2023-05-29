@@ -2,6 +2,9 @@ use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
+use std::fs::File;
+use std::io::{self, Write};
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
@@ -54,6 +57,13 @@ pub fn open_audio_stream(
     let buffer: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(Vec::new()));
 
     let buffer_clone = Arc::clone(&buffer);
+    let buffer_file_name = "temp.pcm";
+
+    if Path::new(buffer_file_name).exists() {
+        std::fs::remove_file(buffer_file_name).unwrap();
+    }
+    let file = File::create(buffer_file_name).unwrap();
+    let mut buffered_file = io::BufWriter::new(file);
 
     let stream = match config.sample_format() {
         cpal::SampleFormat::I16 => device.build_input_stream(
@@ -71,8 +81,7 @@ pub fn open_audio_stream(
                 for &sample in data.iter() {
                     let sample = sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        buffer.push(sample[0]);
-                        buffer.push(sample[1]);
+                        buffered_file.write(&sample).unwrap();
                     } else {
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
                             buffer.push(sample[0]);
@@ -98,8 +107,7 @@ pub fn open_audio_stream(
                     let i16_sample = (sample * i16::MAX as f32) as i16;
                     let sample = i16_sample.to_le_bytes();
                     if recording.load(std::sync::atomic::Ordering::Relaxed) {
-                        buffer.push(sample[0]);
-                        buffer.push(sample[1]);
+                        buffered_file.write(&sample).unwrap();
                     } else {
                         if amplitude > ACTIVE_AUDIO_AMPLITUDE {
                             buffer.push(sample[0]);

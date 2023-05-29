@@ -1,12 +1,8 @@
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{Write, self},
     mem::ManuallyDrop,
-    path::Path,
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -27,7 +23,6 @@ pub struct AudioHandler {
     pub pcm: Arc<Mutex<Pcm>>,
     pub current_device: Arc<Mutex<Option<String>>>,
     pub recording: Arc<AtomicBool>,
-    pub playing: Arc<AtomicBool>,
 }
 #[derive(Debug, Clone)]
 pub struct Pcm {
@@ -61,33 +56,14 @@ impl AsyncMethodHandler for AudioHandler {
                 let map: HashMap<String, String> = call.args.try_into().unwrap();
                 let device_name = map.get("device_name").unwrap().as_str();
                 let recording = self.recording.clone();
-                let recording2 = self.recording.clone();
+
                 let audio_service = open_audio_stream(device_name, recording).unwrap();
 
                 let mut pcm = self.pcm.lock().unwrap();
                 *pcm = audio_service.pcm.clone();
-                let pcm = audio_service.pcm.clone().data;
 
                 audio_service.play().unwrap();
-                self.playing
-                    .store(true, std::sync::atomic::Ordering::Relaxed);
-                let playing = self.playing.clone();
-                thread::spawn(move || {
-                    let buffer_file_name = "temp.pcm";
 
-                    if Path::new(buffer_file_name).exists() {
-                        std::fs::remove_file(buffer_file_name).unwrap();
-                    }
-                    let file = File::create(buffer_file_name).unwrap();
-                    let mut buffered_file = io::BufWriter::new(file);
-                    while playing.load(std::sync::atomic::Ordering::Relaxed) {
-                        thread::sleep(Duration::from_millis(1000));
-                        if recording2.load(std::sync::atomic::Ordering::Relaxed) {
-                            let data = pcm.lock().unwrap().drain(..).collect::<Vec<u8>>();
-                            buffered_file.write_all(&data).unwrap();
-                        }
-                    }
-                });
                 self.audio_service.lock().unwrap().replace(audio_service);
                 PlatformResult::Ok("ok".into())
             }
@@ -100,8 +76,6 @@ impl AsyncMethodHandler for AudioHandler {
                 if let Some(recorder) = self.audio_service.lock().unwrap().take() {
                     recorder.stop();
                 }
-                self.playing
-                    .store(false, std::sync::atomic::Ordering::Relaxed);
                 return PlatformResult::Ok("ok".into());
             }
 

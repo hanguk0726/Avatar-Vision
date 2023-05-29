@@ -459,6 +459,9 @@ fn save_thumbnail(
     width: usize,
     height: usize,
 ) {
+    if thumbnail_rgba.len() == 0 {
+        return;
+    }
     // create an ImageBuffer from the RGBA data
     let imgbuf =
         ImageBuffer::<Rgba<u8>, _>::from_raw(width as u32, height as u32, thumbnail_rgba).unwrap();
