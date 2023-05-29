@@ -2,9 +2,6 @@ use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::Stream;
 use log::debug;
 
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 

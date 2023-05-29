@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::Write,
+    io::{Write, self},
     mem::ManuallyDrop,
     path::Path,
     sync::{atomic::AtomicBool, Arc, Mutex},
@@ -78,13 +78,13 @@ impl AsyncMethodHandler for AudioHandler {
                     if Path::new(buffer_file_name).exists() {
                         std::fs::remove_file(buffer_file_name).unwrap();
                     }
-                    let mut file = File::create(buffer_file_name).unwrap();
+                    let file = File::create(buffer_file_name).unwrap();
+                    let mut buffered_file = io::BufWriter::new(file);
                     while playing.load(std::sync::atomic::Ordering::Relaxed) {
                         thread::sleep(Duration::from_millis(1000));
                         if recording2.load(std::sync::atomic::Ordering::Relaxed) {
                             let data = pcm.lock().unwrap().drain(..).collect::<Vec<u8>>();
-                            file.write_all(&data).unwrap();
-                            file.flush().unwrap();
+                            buffered_file.write_all(&data).unwrap();
                         }
                     }
                 });
