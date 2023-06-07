@@ -48,7 +48,7 @@ app.*.map.json
 data/
 rust/target/.rustc_info.json
 rust/Cargo.lock
-video_diary_database/data.mdb
+video_diary_database/
 
 temp*
 temp.h264

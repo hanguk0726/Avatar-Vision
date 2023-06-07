@@ -119,12 +119,12 @@ class PastEntriesState extends State<PastEntries>
     });
     _selectedIndexSubscription = selectedIndexSubject.listen((index) {
       List<Metadata> entries = db.uiStatePastEntries;
-      if (entries.isNotEmpty) {
+      if (entries.isNotEmpty && index < entries.length) {
         int timestamp = entries[index].timestamp;
         EventBus().fire(MetadataEvent(timestamp), eventKey);
         if (setting.thumbnailView) {
           int itemsPerRow = ((screenWidth ?? 1280) * 0.43) ~/ 250;
-          double offset = (index ~/ itemsPerRow) * 250.0;
+          double offset = (index ~/ itemsPerRow) * (250.0 + 16.0);
           _thumbnailViewScrollController.animateTo(offset,
               duration: const Duration(milliseconds: 500), curve: Curves.ease);
         }
@@ -157,7 +157,7 @@ class PastEntriesState extends State<PastEntries>
           break;
         case KeyboardEvent.keyboardControlArrowDown:
           if (multiSelectMode) return;
-          if (selectedIndex < Native().files.length - 1) {
+          if (selectedIndex < db.uiStatePastEntries.length - 1) {
             setState(() {
               selectedIndex = selectedIndex + 1;
             });
