@@ -259,7 +259,7 @@ class _VideoPageState extends State<VideoPage> {
                 ),
               writingStateMessage(
                   writingState: writingState, rendering: rendering),
-              if (showTipContent)
+              if (showTipContent && setting.tip)
                 Positioned(
                   top: 82,
                   right: 82,
