@@ -1,16 +1,31 @@
-# video_diary
 
-A new Flutter project.
+# Avatar Vision.
 
-## Getting Started
+A video diary app written in flutter and rust without ffmpeg.
 
-This project is a starting point for a Flutter application.
+<img src="https://github.com/hanguk0726/nemo_public/blob/main/assets/avatar_vision_demo.gif" width="600">
 
-A few resources to get you started if this is your first Flutter project:
+The video diary scene in the movie Avatar influenced this project.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+<img src="https://drive.google.com/uc?export=view&id=11ktL4BpFbSuMIi2z2tqioAXa-1UvOwjE" width="600">
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+
+# Anatomy of the app.
+
+more on [medium link]
+
+<img src="https://drive.google.com/uc?export=view&id=1kvv4FtpCmefvvXfFM6YdIhHqAgVGwjDV" width="600">
+
+# Platform
+
+windows 64bit
+
+# Contributing
+
+Contributions are welcome!
+
+# About assets
+
+<a href="https://www.flaticon.com/free-icons/eye" title="eye icons">Eye icons created by 3ab2ou - Flaticon</a>
+<br/>
+Image by <a href="https://www.freepik.com/free-photo/portrait-smiley-woman-waving_12501660.htm#page=17&query=video%20meeting&position=9&from_view=keyword&track=ais">Freepik</a>
