@@ -196,7 +196,8 @@ class _VideoPageState extends State<VideoPage> {
     final writingState = native.writingState;
     final recording = native.recording;
     final rendering = native.rendering;
-    final currentCameraDevice = native.currentCameraDevice;
+    final cameraDevices = native.cameraDevices;
+    final audioDevices = native.audioDevices;
     final cameraHealthCheck = native.cameraHealthCheck;
     final cameraHealthCheckErrorMessage = native.cameraHealthCheckErrorMessage;
     final width = native.currentResolutionWidth;
@@ -205,6 +206,12 @@ class _VideoPageState extends State<VideoPage> {
     final showTip = setting.tip && !recording;
 
     List<CustomError> errors = [
+      CustomError(
+        occurred: cameraDevices.isEmpty || audioDevices.isEmpty,
+        message:
+            "Need to connect the camera and microphone devices.\nPlease connect the devices and restart the app.",
+        subMessage: '',
+      ),
       CustomError(
         occurred: !cameraHealthCheck,
         message:
@@ -226,15 +233,14 @@ class _VideoPageState extends State<VideoPage> {
         body: Listener(
           child: Center(
               child: SizedBox(
-            width: width,
-            height: height,
+            width: width == 0 ? 1280 : width,
+            height: height == 0 ? 720 : height,
             child: Stack(children: [
               Container(), //empty container for the background
               AnimatedOpacity(
                   duration: const Duration(milliseconds: 700),
                   opacity: rendering ? 1 : 0,
                   child: texture(width, height)),
-              if (currentCameraDevice.isEmpty) messageNoCameraFound(),
               if (recording) recordingInfo(),
               about(),
 
@@ -460,12 +466,6 @@ class _VideoPageState extends State<VideoPage> {
             : const SizedBox());
   }
 
-  Widget messageNoCameraFound() {
-    return Center(
-        child: Text("No camera devices found",
-            style: TextStyle(
-                color: Colors.white, fontFamily: mainFont, fontSize: 32)));
-  }
 
   Widget menuTaps({required bool recording}) {
     return buildAnimatedPositioned(
