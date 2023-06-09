@@ -12,6 +12,9 @@ The video diary scene in the movie Avatar influenced this project.
 
 # Anatomy of the app.
 
+I wrote an article on the Medium for details.<br/>
+https://medium.com/@hangukshin/building-a-video-diary-app-written-in-flutter-and-rust-without-ffmpeg-8eb97a97fb49
+
 <img src="https://drive.google.com/uc?export=view&id=1eGoCuF9NH13XzUyj5DosAOJu8SUbb9N9" width="600">
 
 # Platform
