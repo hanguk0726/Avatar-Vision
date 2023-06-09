@@ -14,7 +14,7 @@ The video diary scene in the movie Avatar influenced this project.
 
 more on [medium link]
 
-<img src="https://drive.google.com/uc?export=view&id=1kvv4FtpCmefvvXfFM6YdIhHqAgVGwjDV" width="600">
+<img src="https://drive.google.com/uc?export=view&id=1eGoCuF9NH13XzUyj5DosAOJu8SUbb9N9" width="600">
 
 # Platform
 
