@@ -12,8 +12,6 @@ The video diary scene in the movie Avatar influenced this project.
 
 # Anatomy of the app.
 
-more on [medium link]
-
 <img src="https://drive.google.com/uc?export=view&id=1eGoCuF9NH13XzUyj5DosAOJu8SUbb9N9" width="600">
 
 # Platform
