@@ -180,20 +180,20 @@ class ToggleButtonState extends State<ToggleButton> {
     return MouseRegion(
       onHover: onHover,
       onExit: onHoverExit,
-      child: SizedBox(
-          height: 25,
-          width: width,
-          child: ClipPath(
-            clipper: CustomButtonClipper(),
-            child: Container(
-              decoration: BoxDecoration(
-                color: buttonColor(),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(6.0),
-                ),
-              ),
-              child: GestureDetector(
-                  onTap: widget.onPressed,
+      child: GestureDetector(
+          onTap: widget.onPressed,
+          child: SizedBox(
+            height: 25,
+            width: width,
+            child: ClipPath(
+              clipper: CustomButtonClipper(),
+              child: Container(
+                  decoration: BoxDecoration(
+                    color: buttonColor(),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6.0),
+                    ),
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Padding(
