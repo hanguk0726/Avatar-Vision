@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_diary/domain/assets.dart';
 import 'package:video_diary/services/database.dart';
+import 'package:video_diary/services/native.dart';
 import 'package:video_diary/widgets/button.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -42,6 +44,7 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
   final noteEditingController = TextEditingController();
   final titleFocusNode = FocusNode();
   final noteFocusNode = FocusNode();
+  final _native = Native();
   Function onSubmitted = () {};
 
   @override
@@ -81,7 +84,9 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
   Future<void> setWindowSize() async {
     var size = await windowManager.getSize();
     setState(() {
-      screenHeight = size.height;
+      final currentResolutionHeight = _native.currentResolutionHeight;
+      // The texture widget can't be bigger than the resolution.
+      screenHeight = min(currentResolutionHeight, size.height);
       final defaultLines = widget.smaller ? 9 : 12;
       maxLines = defaultLines + ((screenHeight! - 720) ~/ 26);
     });

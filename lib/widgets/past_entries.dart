@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class PastEntriesState extends State<PastEntries>
   List<String> allowedEventKeys = ['tab', 'pastEntries', 'system'];
   double? screenHeight;
   double? screenWidth;
+  final _native = Native();
   bool multiSelectMode = false;
   late StreamSubscription<List<int>> _selectedIndicesSubscription;
   final ScrollController _thumbnailViewScrollController = ScrollController();
@@ -76,9 +78,12 @@ class PastEntriesState extends State<PastEntries>
 
   Future<void> setWindowSize() async {
     var size = await windowManager.getSize();
+    // The texture widget can't be bigger than the resolution.
+    final currentResolutionHeight = _native.currentResolutionHeight;
+    final currentResolutionWidth = _native.currentResolutionWidth;
     setState(() {
-      screenHeight = size.height;
-      screenWidth = size.width;
+      screenHeight = min(currentResolutionHeight, size.height);
+      screenWidth = min(currentResolutionWidth, size.width);
     });
   }
 
