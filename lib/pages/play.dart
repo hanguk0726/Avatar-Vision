@@ -46,13 +46,14 @@ class PlayState extends State<Play> {
   bool isFullscreen = false;
   bool showMetadata = true;
   bool pinMetadata = false;
+  bool isMetadataEditing = false;
 
   double volume = 100;
   bool muted = false;
   Duration playtime = const Duration(seconds: 0);
   Duration animatedOpacity = const Duration(milliseconds: 300);
   bool showOverlayAndMouseCursor = true;
-  Timer? _timer;
+  Timer? _overlayTimer;
   bool playCompleted = false;
   bool isMovedAway = false;
   final focusNode = FocusNode();
@@ -60,6 +61,7 @@ class PlayState extends State<Play> {
   Metadata? metadata;
   double size = 32;
   Color color = customSky;
+
   bool _showMetadata() {
     return metadata != null &&
         showMetadata &&
@@ -94,6 +96,9 @@ class PlayState extends State<Play> {
 
   void initKeyboradEvent() {
     _eventSubscription = EventBus().onEvent.listen((event) {
+      if (isMetadataEditing) {
+        return;
+      }
       if (event.key != eventKey) {
         return;
       }
@@ -155,6 +160,10 @@ class PlayState extends State<Play> {
     }
   }
 
+  void handleBackspace() {
+    Navigator.pop(context);
+  }
+
   void handleSpace() {
     controller!.player.playOrPause();
     setState(() {});
@@ -188,10 +197,6 @@ class PlayState extends State<Play> {
     setState(() {});
   }
 
-  void handleBackspace() {
-    Navigator.pop(context);
-  }
-
   void handleEscape() {
     if (isFullscreen) {
       FullScreenWindow.setFullScreen(false);
@@ -207,7 +212,7 @@ class PlayState extends State<Play> {
       await player.dispose();
     });
     _eventSubscription.cancel();
-    _timer?.cancel();
+    _overlayTimer?.cancel();
     focusNode.unfocus();
     focusNode.dispose();
     super.dispose();
@@ -225,8 +230,8 @@ class PlayState extends State<Play> {
     setState(() {
       showOverlayAndMouseCursor = true;
     });
-    _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 2000), () {
+    _overlayTimer?.cancel();
+    _overlayTimer = Timer(const Duration(milliseconds: 2000), () {
       setState(() {
         showOverlayAndMouseCursor = false;
       });
@@ -236,13 +241,9 @@ class PlayState extends State<Play> {
   Widget videoPlayer() {
     return GestureDetector(
       onTap: () {
-        if (controller!.player.state.playing) {
-          controller!.player.pause();
-        } else {
-          controller!.player.play();
-        }
-        setState(() {});
-        startOverlayTimer();
+        setState(() {
+          showOverlayAndMouseCursor = !showOverlayAndMouseCursor;
+        });
       },
       child: Video(
         controller: controller,
@@ -265,24 +266,37 @@ class PlayState extends State<Play> {
                   MetadataWidget(
                     metadata: metadata!,
                     smaller: true,
+                    onEdited: () {
+                      setState(() {
+                        isMetadataEditing = true;
+                      });
+                      startOverlayTimer();
+                    },
+                    onSubmmited: () {
+                      setState(() {
+                        isMetadataEditing = false;
+                        print("kfdsjg;klfdg");
+                      });
+                    },
                   ),
-                  Positioned(
-                      top: 8,
-                      right: 8,
-                      child: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            pinMetadata = !pinMetadata;
-                          });
-                        },
-                        icon: Icon(
-                          pinMetadata
-                              ? Icons.push_pin_sharp
-                              : Icons.push_pin_outlined,
-                          color: customSky,
-                          size: 30,
-                        ),
-                      ))
+                  if (!isMetadataEditing)
+                    Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              pinMetadata = !pinMetadata;
+                            });
+                          },
+                          icon: Icon(
+                            pinMetadata
+                                ? Icons.push_pin_sharp
+                                : Icons.push_pin_outlined,
+                            color: customSky,
+                            size: 30,
+                          ),
+                        ))
                 ],
               ),
             )));

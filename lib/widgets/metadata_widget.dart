@@ -14,9 +14,15 @@ import '../tools/time.dart';
 class MetadataWidget extends StatefulWidget {
   final Metadata metadata;
   final bool smaller;
+  final Function? onEdited;
+  final Function? onSubmmited;
 
-  MetadataWidget({required this.metadata, this.smaller = false})
-      : super(key: ValueKey(metadata));
+  MetadataWidget({
+    required this.metadata,
+    this.smaller = false,
+    this.onEdited,
+    this.onSubmmited,
+  }) : super(key: ValueKey(metadata));
 
   @override
   MetadataWidgetState createState() => MetadataWidgetState();
@@ -34,8 +40,10 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
   final titleEditingController = TextEditingController();
   final datatimeEditingController = TextEditingController();
   final noteEditingController = TextEditingController();
-
+  final titleFocusNode = FocusNode();
+  final noteFocusNode = FocusNode();
   Function onSubmitted = () {};
+
   @override
   void initState() {
     super.initState();
@@ -47,11 +55,22 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
     onSubmitted = () {
       model.flush();
       isDirtySubject.add(false);
+      widget.onSubmmited?.call();
     };
     titleEditingController.text = model.title;
     datatimeEditingController.text =
         formatTimestamp(timestamp: model.timestamp);
     noteEditingController.text = model.note ?? "";
+    titleFocusNode.addListener(() {
+      if (titleFocusNode.hasFocus) {
+        widget.onEdited?.call();
+      }
+    });
+    noteFocusNode.addListener(() {
+      if (noteFocusNode.hasFocus) {
+        widget.onEdited?.call();
+      }
+    });
   }
 
   @override
@@ -73,6 +92,8 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
     super.dispose();
     windowManager.removeListener(this);
     _timer?.cancel();
+    titleEditingController.dispose();
+    datatimeEditingController.dispose();
   }
 
   @override
@@ -132,6 +153,7 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
                                             () {
                                           model.flush();
                                           isDirtySubject.add(false);
+                                          widget.onSubmmited?.call();
                                         },
                                             height: 32.0,
                                             backgroundColorOpacity: 0.6,
@@ -146,11 +168,13 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
                         ),
                         const SizedBox(height: 16),
                         TextField(
+                            focusNode: titleFocusNode,
                             controller: titleEditingController,
                             cursorColor: Colors.white,
                             onChanged: (value) {
                               model.title = value;
                               isDirtySubject.add(model.isDirty);
+                              widget.onEdited?.call();
                             },
                             onSubmitted: (value) {
                               onSubmitted();
@@ -171,6 +195,7 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
                           color: borderColor,
                         ),
                         TextField(
+                            focusNode: noteFocusNode,
                             cursorColor: Colors.white,
                             controller: noteEditingController,
                             maxLines: maxLines,
@@ -182,6 +207,7 @@ class MetadataWidgetState extends State<MetadataWidget> with WindowListener {
                             onChanged: (value) {
                               model.note = value;
                               isDirtySubject.add(model.isDirty);
+                              widget.onEdited?.call();
                             },
                             onSubmitted: (value) {
                               onSubmitted();
