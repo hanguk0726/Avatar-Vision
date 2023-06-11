@@ -195,8 +195,8 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           debugPrint('writingState: $writingState');
           if (writingState == WritingState.idle) {
             if (!rendering) {
-              await startCamera();
               DatabaseService().sync();
+              await startCamera();
             }
           }
           return null;
@@ -254,7 +254,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     // debugPrint(text);
   }
 
-  void openTextureStream() async {
+  Future<void> openTextureStream() async {
     final res = await textureChannel.invokeMethod('open_texture_stream', {
       'resolution': currentResolution,
     });
@@ -295,7 +295,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void openCameraStream() async {
+  Future<void> openCameraStream() async {
     final lastPreferredResolution = Setting().lastPreferredResolution;
     String requestedResolution = currentResolution;
     if (lastPreferredResolution.isNotEmpty && currentResolution.isEmpty) {
@@ -325,7 +325,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void startRendering() async {
+  Future<void> startRendering() async {
     final res = await renderingChannel.invokeMethod('start_rendering', {});
     _showResult(res);
   }
@@ -422,11 +422,6 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     cameraHealthCheck = res == "ok";
     cameraHealthCheckErrorMessage = res;
 
-    if (!cameraHealthCheck) {
-      stopRendering();
-      stopCameraStream();
-      queryDevices();
-    }
     notifyListeners();
     return;
   }
@@ -461,11 +456,11 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   }
 
   Future<void> startCamera() async {
-    openCameraStream();
+    await openCameraStream();
     availableResolution();
     await _currentResolution();
     openTextureStream();
-    startRendering();
+    await startRendering();
     _cameraHealthCheck();
   }
 
