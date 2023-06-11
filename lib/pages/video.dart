@@ -239,7 +239,7 @@ class _VideoPageState extends State<VideoPage> {
               Container(), //empty container for the background
               AnimatedOpacity(
                   duration: const Duration(milliseconds: 700),
-                  opacity: rendering ? 1 : 0,
+                  opacity: (rendering && cameraHealthCheck) ? 1 : 0,
                   child: texture(width, height)),
               if (recording) recordingInfo(),
               about(),
