@@ -189,7 +189,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
           writingState = WritingState.fromName(call.arguments);
           if (writingState == WritingState.saving) {
             stopRendering();
-            stopCameraStream();
+            await stopCameraStream();
           }
           notifyListeners();
           debugPrint('writingState: $writingState');
@@ -308,7 +308,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
     _showResult(res);
   }
 
-  void stopCameraStream() async {
+  Future<void> stopCameraStream() async {
     final res = await cameraChannel.invokeMethod('stop_camera_stream', {});
     _showResult(res);
   }
@@ -474,7 +474,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   void selectCameraDevice(String device) async {
     await _selectCameraDevice(device);
     await _currentCameraDevice();
-    startCamera();
+    await startCamera();
   }
 
   void observeAudioBuffer(BehaviorSubject<bool> stream) async {
@@ -495,7 +495,7 @@ class Native with ChangeNotifier, DiagnosticableTreeMixin {
   void selectResolution(String resolution) async {
     currentResolution = resolution;
     stopRendering();
-    stopCameraStream();
-    startCamera();
+    await stopCameraStream();
+    await startCamera();
   }
 }
