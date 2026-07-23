@@ -68,8 +68,52 @@ Flutter UI  ──(irondash method channels)──┐
 | 9 | 낮음 | `recording.rs` `encoder()` | **비트레이트 360kbps 고정.** 해상도 무관 → 1080p에서 블록 노이즈. `RateControlMode::Timestamp`인데 실제 PTS 미전달. |
 | 10 | 낮음 | `domain/channel.rs` `reset_*` | 다른 스레드가 옛 sender/receiver 클론을 든 채 채널을 락 밑에서 교체 → 고아 채널로 프레임 전송 레이스. |
 | 11 | 위생 | 전역 | 오타·데드코드: `infate_camera`, `inflate_camera_conection`, `start_encording`, `textrue`, `#[cfg(unsued)]`(오타라 영원히 비컴파일), `channles`. **Rust 유닛 테스트 0개** — 바이트 민감 변환인데 회귀 방지 장치가 없다. |
+| 12 | 낮음 | `rendering_message_channel.rs` `start_rendering` | **표시 루프가 프레임 도착과 분리.** 24fps 고정 타이머가 `render_buffer`를 무조건 긁어 `mark_frame_available` 호출. 카메라가 더 빠르면 디코드해놓고 안 보여주는 프레임이 생기고, 버퍼가 안 바뀌어도 동일 프레임을 또 복사·업로드한다. (§4 참조) |
 
-## 4. 개선 우선순위 로드맵
+## 4. 렌더링(표시) 경로 심층
+
+프리뷰 표시는 **최종 Flutter 합성만 GPU이고 나머지는 전부 CPU**다. GPU가 아닌 것 자체는 이 규모의 웹캠 프리뷰에선 정석적이고 합리적인 선택이지만, 경로에 제거 가능한 낭비가 있다.
+
+### 프레임 1장당 실제 흐름
+
+```
+카메라 CPU 버퍼 ─▶ rendering ch
+  ─▶ tokio(8) decode_to_rgb            ← [CPU 변환 ①] MJPEG/YUYV/NV12 → RGBA
+  ─▶ render_buffer: Mutex<Vec<u8>> (move)
+        ↑ 여기까지가 "프레임 도착" 시점
+  [별도 스레드] 24fps 고정 타이머 (rendering_message_channel.rs)
+     ─▶ mark_frame_available()
+        ─▶ Flutter가 get_payload() 호출
+           ─▶ data.to_owned()          ← [CPU 풀프레임 복사 ②] (domain/textrue.rs, 락 안에서)
+           ─▶ SimplePixelData
+              ─▶ 엔진이 픽셀버퍼를 GPU 텍스처로 업로드  ← [CPU→GPU 업로드 ③] 매 프레임
+                 ─▶ GPU 합성
+```
+
+GPU는 마지막 합성에만 관여하고, 디코드·색변환·스테이징은 CPU + 풀프레임 복사 2회 + 업로드 1회로 처리된다.
+
+### 진짜 비용은 "CPU라서"가 아니라 낭비
+
+1. **`get_payload`의 `data.to_owned()`** (`domain/textrue.rs`) — pull마다 풀프레임 통째 복사. 더블버퍼/스왑으로 제거 가능. (§3 #8)
+2. **표시 루프가 도착과 분리** (`rendering_message_channel.rs`) — 24fps 고정 폴링이라 카메라가 더 빠르면 디코드하고도 안 보여주는 프레임 발생, 버퍼 불변 시 동일 프레임 재복사·재업로드. (§3 #12)
+3. **프리뷰·인코딩 이중 디코드** — 같은 프레임을 texture에서 1회, 인코딩에서 1회. (§3 #4)
+4. **색변환이 스칼라 CPU** — `decode_to_rgb`가 프리뷰 매 프레임 실행. `rgba_to_yuv`처럼 SIMD/캐시 최적화 여지 있음.
+
+### GPU로 가야 하는가 — 순서
+
+**바로 가지 말 것.** 먼저 위 낭비(①②③)를 제거하고 측정한다. 대부분의 오버헤드가 여기서 사라진다.
+
+그래도 1080p+에서 코어가 포화되면:
+- 색변환을 셰이더/D3D11 Video Processor로 오프로드 + **GPU 텍스처 provider**로 제로카피 핸드오프.
+- 또는 Media Foundation/DXVA **하드웨어 디코드**.
+
+두 가지 제약을 전제로 판단해야 한다:
+- **nokhwa가 프레임을 이미 CPU 메모리로 전달**하므로 GPU 경로여도 CPU→GPU 업로드는 남는다. GPU가 이득 보려면 업로드 후 변환·스케일을 GPU에 두고 합성까지 그대로 넘겨야 한다.
+- **irondash_texture의 대상 플랫폼(Windows) GPU 텍스처 지원 여부를 먼저 확인**해야 한다. 현재는 CPU `PixelDataProvider`만 사용 중이며, 지원이 없으면 GPU 경로는 플랫폼 인터롭 대공사가 된다.
+
+**요약:** 렌더가 CPU인 것은 정당하다. 우선순위는 GPU 이식이 아니라 **`to_owned` 복사 제거 + 표시 루프를 프레임 도착에 연동 + 1회 디코드 공유**다. 그걸 다 하고도 고해상도에서 부족할 때 비로소 GPU 텍스처/하드웨어 디코드가 답이다.
+
+## 5. 개선 우선순위 로드맵
 
 ### 1순위 — 안정성 (사용자 체감 크래시 제거)
 - 핫패스 `.unwrap()` → `Result`/`match`로 교체하고 채널 핸들러에서 에러를 UI로 반환. 특히 `map.get`, `parse`, 채널 send, mutex lock.
@@ -79,6 +123,7 @@ Flutter UI  ──(irondash method channels)──┐
 - 인코딩 채널을 `bounded`로 바꿔 백프레셔 확보 → RAM 폭증 차단 (#3).
 - `webcam_frame_queue`를 `Vec` 통째 clone 대신 `VecDeque` + `pop_front` 소비 (#2).
 - 프레임 1회 디코드 후 프리뷰·인코딩 공유, 가능하면 카메라 네이티브 YUV 직결 (#4).
+- 렌더 경로 낭비 제거: `get_payload`의 `to_owned` 스왑, 표시 루프를 프레임 도착에 연동 (#8, #12, §4).
 
 ### 3순위 — 파이프라인 정확도
 - PTS 기반 레이트 컨트롤로 `batch()` 대체, fps 드리프트·재전송 패딩 제거 (#6).
@@ -89,7 +134,7 @@ Flutter UI  ──(irondash method channels)──┐
 - 비트레이트를 해상도·목표품질 함수로 (#9).
 - `tools/image_processing.rs`·`tools/ordqueue.rs`·`batch()`에 Rust 유닛 테스트 추가 (#11).
 
-## 5. 참고 — 이미 반영된 성능 개선
+## 6. 참고 — 이미 반영된 성능 개선
 
 브랜치 `claude/lerobot-video-reader-perf-wt007v`에서 **출력 바이트를 바꾸지 않는** 세 가지 최적화가 적용됨:
 
