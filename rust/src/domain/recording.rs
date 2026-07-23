@@ -177,19 +177,16 @@ pub fn to_mp4<P: AsRef<Path>>(
     debug!("frame_rate: {}", frame_rate);
 
     // read data from file temp.pcm
+    // The PCM is already little-endian 16-bit. The previous code copied it
+    // sample-by-sample through `u16::from_le_bytes(..).to_le_bytes()`, which
+    // reproduces the exact same bytes on any architecture (verified exhaustively
+    // over all 65536 possible samples) while allocating a second buffer and
+    // panicking on an odd-length input. Read the bytes straight through instead.
     let audio_data = {
         let mut file = File::open("temp.pcm").unwrap();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
-        let mut data = Vec::<u8>::new();
-        let mut index = 0;
-    
-        while index < buffer.len() {
-            let value = u16::from_le_bytes([buffer[index], buffer[index + 1]]);
-            data.extend(&value.to_le_bytes());
-            index += 2;
-        }
-        data
+        buffer
     };
 
     mp4muxer.write_video_with_audio(buf_h264, frame_rate, &audio_data);
