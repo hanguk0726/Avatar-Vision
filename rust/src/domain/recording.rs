@@ -139,8 +139,11 @@ pub fn encode_to_h264(
                 buffered_file.write_all(nal).unwrap();
             }
         }
-        buffered_file.flush().unwrap();
     }
+    // Flush once after every frame has been written. The previous code flushed
+    // inside the loop, forcing a write() syscall per frame and defeating the
+    // BufWriter; a single flush at the end lets the buffer batch the writes.
+    buffered_file.flush().unwrap();
 
     debug!(
         "encoding h264 done: {:?}, count {}",
