@@ -76,45 +76,50 @@ fn yuyv422_to_rgb_(data: &[u8], rgba: bool) -> Vec<u8> {
 
 pub fn rgba_to_yuv(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
     let size = (3 * width * height) / 2;
-    let mut yuv = vec![0; size];
+    let mut yuv = vec![0u8; size];
 
     let u_base = width * height;
-    let v_base = u_base + u_base / 4;
     let half_width = width / 2;
 
-    // y is full size, u, v is quarter size
-    let pixel = |x: usize, y: usize| -> (f32, f32, f32) {
-        // two dim to single dim
-        let base_pos = (x + y * width) * 4;
+    // Split the destination into its three planes so each is a distinct
+    // mutable slice. This lets the loop write straight into the plane without
+    // recomputing plane offsets per pixel, and lets the compiler keep the Y
+    // writes together for better cache behaviour.
+    let (y_plane, uv_plane) = yuv.split_at_mut(u_base);
+    let (u_plane, v_plane) = uv_plane.split_at_mut(u_base / 4);
+
+    #[inline(always)]
+    fn rgb_at(rgba: &[u8], base_pos: usize) -> (f32, f32, f32) {
         (
             rgba[base_pos] as f32,
             rgba[base_pos + 1] as f32,
             rgba[base_pos + 2] as f32,
         )
-    };
+    }
 
-    let write_y = |yuv: &mut [u8], x: usize, y: usize, rgb: (f32, f32, f32)| {
-        yuv[x + y * width] =
-            (0.2578125 * rgb.0 + 0.50390625 * rgb.1 + 0.09765625 * rgb.2 + 16.0) as u8;
-    };
+    #[inline(always)]
+    fn write_y(rgb: (f32, f32, f32)) -> u8 {
+        (0.2578125 * rgb.0 + 0.50390625 * rgb.1 + 0.09765625 * rgb.2 + 16.0) as u8
+    }
 
-    let write_u = |yuv: &mut [u8], x: usize, y: usize, rgb: (f32, f32, f32)| {
-        yuv[u_base + x + y * half_width] =
-            (-0.1484375 * rgb.0 + -0.2890625 * rgb.1 + 0.4375 * rgb.2 + 128.0) as u8;
-    };
-
-    let write_v = |yuv: &mut [u8], x: usize, y: usize, rgb: (f32, f32, f32)| {
-        yuv[v_base + x + y * half_width] =
-            (0.4375 * rgb.0 + -0.3671875 * rgb.1 + -0.0703125 * rgb.2 + 128.0) as u8;
-    };
-    for i in 0..width / 2 {
-        for j in 0..height / 2 {
+    // Iterate the 2x2 chroma blocks in row-major order (row `j` outer, column
+    // `i` inner). The original walked column-major, so each inner step jumped
+    // `2 * width` bytes in the row-major Y plane and thrashed the cache; walking
+    // rows keeps the accessed bytes contiguous. The arithmetic below is
+    // byte-for-byte identical to the previous implementation.
+    for j in 0..height / 2 {
+        let py = j * 2;
+        let row0 = py * width;
+        let row1 = (py + 1) * width;
+        for i in 0..width / 2 {
             let px = i * 2;
-            let py = j * 2;
-            let pix0x0 = pixel(px, py);
-            let pix0x1 = pixel(px, py + 1);
-            let pix1x0 = pixel(px + 1, py);
-            let pix1x1 = pixel(px + 1, py + 1);
+            let b00 = (row0 + px) * 4;
+            let b10 = (row1 + px) * 4;
+            let pix0x0 = rgb_at(rgba, b00);
+            let pix0x1 = rgb_at(rgba, b10);
+            let pix1x0 = rgb_at(rgba, b00 + 4);
+            let pix1x1 = rgb_at(rgba, b10 + 4);
+
             let avg_pix = (
                 (pix0x0.0 as u32 + pix0x1.0 as u32 + pix1x0.0 as u32 + pix1x1.0 as u32) as f32
                     / 4.0,
@@ -123,12 +128,17 @@ pub fn rgba_to_yuv(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
                 (pix0x0.2 as u32 + pix0x1.2 as u32 + pix1x0.2 as u32 + pix1x1.2 as u32) as f32
                     / 4.0,
             );
-            write_y(&mut yuv[..], px, py, pix0x0);
-            write_y(&mut yuv[..], px, py + 1, pix0x1);
-            write_y(&mut yuv[..], px + 1, py, pix1x0);
-            write_y(&mut yuv[..], px + 1, py + 1, pix1x1);
-            write_u(&mut yuv[..], i, j, avg_pix);
-            write_v(&mut yuv[..], i, j, avg_pix);
+
+            y_plane[row0 + px] = write_y(pix0x0);
+            y_plane[row1 + px] = write_y(pix0x1);
+            y_plane[row0 + px + 1] = write_y(pix1x0);
+            y_plane[row1 + px + 1] = write_y(pix1x1);
+
+            let c = j * half_width + i;
+            u_plane[c] =
+                (-0.1484375 * avg_pix.0 + -0.2890625 * avg_pix.1 + 0.4375 * avg_pix.2 + 128.0) as u8;
+            v_plane[c] =
+                (0.4375 * avg_pix.0 + -0.3671875 * avg_pix.1 + -0.0703125 * avg_pix.2 + 128.0) as u8;
         }
     }
     yuv
