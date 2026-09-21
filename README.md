@@ -1,4 +1,5 @@
 
+
 # Avatar Vision.
 
 A video diary app written in flutter and rust without ffmpeg.
@@ -19,7 +20,7 @@ https://medium.com/@hangukshin/building-a-video-diary-app-written-in-flutter-and
 
 # Platform
 
-windows 64bit
+Windows 64-bit
 
 # Contributing
 
